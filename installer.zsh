@@ -22,7 +22,7 @@ install_zsh() {
 }
 
 install_ohmyzsh() {
-    if [ -z "${ZSH:-}" -o -z "${ZSH_CUSTOM:-}" ]; then
+    if [[ ! -d "${HOME}/.oh-my-zsh" && (-z "${ZSH}" || -z "${ZSH_CUSTOM}") ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
         curl -fsSL http://install.ohmyz.sh | sh
     fi
@@ -35,7 +35,7 @@ install_theme() {
     local theme_path="github.com/zthxxx/${ZTHEME}/raw/master/${ZTHEME}.zsh-theme"
     local theme_file="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/${ZTHEME}.zsh-theme"
     curl -sSL "$theme_path" -o "$theme_file"
-    sed  "-i''" "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
+    sed "-i" "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
 }
 
 install_theme
