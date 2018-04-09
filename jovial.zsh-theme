@@ -103,27 +103,27 @@ function get_return_status {
 function prompt_node_version {
     if rev_parse_find "package.json" || rev_parse_find "node_modules"; then
         if iscommand node; then
-            NODE_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[120]%} "
-            NODE_PROMPT="node `node -v`"
+            local NODE_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[120]%} "
+            local NODE_PROMPT="node `node -v`"
         else
-            NODE_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
-            NODE_PROMPT="Nodejs%{$FG[242]%}]"
+            local NODE_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
+            local NODE_PROMPT="Nodejs%{$FG[242]%}]"
         fi
         echo "${NODE_PROMPT_PREFIX}${NODE_PROMPT}"
     fi
 }
 
 function prompt_python_version {
-    PYTHON_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[123]%} "
+    local PYTHON_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[123]%} "
     if rev_parse_find "venv"; then
-        PYTHON_PROMPT="`$(rev_parse_find venv '' true)/venv/bin/python --version`"
+        local PYTHON_PROMPT="`$(rev_parse_find venv '' true)/venv/bin/python --version 2>&1`"
         echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}"
     elif rev_parse_find "requirements.txt"; then
         if iscommand python; then
-            PYTHON_PROMPT="`python --version`"
+            local PYTHON_PROMPT="`python --version 2>&1`"
         else
             PYTHON_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
-            PYTHON_PROMPT="Python%{$FG[242]%}]"
+            local PYTHON_PROMPT="Python%{$FG[242]%}]"
         fi
         echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}"
     fi
