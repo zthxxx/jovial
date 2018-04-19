@@ -48,7 +48,7 @@ install_zsh_plugins() {
             :n; \
                 /plugins=(.*)/ \
             ! { N; bn }; \
-            s/(.*)/(\n  ${plugin_str// /\n  }\n)/ \
+            s/(.*)/(\n  ${plugin_str// /"\n"  }\n)/ \
         } \
     " ~/.zshrc
 }
