@@ -7,14 +7,14 @@
   - host and user
   - current path
   - development environment segment
-  - git branch
+  - git branch, git action
   - time in line end
   - venv
 - plugin (auto be installed)
   - git
   - autojump
   - urltools
- 
+
 
 ## Install
 

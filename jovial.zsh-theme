@@ -1,20 +1,20 @@
 # jovial.zsh-theme
 # ref: http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
 
-VIRTUAL_ENV_DISABLE_PROMPT=true
-ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[239]%}on%{$reset_color%} (%{$FG[159]%}"
-ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
-ZSH_THEME_GIT_PROMPT_DIRTY="%{$reset_color%})%{$FG[202]%}✘✘✘"
-ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
+REV_GIT_DIR=""
 
+iscommand() { command -v "$1" > /dev/null; }
 
-function iscommand { command -v "$1" > /dev/null; }
+is_git_dir() { command git rev-parse &>/dev/null; }
 
-function is_git {
-  command git rev-parse --is-inside-work-tree &>/dev/null
-}
+chpwd_git_dir_hook() { REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null`; }
+chpwd_git_dir_hook
+chpwd_functions+=chpwd_git_dir_hook
 
-function rev_parse_find {
+# rev_parse_find(filename:string, path:string, output:boolean)
+# reverse from path to root wanna find the targe file
+# output: whether show the file path
+rev_parse_find() {
     local target="$1"
     local current_path="${2:-`pwd`}"
     local whether_output=${3:-false}
@@ -30,11 +30,11 @@ function rev_parse_find {
     return 1
 }
 
-function venv_info_prompt { [ $VIRTUAL_ENV ] && echo "$FG[242](%{$FG[159]%}$(basename $VIRTUAL_ENV)$FG[242])%{$reset_color%} "; }
+venv_info_prompt() { [ $VIRTUAL_ENV ] && echo "$FG[242](%{$FG[159]%}$(basename $VIRTUAL_ENV)$FG[242])%{$reset_color%} "; }
 
-function get_host_name { echo "[%{$FG[157]%}%m%{$reset_color%}]"; }
+get_host_name() { echo "[%{$FG[157]%}%m%{$reset_color%}]"; }
 
-function get_user_name {
+get_user_name() {
     local name_prefix="%{$reset_color%}"
     if [[ "$USER" == 'root' || "%UID" == "0" ]]; then
         name_prefix="%{$FG[203]%}"
@@ -42,24 +42,24 @@ function get_user_name {
     echo "${name_prefix}%n%{$reset_color%}"
 }
 
-function type_tip_pointer {
-    if is_git; then
+type_tip_pointer() {
+    if [[ -n "$REV_GIT_DIR" ]]; then
         echo '(ﾉ˚Д˚)ﾉ'
     else
         echo '─➤'
     fi
 }
 
-function current_dir {
+current_dir() {
     echo "%{$terminfo[bold]$FG[228]%}%~%{$reset_color%}"
 }
 
-function get_date_time {
+get_date_time() {
     # echo "%{$reset_color%}%D %*"
     date "+%m-%d %H:%M:%S"
 }
 
-function get_space_size {
+get_space_size() {
     # ref: http://zsh.sourceforge.net/Doc/Release/Expansion.html#Parameter-Expansion-Flags
     local str="$1"
     local zero_pattern='%([BSUbfksu]|([FB]|){*})'
@@ -68,12 +68,12 @@ function get_space_size {
     echo $size
 }
 
-function get_fill_space {
+get_fill_space() {
     local size=`get_space_size "$1"`
     printf "%${size}s"
 }
 
-function previous_align_right {
+previous_align_right() {
     # CSI ref: https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences
     local new_line='
     '
@@ -84,7 +84,7 @@ function previous_align_right {
     echo "${previous_line}${cursor_back}${str}${new_line}"
 }
 
-function align_right {
+align_right() {
     local str="$1"
     local align_site=`get_space_size "$str"`
     local cursor_back="\033[${align_site}G"
@@ -92,7 +92,8 @@ function align_right {
     echo "${cursor_back}${str}${cursor_begin}"
 }
 
-function get_return_status {
+# pin the last commad exit code at previous line end
+get_pin_exit_code() {
     local exit_code=$?
     if [[ $exit_code != 0 ]]; then
         local exit_code_warn=" %{$FG[246]%}exit:%{$fg_bold[red]%}${exit_code}%{$reset_color%}"
@@ -100,7 +101,7 @@ function get_return_status {
     fi
 }
 
-function prompt_node_version {
+prompt_node_version() {
     if rev_parse_find "package.json" || rev_parse_find "node_modules"; then
         if iscommand node; then
             local NODE_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[120]%} "
@@ -113,7 +114,7 @@ function prompt_node_version {
     fi
 }
 
-function prompt_python_version {
+prompt_python_version() {
     local PYTHON_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[123]%} "
     if rev_parse_find "venv"; then
         local PYTHON_PROMPT="`$(rev_parse_find venv '' true)/venv/bin/python --version 2>&1`"
@@ -129,7 +130,7 @@ function prompt_python_version {
     fi
 }
 
-function dev_env_segment {
+dev_env_segment() {
     local SEGMENT_ELEMENTS=(node python)
     for element in "${SEGMENT_ELEMENTS[@]}"; do
         local segment=`prompt_${element}_version`
@@ -140,7 +141,67 @@ function dev_env_segment {
     done
 }
 
-local JOVIAL_PROMPT_PREVIOUS='`get_return_status`'
+git_action_prompt() {
+    if [[ -z "$REV_GIT_DIR" ]]; then return 1; fi
+    local action=""
+    local rebase_merge="${REV_GIT_DIR}/rebase-merge"
+    local rebase_apply="${REV_GIT_DIR}/rebase-apply"
+	if [[ -d "$rebase_merge" ]]; then
+        local rebase_step=`cat "${rebase_merge}/msgnum"`
+        local rebase_total=`cat "${rebase_merge}/end"`
+        local rebase_process="${rebase_step}/${rebase_total}"
+		if [[ -f "${rebase_merge}/interactive" ]]; then
+			action="REBASE-i"
+		else
+			action="REBASE-m"
+		fi
+	elif [[ -d "$rebase_apply" ]]; then
+        local rebase_step=`cat "${rebase_apply}/next"`
+        local rebase_total=`cat "${rebase_apply}/last"`
+        local rebase_process="${rebase_step}/${rebase_total}"
+        if [ -f "${rebase_apply}/rebasing" ]; then
+            action="REBASE"
+        elif [ -f "${rebase_apply}/applying" ]; then
+            action="AM"
+        else
+            action="AM/REBASE"
+        fi
+    elif [ -f "${REV_GIT_DIR}/MERGE_HEAD" ]; then
+        action="MERGING"
+    elif [ -f "${REV_GIT_DIR}/CHERRY_PICK_HEAD" ]; then
+        action="CHERRY-PICKING"
+    elif [ -f "${REV_GIT_DIR}/REVERT_HEAD" ]; then
+        action="REVERTING"
+    elif [ -f "${REV_GIT_DIR}/BISECT_LOG" ]; then
+        action="BISECTING"
+    fi
+
+	if [[ -n "$rebase_process" ]]; then
+		action="$action $rebase_process"
+	fi
+    if [[ -n "$action" ]]; then
+		action="|$action"
+	fi
+
+    echo "$action"
+}
+
+
+VIRTUAL_ENV_DISABLE_PROMPT=true
+
+ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[239]%}on%{$reset_color%} (%{$FG[159]%}"
+ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
+GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
+ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
+
+git_action_prompt_hook() {
+    if [[ -z "$REV_GIT_DIR" ]]; then return 1; fi
+    ZSH_THEME_GIT_PROMPT_DIRTY="`git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
+}
+precmd_functions+=git_action_prompt_hook
+
+
+local JOVIAL_PROMPT_PREVIOUS='`get_pin_exit_code`'
 local JOVIAL_PROMPT_HEAD='╭─$(get_host_name) %{$FG[239]%}as $(get_user_name) %{$FG[239]%}in $(current_dir) $(dev_env_segment)$(git_prompt_info)  '
 local JOVIAL_PROMPT_FOOT='╰─$(type_tip_pointer) $(venv_info_prompt) '
 local JOVIAL_PROMPT_HEAD_RIGHT_TIME='$(align_right " `get_date_time`")'
