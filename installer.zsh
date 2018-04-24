@@ -1,19 +1,23 @@
 #!/usr/bin/env zsh
 
+is_command() { command -v $@ > /dev/null; }
+
+install_via_manager() {
+    local packages="$@"
+    brew install "$packages" || \
+        apt install -y "$packages" || \
+        apt-get install -y "$packages" || \
+        yum -y install "$packages" || \
+        pacman -S --noconfirm "$packages"
+}
+
 install_zsh() {
     # other ref: https://unix.stackexchange.com/questions/136423/making-zsh-default-shell-without-root-access?answertab=active#tab-top
     local UNAME="$1"
     if [ -z "${ZSH_VERSION}" ]; then
-        if command -v zsh > /dev/null; then 
+        if is_command zsh || install_via_manager zsh; then
             chsh $UNAME -s `command -v zsh`
             return 0
-        fi
-        echo "this theme base on zsh, trying to install it!" >&2
-        if brew install zsh || \
-            apt install -y zsh || \
-            apt-get install -y zsh || \
-            yum -y install zsh ; then
-            chsh $UNAME -s `command -v zsh`
         else
             echo "ERROR, plz install zsh manual."
             return 1
@@ -30,6 +34,33 @@ install_ohmyzsh() {
 
 (install_zsh "$1" && install_ohmyzsh) || exit 1
 
+install_zsh_plugins() {
+    install_via_manager git autojump
+    local plugins=(
+        git
+        autojump
+        urltools
+    )
+    local plugin_str="${plugins[@]}"
+    sed "-i" "
+        /^plugins=(/ \
+        { \
+            :n; \
+                /plugins=(.*)/ \
+            ! { N; bn }; \
+            s/(.*)/(\n  ${plugin_str// /\n  }\n)/ \
+        } \
+    " ~/.zshrc
+}
+
+preference_zsh() {
+    if is_command brew; then
+        sed "-i" "s/HOMEBREW_NO_AUTO_UPDATE/d" ~/.zshrc
+        echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> ~/.zshrc
+    fi
+    install_zsh_plugins
+}
+
 install_theme() {
     local ZTHEME="jovial"
     local theme_path="github.com/zthxxx/${ZTHEME}/raw/master/${ZTHEME}.zsh-theme"
@@ -39,4 +70,4 @@ install_theme() {
 }
 
 install_theme
-
+preference_zsh

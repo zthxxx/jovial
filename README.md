@@ -10,11 +10,15 @@
   - git branch
   - time in line end
   - venv
-
+- plugin (auto be installed)
+  - git
+  - autojump
+  - urltools
+ 
 
 ## Install
 
-if u are login as **root**, pls use this command:
+if u are always login as **root**, pls use this command:
 
 ```bash
 curl -sSL git.io/jovial | bash
@@ -23,7 +27,7 @@ curl -sSL git.io/jovial | bash
 otherwise, use this below:
 
 ```bash
-sudo bash -c "`curl -sSL git.io/jovial`" -- $USER
+curl -sSL git.io/jovial | sudo bash -s $USER
 ```
 
 
