@@ -1,19 +1,24 @@
-# jovial - a jovial theme for zsh
+# jovial - feel jovial with this theme
 
 ## Feature
 
-- face score
+- pretty face
 - state
-  - host and user
+  - Host and User
   - current path
   - development environment segment
   - git branch, git action
-  - time in line end
+  - time at the line end
   - venv
 - plugin (auto be installed)
   - git
   - autojump
   - urltools
+
+
+## Preview
+
+![jovial-preview](./docs/jovial-preview.png)
 
 
 ## Install
@@ -29,6 +34,8 @@ otherwise, use this below:
 ```bash
 curl -sSL git.io/jovial | sudo bash -s $USER
 ```
+
+NOTE: it will also install `zsh` and `oh-my-zsh` if u lack them.
 
 
 ## Author

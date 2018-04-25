@@ -110,7 +110,7 @@ prompt_node_version() {
             local NODE_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local NODE_PROMPT="Nodejs%{$FG[242]%}]"
         fi
-        echo "${NODE_PROMPT_PREFIX}${NODE_PROMPT}"
+        echo "${NODE_PROMPT_PREFIX}${NODE_PROMPT}%{$reset_color%}"
     fi
 }
 
@@ -118,7 +118,7 @@ prompt_python_version() {
     local PYTHON_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[123]%} "
     if rev_parse_find "venv"; then
         local PYTHON_PROMPT="`$(rev_parse_find venv '' true)/venv/bin/python --version 2>&1`"
-        echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}"
+        echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}%{$reset_color%}"
     elif rev_parse_find "requirements.txt"; then
         if iscommand python; then
             local PYTHON_PROMPT="`python --version 2>&1`"
@@ -126,7 +126,7 @@ prompt_python_version() {
             PYTHON_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local PYTHON_PROMPT="Python%{$FG[242]%}]"
         fi
-        echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}"
+        echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}%{$reset_color%}"
     fi
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-is_command() { command -v $@ > /dev/null; }
+is_command() { command -v $@ &> /dev/null; }
 
 install_via_manager() {
     local packages=( $@ )
@@ -28,7 +28,7 @@ install_zsh() {
 install_ohmyzsh() {
     if [[ ! -d "${HOME}/.oh-my-zsh" && (-z "${ZSH}" || -z "${ZSH_CUSTOM}") ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
-        curl -fsSL http://install.ohmyz.sh | sh
+        curl -fsSL install.ohmyz.sh | sh
     fi
 }
 
