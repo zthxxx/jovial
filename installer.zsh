@@ -4,11 +4,11 @@ is_command() { command -v $@ &> /dev/null; }
 
 install_via_manager() {
     local packages=( $@ )
-    brew install $packages || \
-        apt install -y $packages || \
-        apt-get install -y $packages || \
-        yum -y install $packages || \
-        pacman -S --noconfirm $packages
+    brew install ${packages[@]} || \
+        apt install -y ${packages[@]} || \
+        apt-get install -y ${packages[@]} || \
+        yum -y install ${packages[@]} || \
+        pacman -S --noconfirm ${packages[@]}
 }
 
 install_zsh() {
