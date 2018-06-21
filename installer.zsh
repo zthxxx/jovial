@@ -28,6 +28,7 @@ install_zsh() {
 install_ohmyzsh() {
     if [[ ! -d "${HOME}/.oh-my-zsh" && (-z "${ZSH}" || -z "${ZSH_CUSTOM}") ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
+        install_via_manager git
         curl -fsSL install.ohmyz.sh | sh
     fi
 }
