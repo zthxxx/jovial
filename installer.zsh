@@ -41,6 +41,7 @@ install_zsh_plugins() {
         git
         autojump
         urltools
+        jovial
     )
     local plugin_str="${plugins[@]}"
     sed "-i" "
@@ -70,5 +71,14 @@ install_theme() {
     sed "-i" "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
 }
 
+install_theme_plugin() {
+    local plugin_name="jovial"
+    local plugin_path="github.com/zthxxx/${ZTHEME}/raw/master/${plugin_name}.plugin.zsh"
+    local custom_plugin_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/plugins/${plugin_name}"
+    mkdir -p "$custom_plugin_dir"
+    curl -sSL "$plugin_path" -o "${custom_plugin_dir}/${plugin_name}.plugin.zsh"
+}
+
 install_theme
+install_theme_plugin
 preference_zsh
