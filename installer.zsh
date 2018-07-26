@@ -65,20 +65,21 @@ preference_zsh() {
 
 install_theme() {
     local ZTHEME="jovial"
-    local theme_path="github.com/zthxxx/${ZTHEME}/raw/master/${ZTHEME}.zsh-theme"
-    local theme_file="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/${ZTHEME}.zsh-theme"
-    curl -sSL "$theme_path" -o "$theme_file"
+    local git_prefix="github.com/zthxxx/${ZTHEME}/raw/master"
+
+    local theme_remote="${git_prefix}/${ZTHEME}.zsh-theme"
+    local plugin_remote="${git_prefix}/${ZTHEME}.plugin.zsh"
+
+    local custom_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}"
+
+    mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins"
+    local theme_local="${custom_dir}/themes/${ZTHEME}.zsh-theme"
+    local plugin_local="${custom_dir}/plugins/${ZTHEME}.plugin.zsh"
+
+    curl -sSL "$theme_remote" -o "$theme_local"
+    curl -sSL "$plugin_remote" -o "$plugin_local"
     sed "-i" "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
 }
 
-install_theme_plugin() {
-    local plugin_name="jovial"
-    local plugin_path="github.com/zthxxx/${ZTHEME}/raw/master/${plugin_name}.plugin.zsh"
-    local custom_plugin_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/plugins/${plugin_name}"
-    mkdir -p "$custom_plugin_dir"
-    curl -sSL "$plugin_path" -o "${custom_plugin_dir}/${plugin_name}.plugin.zsh"
-}
-
 install_theme
-install_theme_plugin
 preference_zsh
