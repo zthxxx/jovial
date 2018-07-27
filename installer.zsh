@@ -72,9 +72,9 @@ install_theme() {
 
     local custom_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}"
 
-    mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins"
+    mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins/${ZTHEME}"
     local theme_local="${custom_dir}/themes/${ZTHEME}.zsh-theme"
-    local plugin_local="${custom_dir}/plugins/${ZTHEME}.plugin.zsh"
+    local plugin_local="${custom_dir}/plugins/${ZTHEME}/${ZTHEME}.plugin.zsh"
 
     curl -sSL "$theme_remote" -o "$theme_local"
     curl -sSL "$plugin_remote" -o "$plugin_local"
