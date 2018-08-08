@@ -14,6 +14,7 @@
   - git
   - autojump
   - urltools
+  - some alias (see [jovial.plugin](./jovial.plugin.zsh))
 
 
 ## Preview
@@ -40,7 +41,7 @@ NOTE: it will also install `zsh` and `oh-my-zsh` if u lack them.
 
 ## Author
 
-**SSlaunch.sh** © [zthxxx](https://github.com/zthxxx), Released under the **[MIT](./LICENSE)** License.
+**jovial** © [zthxxx](https://github.com/zthxxx), Released under the **[MIT](./LICENSE)** License.
 
 > Blog [@zthxxx](https://blog.zthxxx.com) · GitHub [@zthxxx](https://github.com/zthxxx)
 
