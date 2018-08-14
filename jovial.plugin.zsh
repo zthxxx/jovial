@@ -6,4 +6,4 @@ alias ipy='ipython'
 alias jpy='jupyter notebook'
 alias venv='. venv/bin/activate'
 alias pxy='proxychains4'
-
+alias typora='open -a typora'
