@@ -36,11 +36,12 @@ install_ohmyzsh() {
 (install_zsh "$1" && install_ohmyzsh) || exit 1
 
 install_zsh_plugins() {
-    install_via_manager git autojump
+    install_via_manager git autojump terminal-notifier
     local plugins=(
         git
         autojump
         urltools
+        bgnotify
         jovial
     )
     local plugin_str="${plugins[@]}"
