@@ -93,7 +93,7 @@ function to {
         expect {
             "yes/no"    {send yes; send \n; exp_continue}
             "password"  {send "${password}"; send \n; exp_continue}
-            "${target_user}"    {send \"sudo su -\"; send \n}
+            "${target_user}"    {send \"exec sudo su -\"; send \n}
         }
         expect "password" {send "${password}"; send \n}
         interact
