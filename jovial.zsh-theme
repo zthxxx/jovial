@@ -114,6 +114,20 @@ prompt_node_version() {
     fi
 }
 
+# http://php.net/manual/en/reserved.constants.php
+prompt_php_version() {
+    if rev_parse_find "composer.json"; then
+        if iscommand node; then
+            local PHP_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[105]%} "
+            local PHP_PROMPT="php `php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+        else
+            local PHP_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
+            local PHP_PROMPT="php%{$FG[242]%}]"
+        fi
+        echo "${PHP_PROMPT_PREFIX}${PHP_PROMPT}%{$reset_color%}"
+    fi
+}
+
 prompt_python_version() {
     local PYTHON_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[123]%} "
     if rev_parse_find "venv"; then
@@ -131,7 +145,7 @@ prompt_python_version() {
 }
 
 dev_env_segment() {
-    local SEGMENT_ELEMENTS=(node python)
+    local SEGMENT_ELEMENTS=(node php python)
     for element in "${SEGMENT_ELEMENTS[@]}"; do
         local segment=`prompt_${element}_version`
         if [ -n "$segment" ]; then 
