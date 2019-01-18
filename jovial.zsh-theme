@@ -117,7 +117,7 @@ prompt_node_version() {
 # http://php.net/manual/en/reserved.constants.php
 prompt_php_version() {
     if rev_parse_find "composer.json"; then
-        if iscommand node; then
+        if iscommand php; then
             local PHP_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[105]%} "
             local PHP_PROMPT="php `php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
