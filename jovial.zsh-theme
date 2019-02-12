@@ -205,7 +205,7 @@ VIRTUAL_ENV_DISABLE_PROMPT=true
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[239]%}on%{$reset_color%} (%{$FG[159]%}"
 ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
-GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
+ZSH_THEME_GIT_PROMPT_DIRTY="%{$reset_color%})%{$FG[202]%}✘✘✘"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
 
 git_action_prompt_hook() {
