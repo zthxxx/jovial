@@ -1,6 +1,16 @@
 #
+# Locale
+# utf-8 to display emoji
+#
+
+export LC_CTYPE=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+
+#
 # Aliases
 #
+
 alias pxy='proxychains4'
 
 alias py='python'
