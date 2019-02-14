@@ -7,7 +7,9 @@ iscommand() { command -v "$1" > /dev/null; }
 
 is_git_dir() { command git rev-parse &>/dev/null; }
 
-add-zsh-hook -Uz chpwd() { REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null`; }
+chpwd_git_dir_hook() { REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null`; }
+add-zsh-hook chpwd chpwd_git_dir_hook
+chpwd_git_dir_hook
 
 # rev_parse_find(filename:string, path:string, output:boolean)
 # reverse from path to root wanna find the targe file
@@ -206,11 +208,12 @@ ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
 GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
 
-add-zsh-hook -Uz precmd (){
+git_action_prompt_hook() {
     if [[ -z "$REV_GIT_DIR" ]]; then return 1; fi
     ZSH_THEME_GIT_PROMPT_DIRTY="`git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
 }
-
+add-zsh-hook precmd git_action_prompt_hook
+git_action_prompt_hook
 
 local JOVIAL_PROMPT_PREVIOUS='`get_pin_exit_code`'
 local JOVIAL_PROMPT_HEAD='╭─$(get_host_name) %{$FG[239]%}as $(get_user_name) %{$FG[239]%}in $(current_dir) $(dev_env_segment)$(git_prompt_info)  '
