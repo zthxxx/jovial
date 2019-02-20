@@ -6,7 +6,7 @@ install_via_manager() {
     local packages=( $@ )
     local package
 
-    for package in ${packages}; do
+    for package in ${packages[@]}; do
         brew install ${package} || \
             apt install -y ${package} || \
             apt-get install -y ${package} || \
