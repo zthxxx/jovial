@@ -24,6 +24,16 @@ alias typora='open -a typora'
 alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
 
 
+function gcmt {
+    if [ -z "$2" ]; then
+        echo "gcmt - git commit with specified datetime"
+        echo "Usage: gcmt <commit-message> <commit-time>"
+        return
+    fi
+
+    GIT_AUTHOR_DATE="$2" GIT_COMMITTER_DATE="$2" gcmsg "$1"
+}
+
 # python3 venv
 function venv {
     if [ -n "${VIRTUAL_ENV}" ]; then
