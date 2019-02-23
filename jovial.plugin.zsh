@@ -109,3 +109,11 @@ function to {
         interact
     "
 }
+
+
+# https://superuser.com/questions/71588/how-to-syntax-highlight-via-less
+LESSPIPE=`(which src-hilite-lesspipe.sh || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
+if [[ ! -z "${LESSPIPE}" && -e "${LESSPIPE}" ]]; then
+    export LESSOPEN="| ${LESSPIPE} %s"
+    export LESS=' -R -X -F '
+fi
