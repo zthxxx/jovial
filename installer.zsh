@@ -41,14 +41,20 @@ install_ohmyzsh() {
 (install_zsh "$1" && install_ohmyzsh) || exit 1
 
 install_zsh_plugins() {
+    local plugin_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/plugins"
+
     install_via_manager git autojump terminal-notifier source-highlight
+    git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
+
     local plugins=(
         git
         autojump
         urltools
         bgnotify
+        zsh-autosuggestions
         jovial
     )
+
     local plugin_str="${plugins[@]}"
     sed "-i" "
         /^plugins=(/ \
