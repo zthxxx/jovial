@@ -44,7 +44,10 @@ install_zsh_plugins() {
     local plugin_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/plugins"
 
     install_via_manager git autojump terminal-notifier source-highlight
-    git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
+
+    if [ ! -e "${plugin_dir}/zsh-autosuggestions" ]; then
+        git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
+    fi
 
     local plugins=(
         git
