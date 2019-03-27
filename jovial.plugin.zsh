@@ -89,7 +89,7 @@ function bgnotify_formatted {
     elapsed="$(( $3 % 60 ))s"
     (( $3 >= 60 )) && elapsed="$((( $3 % 3600) / 60 ))m $elapsed"
     (( $3 >= 3600 )) && elapsed="$(( $3 / 3600 ))h $elapsed"
-    [[ $1 == 0 ]] && bgnotify "🎉 success - elapse $elapsed" "$2" || bgnotify "💥 failed - elapse $elapsed" "$2"
+    [[ $1 == 0 ]] && bgnotify "🎉 Success ($elapsed)" "$2" || bgnotify "💥 Failed ($elapsed)" "$2"
 }
 
 # ssh util `to`
@@ -154,7 +154,7 @@ function to {
 
 # https://superuser.com/questions/71588/how-to-syntax-highlight-via-less
 LESSPIPE=`(which src-hilite-lesspipe.sh || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
-if [[ ! -z ${LESSPIPE} && -e ${LESSPIPE} ]]; then
+if [[ -n ${LESSPIPE} && -e ${LESSPIPE} ]]; then
     export LESSOPEN="| ${LESSPIPE} %s"
     export LESS=' -R -X -F '
 fi

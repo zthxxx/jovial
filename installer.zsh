@@ -2,7 +2,7 @@
 
 S_USER=root
 # cat install.zsh  | bash -s $USER
-if [[ -z $1 ]]; then 
+if [[ -n $1 ]]; then 
     S_USER="$1" 
 fi
 
@@ -38,7 +38,7 @@ install_ohmyzsh() {
     if [[ ! -d ${HOME}/.oh-my-zsh && (-z ${ZSH} || -z ${ZSH_CUSTOM}) ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
         install_via_manager git
-        curl -fsSL -H 'Cache-Control: no-cache' install.ohmyz.sh | sh
+        curl -fsSL -H 'Cache-Control: no-cache' install.ohmyz.sh | sudo -u $S_USER -i sh
     fi
 }
 
@@ -87,8 +87,8 @@ install_theme() {
     local theme_local="${custom_dir}/themes/${ZTHEME}.zsh-theme"
     local plugin_local="${custom_dir}/plugins/${ZTHEME}/${ZTHEME}.plugin.zsh"
 
-    curl -sSL -H 'Cache-Control: no-cache' "$theme_remote" -o "$theme_local"
-    curl -sSL -H 'Cache-Control: no-cache' "$plugin_remote" -o "$plugin_local"
+    sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' "$theme_remote" -o "$theme_local"
+    sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' "$plugin_remote" -o "$plugin_local"
     perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
 }
 
