@@ -59,6 +59,9 @@ install_zsh_plugins() {
         bgnotify
         zsh-autosuggestions
         jovial
+
+        # TODO: case "$OSTYPE" in (darwin*)
+        osx
     )
 
     local plugin_str="${plugins[@]}"
