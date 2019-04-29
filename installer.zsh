@@ -65,7 +65,7 @@ install_zsh_plugins() {
     )
 
     local plugin_str="${plugins[@]}"
-    plugin_str="\n  ${plugin_str// /\n  }\n"
+    plugin_str="\n  ${plugin_str// /\\n  }\n"
     perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" ~/.zshrc
 }
 
