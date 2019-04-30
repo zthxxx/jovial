@@ -1,9 +1,11 @@
 #!/usr/bin/env zsh
 
 S_USER=root
+S_HOME="$HOME"
 # cat install.zsh  | bash -s $USER
 if [[ -n $1 ]]; then 
-    S_USER="$1" 
+    S_USER="$1"
+    S_HOME=`sudo -u "$S_USER" -i echo '$HOME'`
 fi
 
 is_command() { command -v $@ &> /dev/null; }
@@ -35,7 +37,7 @@ install_zsh() {
 }
 
 install_ohmyzsh() {
-    if [[ ! -d ${HOME}/.oh-my-zsh && (-z ${ZSH} || -z ${ZSH_CUSTOM}) ]]; then
+    if [[ ! -d ${S_HOME}/.oh-my-zsh && (-z ${ZSH} || -z ${ZSH_CUSTOM}) ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
         install_via_manager git
         curl -fsSL -H 'Cache-Control: no-cache' install.ohmyz.sh | sudo -u $S_USER -i sh
@@ -44,7 +46,7 @@ install_ohmyzsh() {
 
 
 install_zsh_plugins() {
-    local plugin_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/plugins"
+    local plugin_dir="${ZSH_CUSTOM:-"${S_HOME}/.oh-my-zsh/custom"}/plugins"
 
     install_via_manager git autojump terminal-notifier source-highlight
 
@@ -66,13 +68,13 @@ install_zsh_plugins() {
 
     local plugin_str="${plugins[@]}"
     plugin_str="\n  ${plugin_str// /\\n  }\n"
-    perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" ~/.zshrc
+    perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" ${S_HOME}/.zshrc
 }
 
 preference_zsh() {
     if is_command brew; then
-        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" ~/.zshrc
-        echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> ~/.zshrc
+        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" ${S_HOME}/.zshrc
+        echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> ${S_HOME}/.zshrc
     fi
     install_zsh_plugins
 }
@@ -84,7 +86,7 @@ install_theme() {
     local theme_remote="${git_prefix}/${ZTHEME}.zsh-theme"
     local plugin_remote="${git_prefix}/${ZTHEME}.plugin.zsh"
 
-    local custom_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}"
+    local custom_dir="${ZSH_CUSTOM:-"${S_HOME}/.oh-my-zsh/custom"}"
 
     sudo -u $S_USER -i mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins/${ZTHEME}"
     local theme_local="${custom_dir}/themes/${ZTHEME}.zsh-theme"
@@ -92,7 +94,7 @@ install_theme() {
 
     sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' "$theme_remote" -o "$theme_local"
     sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' "$plugin_remote" -o "$plugin_local"
-    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
+    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ${S_HOME}/.zshrc
 }
 
 
