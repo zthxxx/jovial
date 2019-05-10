@@ -1,6 +1,8 @@
 # jovial.zsh-theme
 # ref: http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
 
+autoload -Uz add-zsh-hook
+
 REV_GIT_DIR=""
 
 iscommand() { command -v "$1" > /dev/null; }
