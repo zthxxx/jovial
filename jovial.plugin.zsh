@@ -38,27 +38,28 @@ function gcmt {
 function gmct() {
     if [ -z "$2" ]; then
         echo "gmct - git modify history commit date with specified datetime"
-        echo "Usage: gmct <commit-id> <commit-time>"
+        echo "Usage: gmct <commit-id> <commit-time> [commit-time] [commit-time] ..."
         return
     fi
 
     local commit="$1"
-    local datetime="$2"
+    shift
 
     GIT_SEQUENCE_EDITOR='sed "-i" "s/^pick /edit /"' git rebase -i ${commit}~1
 
-    GIT_COMMITTER_DATE="${datetime}" git commit --amend --no-edit --date="${datetime}"
-
-    git rebase --continue
-
     while [ -e ".git/rebase-merge" ]; do
-        GIT_COMMITTER_DATE=`
-            git log --pretty=fuller --date=iso -n 1 \
-            | grep -oE '(?:AuthorDate)(.*)' \
-            | cut -c 13-
-            ` \
-            git commit --amend --no-edit
-
+        if [[ -n $1 ]]; then
+            local datetime="$1"
+            GIT_COMMITTER_DATE="${datetime}" git commit --amend --no-edit --date="${datetime}"
+            shift
+        else
+            GIT_COMMITTER_DATE=`
+                git log --pretty=fuller --date=iso -n 1 \
+                | grep -oE '(?:AuthorDate)(.*)' \
+                | cut -c 13-
+                ` \
+                git commit --amend --no-edit
+        fi
         git rebase --continue
     done
 }
