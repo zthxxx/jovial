@@ -11,7 +11,7 @@ install_via_manager() {
             apt install -y ${package} || \
             apt-get install -y ${package} || \
             yum -y install ${package} || \
-            pacman -S --noconfirm ${package} ||
+            pacman -S --noconfirm --needed ${package} ||
             true
     done
 }
