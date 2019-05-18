@@ -21,8 +21,8 @@ rev_parse_find() {
     local current_path="${2:-`pwd`}"
     local whether_output=${3:-false}
     local parent_path="`dirname $current_path`"
-    while [[ "$parent_path" != "/" ]]; do
-        if [ -e "${current_path}/${target}" ]; then
+    while [[ ${parent_path} != "/" ]]; do
+        if [[ -e ${current_path}/${target} ]]; then
             if $whether_output; then echo "$current_path"; fi
             return 0; 
         fi
@@ -32,20 +32,20 @@ rev_parse_find() {
     return 1
 }
 
-venv_info_prompt() { [ $VIRTUAL_ENV ] && echo "$FG[242](%{$FG[159]%}$(basename $VIRTUAL_ENV)$FG[242])%{$reset_color%} "; }
+venv_info_prompt() { [[ -n ${VIRTUAL_ENV} ]] && echo "$FG[242](%{$FG[159]%}$(basename $VIRTUAL_ENV)$FG[242])%{$reset_color%} "; }
 
 get_host_name() { echo "[%{$FG[157]%}%m%{$reset_color%}]"; }
 
 get_user_name() {
     local name_prefix="%{$reset_color%}"
-    if [[ "$USER" == 'root' || "%UID" == "0" ]]; then
+    if [[ $USER == 'root' || $UID == 0 ]]; then
         name_prefix="%{$FG[203]%}"
     fi
     echo "${name_prefix}%n%{$reset_color%}"
 }
 
 type_tip_pointer() {
-    if [[ -n "$REV_GIT_DIR" ]]; then
+    if [[ -n ${REV_GIT_DIR} ]]; then
         echo '(ﾉ˚Д˚)ﾉ'
     else
         echo '─➤'
@@ -150,7 +150,7 @@ dev_env_segment() {
     local SEGMENT_ELEMENTS=(node php python)
     for element in "${SEGMENT_ELEMENTS[@]}"; do
         local segment=`prompt_${element}_version`
-        if [ -n "$segment" ]; then 
+        if [[ -n $segment ]]; then 
             echo "$segment "
             break
         fi
@@ -158,44 +158,44 @@ dev_env_segment() {
 }
 
 git_action_prompt() {
-    if [[ -z "$REV_GIT_DIR" ]]; then return 1; fi
+    if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
     local action=""
     local rebase_merge="${REV_GIT_DIR}/rebase-merge"
     local rebase_apply="${REV_GIT_DIR}/rebase-apply"
-	if [[ -d "$rebase_merge" ]]; then
+	if [[ -d ${rebase_merge} ]]; then
         local rebase_step=`cat "${rebase_merge}/msgnum"`
         local rebase_total=`cat "${rebase_merge}/end"`
         local rebase_process="${rebase_step}/${rebase_total}"
-		if [[ -f "${rebase_merge}/interactive" ]]; then
+		if [[ -f ${rebase_merge}/interactive ]]; then
 			action="REBASE-i"
 		else
 			action="REBASE-m"
 		fi
-	elif [[ -d "$rebase_apply" ]]; then
+	elif [[ -d ${rebase_apply} ]]; then
         local rebase_step=`cat "${rebase_apply}/next"`
         local rebase_total=`cat "${rebase_apply}/last"`
         local rebase_process="${rebase_step}/${rebase_total}"
-        if [ -f "${rebase_apply}/rebasing" ]; then
+        if [[ -f ${rebase_apply}/rebasing ]]; then
             action="REBASE"
-        elif [ -f "${rebase_apply}/applying" ]; then
+        elif [[ -f ${rebase_apply}/applying ]]; then
             action="AM"
         else
             action="AM/REBASE"
         fi
-    elif [ -f "${REV_GIT_DIR}/MERGE_HEAD" ]; then
+    elif [[ -f ${REV_GIT_DIR}/MERGE_HEAD ]]; then
         action="MERGING"
-    elif [ -f "${REV_GIT_DIR}/CHERRY_PICK_HEAD" ]; then
+    elif [[ -f ${REV_GIT_DIR}/CHERRY_PICK_HEAD ]]; then
         action="CHERRY-PICKING"
-    elif [ -f "${REV_GIT_DIR}/REVERT_HEAD" ]; then
+    elif [[ -f ${REV_GIT_DIR}/REVERT_HEAD ]]; then
         action="REVERTING"
-    elif [ -f "${REV_GIT_DIR}/BISECT_LOG" ]; then
+    elif [[ -f ${REV_GIT_DIR}/BISECT_LOG ]]; then
         action="BISECTING"
     fi
 
-	if [[ -n "$rebase_process" ]]; then
+	if [[ -n ${rebase_process} ]]; then
 		action="$action $rebase_process"
 	fi
-    if [[ -n "$action" ]]; then
+    if [[ -n $action ]]; then
 		action="|$action"
 	fi
 
@@ -211,7 +211,7 @@ GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
 
 git_action_prompt_hook() {
-    if [[ -z "$REV_GIT_DIR" ]]; then return 1; fi
+    if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
     ZSH_THEME_GIT_PROMPT_DIRTY="`git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
 }
 add-zsh-hook precmd git_action_prompt_hook

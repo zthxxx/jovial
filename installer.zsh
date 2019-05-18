@@ -19,7 +19,7 @@ install_via_manager() {
 install_zsh() {
     # other ref: https://unix.stackexchange.com/questions/136423/making-zsh-default-shell-without-root-access?answertab=active#tab-top
     local UNAME="$1"
-    if [ -z "${ZSH_VERSION}" ]; then
+    if [[ -z ${ZSH_VERSION} ]]; then
         if is_command zsh || install_via_manager zsh; then
             chsh $UNAME -s `command -v zsh`
             return 0
@@ -31,7 +31,7 @@ install_zsh() {
 }
 
 install_ohmyzsh() {
-    if [[ ! -d "${HOME}/.oh-my-zsh" && (-z "${ZSH}" || -z "${ZSH_CUSTOM}") ]]; then
+    if [[ ! -d ${HOME}/.oh-my-zsh && (-z ${ZSH} || -z ${ZSH_CUSTOM}) ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
         install_via_manager git
         curl -fsSL -H 'Cache-Control: no-cache' install.ohmyz.sh | sh
@@ -45,7 +45,7 @@ install_zsh_plugins() {
 
     install_via_manager git autojump terminal-notifier source-highlight
 
-    if [ ! -e "${plugin_dir}/zsh-autosuggestions" ]; then
+    if [[ ! -e ${plugin_dir}/zsh-autosuggestions ]]; then
         git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
     fi
 

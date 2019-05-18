@@ -25,7 +25,7 @@ alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
 
 
 function gcmt {
-    if [ -z "$2" ]; then
+    if [[ -z $2 ]]; then
         echo "gcmt - git commit with specified datetime"
         echo "Usage: gcmt <commit-message> <commit-time>"
         return
@@ -36,7 +36,7 @@ function gcmt {
 
 
 function gmct() {
-    if [ -z "$2" ]; then
+    if [[ -z $2 ]]; then
         echo "gmct - git modify history commit date with specified datetime"
         echo "Usage: gmct <commit-id> <commit-time> [commit-time] [commit-time] ..."
         return
@@ -47,7 +47,7 @@ function gmct() {
 
     GIT_SEQUENCE_EDITOR='sed "-i" "s/^pick /edit /"' git rebase -i ${commit}~1
 
-    while [ -e ".git/rebase-merge" ]; do
+    while [[ -e .git/rebase-merge ]]; do
         if [[ -n $1 ]]; then
             local datetime="$1"
             GIT_COMMITTER_DATE="${datetime}" git commit --amend --no-edit --date="${datetime}"
@@ -67,12 +67,12 @@ function gmct() {
 
 # python3 venv
 function venv {
-    if [ -n "${VIRTUAL_ENV}" ]; then
+    if [[ -n ${VIRTUAL_ENV} ]]; then
         deactivate;
         return
     fi
 
-    if [ -d venv ]; then
+    if [[ -d venv ]]; then
         . venv/bin/activate;
     else
         python3 -m venv venv && venv;
@@ -89,7 +89,7 @@ function bgnotify_formatted {
     elapsed="$(( $3 % 60 ))s"
     (( $3 >= 60 )) && elapsed="$((( $3 % 3600) / 60 ))m $elapsed"
     (( $3 >= 3600 )) && elapsed="$(( $3 / 3600 ))h $elapsed"
-    [ $1 -eq 0 ] && bgnotify "🎉 success - elapse $elapsed" "$2" || bgnotify "💥 failed - elapse $elapsed" "$2"
+    [[ $1 == 0 ]] && bgnotify "🎉 success - elapse $elapsed" "$2" || bgnotify "💥 failed - elapse $elapsed" "$2"
 }
 
 # ssh util `to`
@@ -115,21 +115,21 @@ function to {
     local target_host="${1}"
     local target_port="${2}"
 
-    if [ -z "${target_host}" ]; then
+    if [[ -z ${target_host} ]]; then
         echo "${comment}";
         return
     fi
 
-    if [ -n "${target_user}" ]; then
+    if [[ -n ${target_user} ]]; then
         target_host="${target_user}@${target_host}"
     fi
 
-    if [ -n "${target_port}" ]; then
+    if [[ -n ${target_port} ]]; then
         target_port="-p ${target_port}"
     fi
 
     # cannot use quote, space or '$' in expect tcl command, so its need escape
-    if [ -n "${agent}" ]; then
+    if [[ -n ${agent} ]]; then
         agent="-o ProxyCommand=ssh\ -W\ %h:%p\ ${agent}"
     fi
 
@@ -154,7 +154,7 @@ function to {
 
 # https://superuser.com/questions/71588/how-to-syntax-highlight-via-less
 LESSPIPE=`(which src-hilite-lesspipe.sh || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
-if [[ ! -z "${LESSPIPE}" && -e "${LESSPIPE}" ]]; then
+if [[ ! -z ${LESSPIPE} && -e ${LESSPIPE} ]]; then
     export LESSOPEN="| ${LESSPIPE} %s"
     export LESS=' -R -X -F '
 fi
