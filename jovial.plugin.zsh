@@ -45,7 +45,7 @@ function gmct() {
     local commit="$1"
     shift
 
-    GIT_SEQUENCE_EDITOR='sed "-i" "s/^pick /edit /"' git rebase -i ${commit}~1
+    GIT_SEQUENCE_EDITOR='perl -i -pe "s/^pick /edit /"' git rebase -i ${commit}~1
 
     while [[ -e .git/rebase-merge ]]; do
         if [[ -n $1 ]]; then
