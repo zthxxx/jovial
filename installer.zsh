@@ -65,7 +65,7 @@ install_zsh_plugins() {
 
 preference_zsh() {
     if is_command brew; then
-        perl -pi -e "s/HOMEBREW_NO_AUTO_UPDATE/d" ~/.zshrc
+        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" ~/.zshrc
         echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> ~/.zshrc
     fi
     install_zsh_plugins
@@ -86,7 +86,7 @@ install_theme() {
 
     curl -sSL -H 'Cache-Control: no-cache' "$theme_remote" -o "$theme_local"
     curl -sSL -H 'Cache-Control: no-cache' "$plugin_remote" -o "$plugin_local"
-    perl -pi -e "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
+    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
 }
 
 install_theme
