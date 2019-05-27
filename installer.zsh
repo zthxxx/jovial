@@ -1,5 +1,11 @@
 #!/usr/bin/env zsh
 
+S_USER=root
+# cat install.zsh  | bash -s $USER
+if [[ -z $1 ]]; then 
+    S_USER="$1" 
+fi
+
 is_command() { command -v $@ &> /dev/null; }
 
 install_via_manager() {
@@ -7,21 +13,19 @@ install_via_manager() {
     local package
 
     for package in ${packages[@]}; do
-        brew install ${package} || \
+        (sudo -u $S_USER -i brew install ${package}) || \
             apt install -y ${package} || \
             apt-get install -y ${package} || \
             yum -y install ${package} || \
-            pacman -S --noconfirm --needed ${package} ||
-            true
+            pacman -S --noconfirm --needed ${package}
     done
 }
 
 install_zsh() {
     # other ref: https://unix.stackexchange.com/questions/136423/making-zsh-default-shell-without-root-access?answertab=active#tab-top
-    local UNAME="$1"
     if [[ -z ${ZSH_VERSION} ]]; then
         if is_command zsh || install_via_manager zsh; then
-            chsh $UNAME -s `command -v zsh`
+            chsh -s `command -v zsh` $S_USER
             return 0
         else
             echo "ERROR, plz install zsh manual."
@@ -38,7 +42,6 @@ install_ohmyzsh() {
     fi
 }
 
-(install_zsh "$1" && install_ohmyzsh) || exit 1
 
 install_zsh_plugins() {
     local plugin_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}/plugins"
@@ -46,7 +49,7 @@ install_zsh_plugins() {
     install_via_manager git autojump terminal-notifier source-highlight
 
     if [[ ! -e ${plugin_dir}/zsh-autosuggestions ]]; then
-        git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
+        sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
     fi
 
     local plugins=(
@@ -80,7 +83,7 @@ install_theme() {
 
     local custom_dir="${ZSH_CUSTOM:-"${HOME}/.oh-my-zsh/custom"}"
 
-    mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins/${ZTHEME}"
+    sudo -u $S_USER -i mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins/${ZTHEME}"
     local theme_local="${custom_dir}/themes/${ZTHEME}.zsh-theme"
     local plugin_local="${custom_dir}/plugins/${ZTHEME}/${ZTHEME}.plugin.zsh"
 
@@ -88,6 +91,9 @@ install_theme() {
     curl -sSL -H 'Cache-Control: no-cache' "$plugin_remote" -o "$plugin_local"
     perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ~/.zshrc
 }
+
+
+(install_zsh && install_ohmyzsh) || exit 1
 
 install_theme
 preference_zsh
