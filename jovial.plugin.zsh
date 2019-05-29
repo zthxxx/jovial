@@ -153,7 +153,7 @@ function to {
 
 
 # https://superuser.com/questions/71588/how-to-syntax-highlight-via-less
-LESSPIPE=`(which src-hilite-lesspipe.sh || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
+LESSPIPE=`((which src-hilite-lesspipe.sh > /dev/null && which src-hilite-lesspipe.sh) || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
 if [[ -n ${LESSPIPE} && -e ${LESSPIPE} ]]; then
     export LESSOPEN="| ${LESSPIPE} %s"
     export LESS=' -R -X -F '
