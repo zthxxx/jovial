@@ -46,7 +46,11 @@ get_user_name() {
 
 type_tip_pointer() {
     if [[ -n ${REV_GIT_DIR} ]]; then
-        echo '(ﾉ˚Д˚)ﾉ'
+        if [[ -z $(git status -s 2> /dev/null) ]]; then
+            echo '(๑˃̵ᴗ˂̵)و'
+        else
+            echo '(ﾉ˚Д˚)ﾉ'
+        fi
     else
         echo '─➤'
     fi
