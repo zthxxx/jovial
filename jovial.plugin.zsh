@@ -20,6 +20,11 @@ alias jpy='jupyter notebook'
 alias act='source activate'
 alias deact='source deactivate'
 
+# enable import esm in node REPL
+# need nodejs and `npm i -g esm` 
+alias nodem='NODE_PATH=`npm root -g` node -r esm'
+
+# app shortcut macOS
 alias typora='open -a typora'
 alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
 
