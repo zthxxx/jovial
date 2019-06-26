@@ -20,6 +20,9 @@ alias jpy='jupyter notebook'
 alias act='source activate'
 alias deact='source deactivate'
 
+alias glti='git log --pretty=fuller --date=iso'
+alias glt1='git log --pretty=fuller --date=iso -n 1'
+
 # enable import esm in node REPL
 # need nodejs and `npm i -g esm` 
 alias nodem='NODE_PATH=`npm root -g` node -r esm'

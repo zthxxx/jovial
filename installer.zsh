@@ -54,12 +54,17 @@ install_zsh_plugins() {
         sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
     fi
 
+    if [[ ! -e ${plugin_dir}/zsh-history-enquirer ]]; then
+        sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/installer.zsh | sudo -u $S_USER -i zsh -i
+    fi
+
     local plugins=(
         git
         autojump
         urltools
         bgnotify
         zsh-autosuggestions
+        zsh-history-enquirer
         jovial
 
         # TODO: case "$OSTYPE" in (darwin*)
