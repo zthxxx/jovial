@@ -1,15 +1,25 @@
 # jovial.zsh-theme
 # ref: http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
 
+export JOVIAL_VERSION="1.0.0"
+
 autoload -Uz add-zsh-hook
 
-REV_GIT_DIR=""
+# JOVIAL_ARROW='─>'
+# JOVIAL_ARROW='─▶'
+local JOVIAL_ARROW='─➤'
 
-iscommand() { command -v "$1" > /dev/null; }
+# git prompt
+local REV_GIT_DIR=""
+local IS_GIT_DIRTY=false
+local GIT_STATUS_PROMPT=""
 
-is_git_dir() { command git rev-parse &>/dev/null; }
 
-chpwd_git_dir_hook() { REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null`; }
+iscommand() { [[ -e $commands[$1] ]] }
+
+is_git_dir() { command git rev-parse &>/dev/null }
+
+chpwd_git_dir_hook() { REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null` }
 add-zsh-hook chpwd chpwd_git_dir_hook
 chpwd_git_dir_hook
 
@@ -20,14 +30,14 @@ rev_parse_find() {
     local target="$1"
     local current_path="${2:-`pwd`}"
     local whether_output=${3:-false}
-    local parent_path="`dirname $current_path`"
+    local parent_path="`command dirname $current_path`"
     while [[ ${parent_path} != "/" ]]; do
         if [[ -e ${current_path}/${target} ]]; then
             if $whether_output; then echo "$current_path"; fi
             return 0; 
         fi
         current_path="$parent_path"
-        parent_path="`dirname $parent_path`"
+        parent_path="`command dirname $parent_path`"
     done
     return 1
 }
@@ -44,15 +54,38 @@ get_user_name() {
     echo "${name_prefix}%n%{$reset_color%}"
 }
 
+
+git_prompt_info () {
+    if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
+    local ref
+    ref=$(command git rev-parse --symbolic-full-name HEAD 2> /dev/null) || ref=$(command git rev-parse --short HEAD 2> /dev/null) || return 0
+    echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${GIT_STATUS_PROMPT}$ZSH_THEME_GIT_PROMPT_SUFFIX"
+}
+
+judge_git_dirty () {
+	local STATUS
+	local -a FLAGS
+	FLAGS=('--porcelain' '--ignore-submodules=dirty')
+    if [[ "$DISABLE_UNTRACKED_FILES_DIRTY" == "true" ]]; then
+        FLAGS+='--untracked-files=no'
+    fi
+    STATUS=$(command git status ${FLAGS} 2> /dev/null | tail -n1)
+	if [[ -n $STATUS ]]; then
+        return 0
+	else
+        return 1
+	fi
+}
+
 type_tip_pointer() {
     if [[ -n ${REV_GIT_DIR} ]]; then
-        if [[ -z $(git status -s 2> /dev/null) ]]; then
+        if [[ ${IS_GIT_DIRTY} == false ]]; then
             echo '(๑˃̵ᴗ˂̵)و'
         else
             echo '(ﾉ˚Д˚)ﾉ'
         fi
     else
-        echo '─➤'
+        echo "${JOVIAL_ARROW}"
     fi
 }
 
@@ -62,7 +95,7 @@ current_dir() {
 
 get_date_time() {
     # echo "%{$reset_color%}%D %*"
-    date "+%m-%d %H:%M:%S"
+    command date "+%m-%d %H:%M:%S"
 }
 
 get_space_size() {
@@ -71,7 +104,7 @@ get_space_size() {
     local zero_pattern='%([BSUbfksu]|([FB]|){*})'
     local len=${#${(S%%)str//$~zero_pattern/}}
     local size=$(( $COLUMNS - $len ))
-    echo $size
+    echo "$size"
 }
 
 get_fill_space() {
@@ -108,10 +141,10 @@ get_pin_exit_code() {
 }
 
 prompt_node_version() {
-    if rev_parse_find "package.json" || rev_parse_find "node_modules"; then
+    if rev_parse_find "package.json"; then
         if iscommand node; then
             local NODE_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[120]%} "
-            local NODE_PROMPT="node `node -v`"
+            local NODE_PROMPT="node `command node -v`"
         else
             local NODE_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local NODE_PROMPT="Nodejs%{$FG[242]%}]"
@@ -125,7 +158,7 @@ prompt_php_version() {
     if rev_parse_find "composer.json"; then
         if iscommand php; then
             local PHP_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[105]%} "
-            local PHP_PROMPT="php `php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local PHP_PROMPT="php `command php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local PHP_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local PHP_PROMPT="php%{$FG[242]%}]"
@@ -141,7 +174,7 @@ prompt_python_version() {
         echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}%{$reset_color%}"
     elif rev_parse_find "requirements.txt"; then
         if iscommand python; then
-            local PYTHON_PROMPT="`python --version 2>&1`"
+            local PYTHON_PROMPT="`command python --version 2>&1`"
         else
             PYTHON_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local PYTHON_PROMPT="Python%{$FG[242]%}]"
@@ -163,12 +196,14 @@ dev_env_segment() {
 
 git_action_prompt() {
     if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
+    if [[ ${IS_GIT_DIRTY} == false ]]; then return 1; fi
+
     local action=""
     local rebase_merge="${REV_GIT_DIR}/rebase-merge"
     local rebase_apply="${REV_GIT_DIR}/rebase-apply"
 	if [[ -d ${rebase_merge} ]]; then
-        local rebase_step=`cat "${rebase_merge}/msgnum"`
-        local rebase_total=`cat "${rebase_merge}/end"`
+        local rebase_step=`command cat "${rebase_merge}/msgnum"`
+        local rebase_total=`command cat "${rebase_merge}/end"`
         local rebase_process="${rebase_step}/${rebase_total}"
 		if [[ -f ${rebase_merge}/interactive ]]; then
 			action="REBASE-i"
@@ -176,8 +211,8 @@ git_action_prompt() {
 			action="REBASE-m"
 		fi
 	elif [[ -d ${rebase_apply} ]]; then
-        local rebase_step=`cat "${rebase_apply}/next"`
-        local rebase_total=`cat "${rebase_apply}/last"`
+        local rebase_step=`command cat "${rebase_apply}/next"`
+        local rebase_total=`command cat "${rebase_apply}/last"`
         local rebase_process="${rebase_step}/${rebase_total}"
         if [[ -f ${rebase_apply}/rebasing ]]; then
             action="REBASE"
@@ -216,8 +251,21 @@ ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
 
 git_action_prompt_hook() {
     if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
-    ZSH_THEME_GIT_PROMPT_DIRTY="`git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
+
+    if judge_git_dirty; then
+        IS_GIT_DIRTY=true
+    else
+        IS_GIT_DIRTY=false
+    fi
+
+    if [[ ${IS_GIT_DIRTY} == true ]]; then
+        ZSH_THEME_GIT_PROMPT_DIRTY="`git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
+        GIT_STATUS_PROMPT="$ZSH_THEME_GIT_PROMPT_DIRTY"
+    else
+        GIT_STATUS_PROMPT="$ZSH_THEME_GIT_PROMPT_CLEAN"
+    fi
 }
+
 add-zsh-hook precmd git_action_prompt_hook
 git_action_prompt_hook
 

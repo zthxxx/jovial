@@ -20,9 +20,7 @@ alias jpy='jupyter notebook'
 alias act='source activate'
 alias deact='source deactivate'
 
-alias glti='git log --pretty=fuller --date=iso'
-alias glt1='git log --pretty=fuller --date=iso -n 1'
-
+# node es module
 # enable import esm in node REPL
 # need nodejs and `npm i -g esm` 
 alias nodem='NODE_PATH=`npm root -g` node -r esm'
@@ -30,6 +28,13 @@ alias nodem='NODE_PATH=`npm root -g` node -r esm'
 # app shortcut macOS
 alias typora='open -a typora'
 alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
+
+# git log time iso
+alias glti='git log --pretty=fuller --date=iso'
+alias glt1='git log --pretty=fuller --date=iso -n 1'
+
+# https://stackoverflow.com/questions/89332/how-to-recover-a-dropped-stash-in-git/
+alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/dangling commit/ {print \$3}')"
 
 
 function gcmt {
@@ -73,7 +78,7 @@ function gmct() {
 }
 
 
-# python3 venv
+# python3 enable venv or create then enable venv
 function venv {
     if [[ -n ${VIRTUAL_ENV} ]]; then
         deactivate;
