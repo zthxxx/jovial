@@ -1,7 +1,7 @@
 # jovial.zsh-theme
 # ref: http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
 
-export JOVIAL_VERSION="1.0.0"
+export JOVIAL_VERSION="1.0.1"
 
 autoload -Uz add-zsh-hook
 
@@ -58,7 +58,7 @@ get_user_name() {
 git_prompt_info () {
     if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
     local ref
-    ref=$(command git rev-parse --symbolic-full-name HEAD 2> /dev/null) || ref=$(command git rev-parse --short HEAD 2> /dev/null) || return 0
+    ref=$(command git symbolic-ref HEAD 2> /dev/null) || ref=$(command git rev-parse --short HEAD 2> /dev/null) || return 0
     echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${GIT_STATUS_PROMPT}$ZSH_THEME_GIT_PROMPT_SUFFIX"
 }
 
