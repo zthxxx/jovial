@@ -23,7 +23,9 @@ alias deact='source deactivate'
 # node es module
 # enable import esm in node REPL
 # need nodejs and `npm i -g esm` 
-alias nodem='NODE_PATH=`npm root -g` node -r esm'
+alias node='NODE_PATH=`npm root -g` \node -r esm'
+alias tnode='NODE_PATH=`npm root -g` \node -r ts-node/register'
+alias tsnode='ts-node'
 
 # app shortcut macOS
 alias typora='open -a typora'
@@ -31,12 +33,18 @@ alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
 
 # git log time iso
 alias glti='git log --pretty=fuller --date=iso'
-alias glt1='git log --pretty=fuller --date=iso -n 1'
+alias glt1='glti -n 1'
+
+# git log message raw
+alias glraw='git log --format=%B -n 1'
+# git log commit time raw
+alias gltraw='glt1 | grep -oE "(?:AuthorDate)(.*)" | cut -c 13-'
 
 # https://stackoverflow.com/questions/89332/how-to-recover-a-dropped-stash-in-git/
 alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/dangling commit/ {print \$3}')"
 
 
+# git commit modify time
 function gcmt {
     if [[ -z $2 ]]; then
         echo "gcmt - git commit with specified datetime"
@@ -47,8 +55,8 @@ function gcmt {
     GIT_AUTHOR_DATE="$2" GIT_COMMITTER_DATE="$2" gcmsg "$1"
 }
 
-
-function gmct() {
+# git modify commits time
+function gmct {
     if [[ -z $2 ]]; then
         echo "gmct - git modify history commit date with specified datetime"
         echo "Usage: gmct <commit-id> <commit-time> [commit-time] [commit-time] ..."
@@ -58,23 +66,32 @@ function gmct() {
     local commit="$1"
     shift
 
-    GIT_SEQUENCE_EDITOR='perl -i -pe "s/^pick /edit /"' git rebase -i ${commit}~1
+    GIT_SEQUENCE_EDITOR='perl -i -pe "s/^pick /edit /"' git rebase -i "${commit}~1"
 
     while [[ -e .git/rebase-merge ]]; do
         if [[ -n $1 ]]; then
-            local datetime="$1"
-            GIT_COMMITTER_DATE="${datetime}" git commit --amend --no-edit --date="${datetime}"
+            local commit_time="$1"
+            GIT_COMMITTER_DATE="${commit_time}" git commit --amend --no-edit --date="${commit_time}"
             shift
         else
-            GIT_COMMITTER_DATE=`
-                git log --pretty=fuller --date=iso -n 1 \
-                | grep -oE '(?:AuthorDate)(.*)' \
-                | cut -c 13-
-                ` \
-                git commit --amend --no-edit
+            GIT_COMMITTER_DATE=`gltraw` git commit --amend --no-edit
         fi
         git rebase --continue
     done
+}
+
+
+# git reset & commit last-commit
+function grclast {
+    local last_log=`glraw`
+    local last_time=`gltraw`
+    if [[ -n $1 ]]; then
+        last_time="$1"
+    fi
+
+    git reset HEAD~1
+    gaa
+    gcmt "${last_log}" "${last_time}"
 }
 
 
