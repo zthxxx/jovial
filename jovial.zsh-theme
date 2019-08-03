@@ -1,7 +1,7 @@
 # jovial.zsh-theme
 # ref: http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
 
-export JOVIAL_VERSION="1.0.2"
+export JOVIAL_VERSION="1.0.3"
 
 autoload -Uz add-zsh-hook
 

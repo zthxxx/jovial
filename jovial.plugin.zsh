@@ -44,6 +44,26 @@ alias gltraw='glt1 | grep -oE "(?:AuthorDate)(.*)" | cut -c 13-'
 alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/dangling commit/ {print \$3}')"
 
 
+# git fetch and checkout to target branch
+function gfco {
+    local branch="$1"
+    gfo +${branch}:${branch} && gco ${branch}
+}
+
+# git fetch and rebase to target branch
+function gfbi {
+    local branch="$1"
+    gfo +${branch}:${branch} && grbi ${branch}
+}
+
+# git delete and checkout -b to target branch
+# ensure that overwrite current ref to target branch name
+function gDcb {
+    local branch="$1"
+    gbD ${branch}
+    gco -b ${branch}
+}
+
 # git commit modify time
 function gcmt {
     if [[ -z $2 ]]; then
