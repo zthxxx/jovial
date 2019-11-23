@@ -61,7 +61,12 @@ install_zsh_plugins() {
 
     if [[ ! -e ${plugin_dir}/zsh-autosuggestions ]]; then
         echo '+ install zsh-autosuggestions'
-        sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${plugin_dir}/zsh-autosuggestions"
+        sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git "${plugin_dir}/zsh-autosuggestions"
+    fi
+
+    if [[ ! -e ${plugin_dir}/zsh-syntax-highlighting ]]; then
+        echo '+ install zsh-syntax-highlighting'
+        sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git "${plugin_dir}/zsh-syntax-highlighting"
     fi
 
     if [[ ! -e ${plugin_dir}/zsh-history-enquirer ]]; then
@@ -75,6 +80,7 @@ install_zsh_plugins() {
         urltools
         bgnotify
         zsh-autosuggestions
+        zsh-syntax-highlighting
         zsh-history-enquirer
         jovial
 

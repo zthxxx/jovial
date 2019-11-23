@@ -60,7 +60,7 @@ function gfbi {
 # ensure that overwrite current ref to target branch name
 function gDcb {
     local branch="$1"
-    gbD ${branch}
+    gbD ${branch} 2>/dev/null
     gco -b ${branch}
 }
 
@@ -101,7 +101,8 @@ function gmct {
 }
 
 
-# git reset & commit last-commit
+# git re-commit
+# reset & commit last-commit
 function grclast {
     local last_log=`glraw`
     local last_time=`gltraw`
@@ -115,17 +116,40 @@ function grclast {
 }
 
 
-# python3 enable venv or create then enable venv
+# create or enable python venv
+# $ venv  # -> python3 venv
+# $ venv --py2 # -> python2 virtualenv
 function venv {
     if [[ -n ${VIRTUAL_ENV} ]]; then
-        deactivate;
+        deactivate
         return
     fi
 
     if [[ -d venv ]]; then
-        . venv/bin/activate;
+        . venv/bin/activate
+        return
+    fi
+
+    # if not exist venv dir, create a new one before enable it
+    if [[ $1 == --py2 ]]; then
+        python2 -m virtualenv venv
     else
-        python3 -m venv venv && venv;
+        python3 -m venv venv
+    fi
+
+    [[ $? == 0 ]] && venv
+}
+
+function py2venv {
+    if [[ -n ${VIRTUAL_ENV} ]]; then
+        deactivate
+        return
+    fi
+
+    if [[ -d venv ]]; then
+        . venv/bin/activate
+    else
+        python2 -m virtualenv venv && py2venv
     fi
 }
 
@@ -166,7 +190,7 @@ function to {
     local target_port="${2}"
 
     if [[ -z ${target_host} ]]; then
-        echo "${comment}";
+        echo "${comment}"
         return
     fi
 
