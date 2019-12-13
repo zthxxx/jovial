@@ -1,7 +1,18 @@
 # jovial.zsh-theme
-# ref: http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
+# https://github.com/zthxxx/jovial
 
-export JOVIAL_VERSION="1.0.4"
+# dev refs: 
+# http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
+# https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_output_sequences
+# https://donsnotes.com/tech/charsets/ascii.html
+#
+# Cursor Up        <ESC>[{COUNT}A
+# Cursor Down      <ESC>[{COUNT}B
+# Cursor Right     <ESC>[{COUNT}C
+# Cursor Left      <ESC>[{COUNT}D
+# Cursor Horizontal Absolute      <ESC>[{COUNT}G
+
+export JOVIAL_VERSION="1.1.0"
 
 autoload -Uz add-zsh-hook
 
@@ -14,6 +25,15 @@ local REV_GIT_DIR=""
 local IS_GIT_DIRTY=false
 local GIT_STATUS_PROMPT=""
 
+local LAST_EXIT_CODE=0
+
+
+VIRTUAL_ENV_DISABLE_PROMPT=true
+
+ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[102]%}on%{$reset_color%} (%{$FG[159]%}"
+ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
+GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
+ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
 
 iscommand() { [[ -e $commands[$1] ]] }
 
@@ -22,6 +42,13 @@ is_git_dir() { command git rev-parse &>/dev/null }
 chpwd_git_dir_hook() { REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null` }
 add-zsh-hook chpwd chpwd_git_dir_hook
 chpwd_git_dir_hook
+
+# https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
+# https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
+unstyle_len() {
+    local visible=$(echo "$1" | perl -pe 's/\e\[[0-9;]*?[a-zA-Z]//g')
+    echo ${#visible}
+}
 
 # rev_parse_find(filename:string, path:string, output:boolean)
 # reverse from path to root wanna find the targe file
@@ -34,7 +61,7 @@ rev_parse_find() {
     while [[ ${parent_path} != "/" ]]; do
         if [[ -e ${current_path}/${target} ]]; then
             if $whether_output; then echo "$current_path"; fi
-            return 0; 
+            return 0
         fi
         current_path="$parent_path"
         parent_path="`command dirname $parent_path`"
@@ -95,7 +122,7 @@ current_dir() {
 
 get_date_time() {
     # echo "%{$reset_color%}%D %*"
-    command date "+%m-%d %H:%M:%S"
+    command date "+%H:%M:%S"
 }
 
 get_space_size() {
@@ -103,37 +130,32 @@ get_space_size() {
     local str="$1"
     local zero_pattern='%([BSUbfksu]|([FB]|){*})'
     local len=${#${(S%%)str//$~zero_pattern/}}
-    local size=$(( $COLUMNS - $len ))
+    local size=$(( $COLUMNS - $len + 1 ))
     echo "$size"
-}
-
-get_fill_space() {
-    local size=`get_space_size "$1"`
-    printf "%${size}s"
 }
 
 previous_align_right() {
     # CSI ref: https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences
-    local new_line='
-    '
+    local new_line_space='\n '
     local str="$1"
     local align_site=`get_space_size "$str"`
-    local previous_line="\033[1A"
-    local cursor_back="\033[${align_site}G"
-    echo "${previous_line}${cursor_back}${str}${new_line}"
+    local previous_line="\e[1A"
+    local cursor_cols="\e[${align_site}G"
+    echo "${previous_line}${cursor_cols}${str}${new_line_space}"
 }
 
 align_right() {
     local str="$1"
     local align_site=`get_space_size "$str"`
-    local cursor_back="\033[${align_site}G"
-    local cursor_begin="\033[1G"
-    echo "${cursor_back}${str}${cursor_begin}"
+    local cursor_cols="\e[${align_site}G"
+    echo "${cursor_cols}${str}"
 }
 
 # pin the last commad exit code at previous line end
 get_pin_exit_code() {
-    local exit_code=$?
+    # LAST_EXIT_CODE changed in `gen_jovial_prompt`, 
+    # because $? must be read in the first function of PROMPT
+    local exit_code=${LAST_EXIT_CODE}
     if [[ $exit_code != 0 ]]; then
         local exit_code_warn=" %{$FG[246]%}exit:%{$fg_bold[red]%}${exit_code}%{$reset_color%}"
         previous_align_right "$exit_code_warn"
@@ -143,7 +165,7 @@ get_pin_exit_code() {
 prompt_node_version() {
     if rev_parse_find "package.json"; then
         if iscommand node; then
-            local NODE_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[120]%} "
+            local NODE_PROMPT_PREFIX="%{$FG[102]%}using%{$FG[120]%} "
             local NODE_PROMPT="node `command node -v`"
         else
             local NODE_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
@@ -157,7 +179,7 @@ prompt_node_version() {
 prompt_php_version() {
     if rev_parse_find "composer.json"; then
         if iscommand php; then
-            local PHP_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[105]%} "
+            local PHP_PROMPT_PREFIX="%{$FG[102]%}using%{$FG[105]%} "
             local PHP_PROMPT="php `command php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local PHP_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
@@ -168,7 +190,7 @@ prompt_php_version() {
 }
 
 prompt_python_version() {
-    local PYTHON_PROMPT_PREFIX="%{$FG[239]%}using%{$FG[123]%} "
+    local PYTHON_PROMPT_PREFIX="%{$FG[102]%}using%{$FG[123]%} "
     if rev_parse_find "venv"; then
         local PYTHON_PROMPT="`$(rev_parse_find venv '' true)/venv/bin/python --version 2>&1`"
         echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}%{$reset_color%}"
@@ -184,11 +206,15 @@ prompt_python_version() {
 }
 
 dev_env_segment() {
-    local SEGMENT_ELEMENTS=(node php python)
-    for element in "${SEGMENT_ELEMENTS[@]}"; do
-        local segment=`prompt_${element}_version`
+    local segment_funcs=(
+        prompt_node_version
+        prompt_php_version
+        prompt_python_version
+    )
+    for segment_func in "${segment_funcs[@]}"; do
+        local segment=`${segment_func}`
         if [[ -n $segment ]]; then 
-            echo "$segment "
+            echo " $segment"
             break
         fi
     done
@@ -242,13 +268,6 @@ git_action_prompt() {
 }
 
 
-VIRTUAL_ENV_DISABLE_PROMPT=true
-
-ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[239]%}on%{$reset_color%} (%{$FG[159]%}"
-ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
-GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
-ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
-
 git_action_prompt_hook() {
     if [[ -z ${REV_GIT_DIR} ]]; then return 1; fi
 
@@ -266,15 +285,56 @@ git_action_prompt_hook() {
     fi
 }
 
+local JOVIAL_PROMPT_UP_CORNER='╭─'
+local JOVIAL_PROMPT_DOWN_CORNER='╰─'
+local -A JOVIAL_PROMPT_FORMATS=(
+    host '$(get_host_name)%{$FG[102]%} as'
+    user ' $(get_user_name)%{$FG[102]%} in'
+    path ' $(current_dir)'
+    dev_env '$(dev_env_segment)'
+    git_info ' $(git_prompt_info)'
+    current_time '$(align_right " `get_date_time`")'
+)
+
+local JOVIAL_PROMPT_PRIORITY=(
+    path
+    git_info
+    user
+    host
+    dev_env
+    current_time
+)
+
+gen_jovial_prompt() {
+    LAST_EXIT_CODE=$?
+    local -i total_length=${#JOVIAL_PROMPT_UP_CORNER}
+    local -A prompts=(
+        host ''
+        user ''
+        path ''
+        dev_env ''
+        git_info ''
+        current_time ''
+    )
+
+    for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
+        if (( total_length <= COLUMNS )); then
+            local item=$(print -P "${JOVIAL_PROMPT_FORMATS[${key}]}")
+            total_length+=$(unstyle_len "${item}")
+
+            # always display current path
+            if [[ ${key} == path ]] || (( total_length <= COLUMNS )); then
+                prompts[${key}]="${item}"
+            fi
+        fi
+    done
+
+    echo "$(get_pin_exit_code)"
+    echo "${JOVIAL_PROMPT_UP_CORNER}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev_env]}${prompts[git_info]}${prompts[current_time]}"
+    echo "${JOVIAL_PROMPT_DOWN_CORNER}$(type_tip_pointer) $(venv_info_prompt) "
+}
+
 add-zsh-hook precmd git_action_prompt_hook
 git_action_prompt_hook
 
-local JOVIAL_PROMPT_PREVIOUS='`get_pin_exit_code`'
-local JOVIAL_PROMPT_HEAD='╭─$(get_host_name) %{$FG[239]%}as $(get_user_name) %{$FG[239]%}in $(current_dir) $(dev_env_segment)$(git_prompt_info)  '
-local JOVIAL_PROMPT_FOOT='╰─$(type_tip_pointer) $(venv_info_prompt) '
-local JOVIAL_PROMPT_HEAD_RIGHT_TIME='$(align_right " `get_date_time`")'
-
-PROMPT="$JOVIAL_PROMPT_PREVIOUS
-${JOVIAL_PROMPT_HEAD_RIGHT_TIME}${JOVIAL_PROMPT_HEAD}
-$JOVIAL_PROMPT_FOOT"
-
+PROMPT='$(gen_jovial_prompt)'
