@@ -27,13 +27,13 @@
 if u are always login as **root**, pls use this command:
 
 ```bash
-curl -sSL git.io/jovial | bash
+curl -sSL -H 'Cache-Control: no-cache' git.io/jovial | bash
 ```
 
 otherwise, use this below:
 
 ```bash
-curl -sSL git.io/jovial | sudo bash -s $USER
+curl -sSL -H 'Cache-Control: no-cache' git.io/jovial | sudo bash -s $USER
 ```
 
 NOTE: it will also install `zsh` and `oh-my-zsh` if u lack them.

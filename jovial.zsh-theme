@@ -12,9 +12,10 @@
 # Cursor Left      <ESC>[{COUNT}D
 # Cursor Horizontal Absolute      <ESC>[{COUNT}G
 
-export JOVIAL_VERSION="1.1.0"
+export JOVIAL_VERSION="1.1.1"
 
 autoload -Uz add-zsh-hook
+autoload -Uz regexp-replace
 
 # JOVIAL_ARROW='─>'
 # JOVIAL_ARROW='─▶'
@@ -28,6 +29,7 @@ local GIT_STATUS_PROMPT=""
 local LAST_EXIT_CODE=0
 
 
+setopt RE_MATCH_PCRE
 VIRTUAL_ENV_DISABLE_PROMPT=true
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[102]%}on%{$reset_color%} (%{$FG[159]%}"
@@ -46,8 +48,9 @@ chpwd_git_dir_hook
 # https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
 # https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
 unstyle_len() {
-    local visible=$(echo "$1" | perl -pe 's/\e\[[0-9;]*?[a-zA-Z]//g')
-    echo ${#visible}
+    local str="$1"
+    regexp-replace str '\e\[[0-9;]*?[a-zA-Z]' ''
+    echo ${#str}
 }
 
 # rev_parse_find(filename:string, path:string, output:boolean)
