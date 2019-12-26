@@ -12,7 +12,7 @@
 # Cursor Left      <ESC>[{COUNT}D
 # Cursor Horizontal Absolute      <ESC>[{COUNT}G
 
-export JOVIAL_VERSION="1.1.1"
+export JOVIAL_VERSION="1.1.2"
 
 autoload -Uz add-zsh-hook
 autoload -Uz regexp-replace
@@ -300,12 +300,12 @@ local -A JOVIAL_PROMPT_FORMATS=(
 )
 
 local JOVIAL_PROMPT_PRIORITY=(
-    path
+    # path
     git_info
     user
     host
     dev_env
-    current_time
+    # current_time
 )
 
 gen_jovial_prompt() {
@@ -319,18 +319,28 @@ gen_jovial_prompt() {
         git_info ''
         current_time ''
     )
+    # datetime length is fixed number of `${JOVIAL_PROMPT_FORMATS[current_time]}`
+    local -i len_datetime=9
+
+    # always display current path
+    prompts[path]=$(print -P "${JOVIAL_PROMPT_FORMATS[path]}")
+    total_length+=$(unstyle_len "${prompts[path]}")
 
     for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
-        if (( total_length <= COLUMNS )); then
-            local item=$(print -P "${JOVIAL_PROMPT_FORMATS[${key}]}")
-            total_length+=$(unstyle_len "${item}")
+        local item=$(print -P "${JOVIAL_PROMPT_FORMATS[${key}]}")
+        local -i item_length=$(unstyle_len "${item}")
 
-            # always display current path
-            if [[ ${key} == path ]] || (( total_length <= COLUMNS )); then
-                prompts[${key}]="${item}"
-            fi
+        if (( total_length + item_length > COLUMNS )); then
+            break
         fi
+
+        total_length+=${item_length}
+        prompts[${key}]="${item}"
     done
+
+    if (( total_length + len_datetime <= COLUMNS )); then
+        prompts[current_time]=$(print -P "${JOVIAL_PROMPT_FORMATS[current_time]}")
+    fi
 
     echo "$(get_pin_exit_code)"
     echo "${JOVIAL_PROMPT_UP_CORNER}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev_env]}${prompts[git_info]}${prompts[current_time]}"
