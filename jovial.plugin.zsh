@@ -8,7 +8,7 @@ export LC_ALL=en_US.UTF-8
 
 
 #
-# Aliases
+# ########## Aliases ##########
 #
 
 alias pxy='proxychains4'
@@ -44,16 +44,20 @@ alias gltraw='glt1 | grep -oE "(?:AuthorDate)(.*)" | cut -c 13-'
 alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/dangling commit/ {print \$3}')"
 
 
+# 
+# ########## Utils ##########
+#
+
 # git fetch and checkout to target branch
 function gfco {
     local branch="$1"
-    gfo +${branch}:${branch} && gco ${branch}
+    gfo --no-tags +${branch}:${branch} && gco ${branch}
 }
 
 # git fetch and rebase to target branch
 function gfbi {
     local branch="$1"
-    gfo +${branch}:${branch} && grbi ${branch}
+    gfo --no-tags +${branch}:${branch} && grbi ${branch}
 }
 
 # git delete and checkout -b to target branch
@@ -153,19 +157,6 @@ function py2venv {
     fi
 }
 
-
-# bgnotify setting
-bgnotify_threshold=4
-
-function bgnotify_formatted {
-    # zsh plugin bgnotify
-    # args: (exit_status, command, elapsed_seconds)
-    elapsed="$(( $3 % 60 ))s"
-    (( $3 >= 60 )) && elapsed="$((( $3 % 3600) / 60 ))m $elapsed"
-    (( $3 >= 3600 )) && elapsed="$(( $3 / 3600 ))h $elapsed"
-    [[ $1 == 0 ]] && bgnotify "🎉 Success ($elapsed)" "$2" || bgnotify "💥 Failed ($elapsed)" "$2"
-}
-
 # ssh util `to`
 function to {
     local comment="
@@ -225,6 +216,22 @@ function to {
     "
 }
 
+
+# 
+# ########## App Config ##########
+#
+
+# bgnotify setting
+bgnotify_threshold=4
+
+function bgnotify_formatted {
+    # zsh plugin bgnotify
+    # args: (exit_status, command, elapsed_seconds)
+    elapsed="$(( $3 % 60 ))s"
+    (( $3 >= 60 )) && elapsed="$((( $3 % 3600) / 60 ))m $elapsed"
+    (( $3 >= 3600 )) && elapsed="$(( $3 / 3600 ))h $elapsed"
+    [[ $1 == 0 ]] && bgnotify "🎉 Success ($elapsed)" "$2" || bgnotify "💥 Failed ($elapsed)" "$2"
+}
 
 # https://superuser.com/questions/71588/how-to-syntax-highlight-via-less
 LESSPIPE=`((which src-hilite-lesspipe.sh > /dev/null && which src-hilite-lesspipe.sh) || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
