@@ -12,7 +12,7 @@
 # Cursor Left      <ESC>[{COUNT}D
 # Cursor Horizontal Absolute      <ESC>[{COUNT}G
 
-export JOVIAL_VERSION="1.1.4"
+export JOVIAL_VERSION="1.1.5"
 
 autoload -Uz add-zsh-hook
 autoload -Uz regexp-replace

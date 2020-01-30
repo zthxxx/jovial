@@ -239,3 +239,83 @@ if [[ -n ${LESSPIPE} && -e ${LESSPIPE} ]]; then
     export LESSOPEN="| ${LESSPIPE} %s"
     export LESS=' -R -X -F '
 fi
+
+# print 256-color pattern
+function colorsheet {
+    local block row col fg_color bg_color
+    local i
+
+    print -P "$(
+        echo -n '\n'
+
+        # the 16 base colors
+        for i in {0..15}; do
+            # use shell substitution for pad zero or space to variable
+            bg_color="${${:-000${i}}:(-3)}"
+            i="${${:-   ${i}}:(-3)}"
+
+            if (( bg_color > 0 )); then
+                fg_color=000
+            else
+                fg_color=015
+            fi
+
+            if (( i % 6 == 0 )); then
+                echo -n "${reset_color}  "
+            fi
+
+            echo -n "${reset_color} ${FG[${fg_color}]}${BG[${bg_color}]} $i"
+        done
+
+        echo -n "${reset_color}\n\n  "
+
+        # 6 colors blocks (per 6 x 6)
+        for row in {0..11}; do
+            if (( row % 6 == 0 )); then
+                echo -n "${reset_color}\n  "
+            fi
+
+            if (( (row % 6) > 2 )); then
+                fg_color=000
+            else
+                fg_color=015
+            fi
+
+            for block in {0..2}; do
+                for col in {0..5}; do
+                    i=$(( 16 + (row / 6) * 36 * 3 + (row % 6) * 6 + block * 36 + col ))
+
+                    # use shell substitution for pad zero or space to variable
+                    bg_color="${${:-000${i}}:(-3)}"
+                    i="${${:-   ${i}}:(-3)}"
+
+                    echo -n "${reset_color} ${FG[${fg_color}]}${BG[${bg_color}]} $i"
+                done
+
+                echo -n "${reset_color}  "
+            done
+
+            echo -n "${reset_color}\n  "
+        done
+
+        echo -n "\n"
+
+        # the two lines gray level colors
+        for i in {232..255}; do
+            if (( (i - 16) % 12 == 0 )); then
+                echo -n "\n"
+            fi
+            if (( (i - 16) % 6 == 0 )); then
+                echo -n "${reset_color}  "
+            fi
+
+            if (( i > 243 )); then
+                fg_color=000
+            else
+                fg_color=015
+            fi
+
+            echo -n "${reset_color} ${FG[${fg_color}]}${BG[$i]} $i"
+        done
+    )"
+}
