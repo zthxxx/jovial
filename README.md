@@ -1,4 +1,11 @@
-# jovial - feel jovial with this theme
+<h1 align="center">Jovial</h1>
+
+<p align="center">fall in jovial with this theme</p>
+
+## Preview
+
+![jovial](./docs/jovial.png)
+
 
 ## Feature
 
@@ -16,10 +23,15 @@
   - urltools
   - some alias (see [jovial.plugin](./jovial.plugin.zsh))
 
+### git action tips
 
-## Preview
+![jovial-git-action](./docs/jovial-git-action.png)
 
-![jovial-preview](./docs/jovial-preview.png)
+### development environment tips
+
+![jovial-node-prompt](./docs/jovial-node-prompt.png)
+
+![jovial-python-prompt](./docs/jovial-python-prompt.png)
 
 
 ## Install
@@ -36,12 +48,12 @@ otherwise, use this below:
 curl -sSL -H 'Cache-Control: no-cache' git.io/jovial | sudo bash -s $USER
 ```
 
-NOTE: it will also install `zsh` and `oh-my-zsh` if u lack them.
+NOTE: it will also install `zsh` and `oh-my-zsh` automatically.
 
 
 ## Author
 
 **jovial** © [zthxxx](https://github.com/zthxxx), Released under the **[MIT](./LICENSE)** License.
 
-> Blog [@zthxxx](https://blog.zthxxx.com) · GitHub [@zthxxx](https://github.com/zthxxx)
+> Blog [@zthxxx](https://blog.zthxxx.me) · GitHub [@zthxxx](https://github.com/zthxxx)
 
