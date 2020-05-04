@@ -71,7 +71,7 @@ install_zsh_plugins() {
 
     if [[ ! -e ${plugin_dir}/zsh-history-enquirer ]]; then
         echo '+ install zsh-history-enquirer'
-        curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/installer.zsh | sudo -u $S_USER -i zsh
+        curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/scripts/installer.zsh | sudo -u $S_USER -i zsh
     fi
 
     local plugins=(
