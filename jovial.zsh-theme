@@ -12,7 +12,7 @@
 # Cursor Left      <ESC>[{COUNT}D
 # Cursor Horizontal Absolute      <ESC>[{COUNT}G
 
-export JOVIAL_VERSION="1.1.5"
+export JOVIAL_VERSION="1.1.6"
 
 autoload -Uz add-zsh-hook
 autoload -Uz regexp-replace
@@ -29,7 +29,6 @@ local JOVIAL_GIT_STATUS_PROMPT=""
 local JOVIAL_LAST_EXIT_CODE=0
 
 
-setopt RE_MATCH_PCRE
 VIRTUAL_ENV_DISABLE_PROMPT=true
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[102]%}on%{$reset_color%} (%{$FG[159]%}"
@@ -48,7 +47,21 @@ _jov_chpwd_git_dir_hook
 # https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
 _jov_unstyle_len() {
     local str="$1"
-    regexp-replace str '\e\[[0-9;]*?[a-zA-Z]' ''
+    ## regexp with PCRE mode
+    ## used with `setopt RE_MATCH_PCRE`
+    ## but it is not compatible with macOS Catalina
+    ## so need "brew install zsh && sudo chsh -s `command -v zsh` $USER"
+    #
+    # setopt RE_MATCH_PCRE
+    # regexp-replace str '\e\[[0-9;]*[a-zA-Z]' ''
+
+    ## regexp with POSIX mode
+    ## compatible with macOS Catalina
+    ## !! NOTE: note that the "empth space" in this regexp at the beginning is not "space",
+    ## it is the ANSI escape ESC char ("\e")
+    #
+    regexp-replace str "\[[0-9;]*[a-zA-Z]" ''
+
     echo ${#str}
 }
 
