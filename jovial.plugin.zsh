@@ -31,6 +31,12 @@ alias tsnode='ts-node'
 alias typora='open -a typora'
 alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
 
+# lazygit - https://github.com/jesseduffield/lazygit
+alias lg='lazygit'
+
+# git clone but we always commonly need only one depth
+alias gcl1='gcl --depth=1'
+
 # git log time iso
 alias glti='git log --pretty=fuller --date=iso'
 alias glt1='glti -n 1'

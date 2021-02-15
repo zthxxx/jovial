@@ -12,7 +12,7 @@
 # Cursor Left      <ESC>[{COUNT}D
 # Cursor Horizontal Absolute      <ESC>[{COUNT}G
 
-export JOVIAL_VERSION="1.1.6"
+export JOVIAL_VERSION="1.1.7"
 
 autoload -Uz add-zsh-hook
 autoload -Uz regexp-replace
@@ -236,8 +236,7 @@ _jov_dev_env_segment() {
 }
 
 _jov_git_action_prompt() {
-    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
-    if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then return 1; fi
+    # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
 
     local action=""
     local rebase_merge="${JOVIAL_REV_GIT_DIR}/rebase-merge"
@@ -293,10 +292,9 @@ _jov_git_action_prompt_hook() {
     fi
 
     if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
-        ZSH_THEME_GIT_PROMPT_DIRTY="`_jov_git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
-        JOVIAL_GIT_STATUS_PROMPT="$ZSH_THEME_GIT_PROMPT_DIRTY"
+        JOVIAL_GIT_STATUS_PROMPT="`_jov_git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
     else
-        JOVIAL_GIT_STATUS_PROMPT="$ZSH_THEME_GIT_PROMPT_CLEAN"
+        JOVIAL_GIT_STATUS_PROMPT="`_jov_git_action_prompt`${ZSH_THEME_GIT_PROMPT_CLEAN}"
     fi
 }
 
