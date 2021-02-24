@@ -57,9 +57,9 @@ _jov_unstyle_len() {
 
     ## regexp with POSIX mode
     ## compatible with macOS Catalina
-    ## !! NOTE: note that the "empth space" in this regexp at the beginning is not "space",
-    ## it is the ANSI escape ESC char ("\e")
     #
+    ## !!! NOTE: note that the "empty space" in this regexp at the beginning is not a common "space",
+    ## it is the ANSI escape ESC char ("\e")
     regexp-replace str "\[[0-9;]*[a-zA-Z]" ''
 
     echo ${#str}
