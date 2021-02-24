@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-
+export JOVIAL_PLUGIN_VERSION="1.0.1"
 
 #
 # ########## Aliases ##########
@@ -49,6 +49,8 @@ alias gltraw='glt1 | grep -oE "(?:AuthorDate)(.*)" | cut -c 13-'
 # https://stackoverflow.com/questions/89332/how-to-recover-a-dropped-stash-in-git/
 alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/dangling commit/ {print \$3}')"
 
+# similar to 'ps aux', list all processes but log custom metrics
+alias psx="ps -A -o user,pid,ppid,pcpu,pmem,vsz,rss,time,etime,command"
 
 # 
 # ########## Utils ##########
