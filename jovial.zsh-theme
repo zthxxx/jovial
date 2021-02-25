@@ -12,7 +12,7 @@
 # Cursor Left      <ESC>[{COUNT}D
 # Cursor Horizontal Absolute      <ESC>[{COUNT}G
 
-export JOVIAL_VERSION="1.1.7"
+export JOVIAL_VERSION="1.1.8"
 
 autoload -Uz add-zsh-hook
 autoload -Uz regexp-replace
@@ -100,7 +100,10 @@ _jov_get_user_name() {
 _jov_git_prompt_info () {
     if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
     local ref
-    ref=$(command git symbolic-ref HEAD 2> /dev/null) || ref=$(command git rev-parse --short HEAD 2> /dev/null) || return 0
+    ref=$(command git symbolic-ref HEAD 2> /dev/null) \
+      || ref=$(command git describe --tags --exact-match 2> /dev/null) \
+      || ref=$(command git rev-parse --short HEAD 2> /dev/null) \
+      || return 0
     echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${JOVIAL_GIT_STATUS_PROMPT}$ZSH_THEME_GIT_PROMPT_SUFFIX"
 }
 
