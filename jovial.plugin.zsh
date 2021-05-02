@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION="1.0.1"
+export JOVIAL_PLUGIN_VERSION='1.0.2'
 
 #
 # ########## Aliases ##########
@@ -122,9 +122,9 @@ function grclast {
         last_time="$1"
     fi
 
-    git reset HEAD~1
-    gaa
-    gcmt "${last_log}" "${last_time}"
+    git reset HEAD~1 \
+      && gaa \
+      && gcmt "${last_log}" "${last_time}"
 }
 
 
