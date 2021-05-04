@@ -36,16 +36,18 @@
 
 ## Install
 
-if u are always login as **root**, pls use this command:
+**[for NOT root**]
 
 ```bash
-curl -sSL -H 'Cache-Control: no-cache' git.io/jovial | bash
+curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/jovial/raw/master/installer.zsh | sudo bash -s $USER
 ```
 
-otherwise, use this below:
+
+**[for root]** if you want install to **root** user, please make sure you are loggin as 'root' now, and use this command:
+
 
 ```bash
-curl -sSL -H 'Cache-Control: no-cache' git.io/jovial | sudo bash -s $USER
+curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/jovial/raw/master/installer.zsh | bash
 ```
 
 NOTE: it will also install `zsh` and `oh-my-zsh` automatically.
@@ -56,4 +58,3 @@ NOTE: it will also install `zsh` and `oh-my-zsh` automatically.
 **jovial** © [zthxxx](https://github.com/zthxxx), Released under the **[MIT](./LICENSE)** License.
 
 > Blog [@zthxxx](https://blog.zthxxx.me) · GitHub [@zthxxx](https://github.com/zthxxx)
-
