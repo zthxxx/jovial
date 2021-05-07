@@ -39,7 +39,7 @@
 **[for NOT root**]
 
 ```bash
-curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/jovial/raw/master/installer.zsh | sudo bash -s $USER
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.zsh | sudo bash -s $USER
 ```
 
 
@@ -47,11 +47,18 @@ curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/jovial/raw/mast
 
 
 ```bash
-curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/jovial/raw/master/installer.zsh | bash
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.zsh | bash
 ```
 
 NOTE: it will also install `zsh` and `oh-my-zsh` automatically.
 
+## Font Recommended
+
+- `Monaco` in iTerm2
+- `Melon` in VSCode
+- `JetBrains Mono` in JetBrains IDEs
+
+NOTE: also remember to set font line-height to 1.0
 
 ## Author
 
