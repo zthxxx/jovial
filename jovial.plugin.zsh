@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.0.2'
+export JOVIAL_PLUGIN_VERSION='1.1.0'
 
 #
 # ########## Aliases ##########
@@ -165,66 +165,6 @@ function py2venv {
     fi
 }
 
-# ssh util `to`
-function to {
-    local comment="
-      command: to - ssh with agent forward to login and su to root
-      usage: to <ip> [port]
-
-      options:
-        set those local env below in .bashrc or .zshrc or other
-
-        local TO_SSH_AGENT
-        local TO_SSH_USERNAME
-        local TO_SSH_PASSWORD
-
-      config TO_SSH_AGENT name in ~/.ssh/config
-      also make sure username and password without space/quote
-    "
-    local agent="${TO_SSH_AGENT}"
-    local target_user="${TO_SSH_USERNAME}"
-    local password="${TO_SSH_PASSWORD}"
-
-    local target_host="${1}"
-    local target_port="${2}"
-
-    if [[ -z ${target_host} ]]; then
-        echo "${comment}"
-        return
-    fi
-
-    if [[ -n ${target_user} ]]; then
-        target_host="${target_user}@${target_host}"
-    fi
-
-    if [[ -n ${target_port} ]]; then
-        target_port="-p ${target_port}"
-    fi
-
-    # cannot use quote, space or '$' in expect tcl command, so its need escape
-    if [[ -n ${agent} ]]; then
-        agent="-o ProxyCommand=ssh\ -W\ %h:%p\ ${agent}"
-    fi
-
-    expect -c "
-        trap {
-          set rows [stty rows]
-          set cols [stty columns]
-          stty rows \$rows columns \$cols < \$spawn_out(slave,name)
-        } WINCH
-
-        spawn ssh -A ${agent} ${target_host} ${target_port}
-        expect {
-            "yes/no"    {send yes; send \n; exp_continue}
-            "password"  {send "${password}"; send \n; exp_continue}
-            "${target_user}"    {send \"exec sudo su -\"; send \n}
-        }
-        expect "password" {send "${password}"; send \n}
-        interact
-    "
-}
-
-
 # 
 # ########## App Config ##########
 #
@@ -247,3 +187,91 @@ if [[ -n ${LESSPIPE} && -e ${LESSPIPE} ]]; then
     export LESSOPEN="| ${LESSPIPE} %s"
     export LESS=' -R -X -F '
 fi
+
+
+# 
+# ########## cheat sheet ##########
+#
+
+function sheet:shortcuts {
+    # show bash/zsh shell commonly shortcuts
+    echo '
+      ctrl+A          ctrl+E    ─┐
+      ┌─────────┬──────────┐     │
+      │  alt+B  │ alt+F    │     ├─► Moving
+      │  ┌──────┼────┐     │     │
+      ▼  ▼      │    ▼     ▼    ─┘
+    $ cp assets-|files dist/
+         ◄────── ────►          ─┐
+          ctrl+W alt+D           │
+                                 ├─► Erasing
+      ◄───────── ──────────►     │
+        ctrl+U     ctrl+K       ─┘
+    '
+}
+
+
+function sheet:color {
+    # show 256-color pattern
+    local block row col fg_color bg_color
+    local i
+
+    print -P "$(
+        echo -n "\n"
+        # the 16 base colors
+        for i in {0..15}; do
+            # use shell substitution for pad zero or space to variable
+            bg_color="${${:-000${i}}:(-3)}"
+            i="${${:-   ${i}}:(-3)}"
+            if (( bg_color > 0 )); then
+                fg_color=000
+            else
+                fg_color=015
+            fi
+            if (( i % 6 == 0 )); then
+                echo -n "${reset_color}  "
+            fi
+            echo -n "${reset_color} ${FG[${fg_color}]}${BG[${bg_color}]} $i"
+        done
+        echo -n "${reset_color}\n\n  "
+        # 6 colors blocks (per 6 x 6)
+        for row in {0..11}; do
+            if (( row % 6 == 0 )); then
+                echo -n "${reset_color}\n  "
+            fi
+            if (( (row % 6) > 2 )); then
+                fg_color=000
+            else
+                fg_color=015
+            fi
+            for block in {0..2}; do
+                for col in {0..5}; do
+                    i=$(( 16 + (row / 6) * 36 * 3 + (row % 6) * 6 + block * 36 + col ))
+                    # use shell substitution for pad zero or space to variable
+                    bg_color="${${:-000${i}}:(-3)}"
+                    i="${${:-   ${i}}:(-3)}"
+                    echo -n "${reset_color} ${FG[${fg_color}]}${BG[${bg_color}]} $i"
+                done
+                echo -n "${reset_color}  "
+            done
+            echo -n "${reset_color}\n  "
+        done
+        echo -n "\n"
+        # the two lines gray level colors
+        for i in {232..255}; do
+            if (( (i - 16) % 12 == 0 )); then
+                echo -n "\n"
+            fi
+            if (( (i - 16) % 6 == 0 )); then
+                echo -n "${reset_color}  "
+            fi
+            if (( i > 243 )); then
+                fg_color=000
+            else
+                fg_color=015
+            fi
+            echo -n "${reset_color} ${FG[${fg_color}]}${BG[$i]} $i"
+        done
+        echo -n "${reset_color}"
+    )"
+}
