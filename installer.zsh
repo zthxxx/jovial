@@ -85,7 +85,7 @@ install_zsh_plugins() {
         jovial
 
         # TODO: case "$OSTYPE" in (darwin*)
-        osx
+        macos
     )
 
     local plugin_str="${plugins[@]}"

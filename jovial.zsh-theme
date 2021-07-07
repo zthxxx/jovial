@@ -33,8 +33,8 @@ VIRTUAL_ENV_DISABLE_PROMPT=true
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[102]%}on%{$reset_color%} (%{$FG[159]%}"
 ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
-GIT_PROMPT_DIRTY_STYLE="%{$reset_color%})%{$FG[202]%}✘✘✘"
-ZSH_THEME_GIT_PROMPT_CLEAN="%{$reset_color%})%{$FG[040]%}✔"
+GIT_PROMPT_DIRTY_STYLE="%{$FG[202]%}✘✘✘"
+ZSH_THEME_GIT_PROMPT_CLEAN="%{$FG[040]%}✔"
 
 _jov_iscommand() { [[ -e $commands[$1] ]] }
 
@@ -281,7 +281,7 @@ _jov_git_action_prompt() {
 		action="|$action"
 	fi
 
-    echo "$action"
+    echo "$action%{$reset_color%})"
 }
 
 
@@ -332,7 +332,8 @@ _jovial_prompt() {
         git_info ''
         current_time ''
     )
-    # datetime length is fixed number of `${JOVIAL_PROMPT_FORMATS[current_time]}`
+
+    # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current_time]}` -> ` hh:mm:ss`
     local -i len_datetime=9
 
     # always display current path
