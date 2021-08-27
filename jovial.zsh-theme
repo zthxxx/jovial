@@ -38,8 +38,7 @@ ZSH_THEME_GIT_PROMPT_CLEAN="%{$FG[040]%}✔"
 
 _jov_iscommand() { [[ -e $commands[$1] ]] }
 
-
-_jov_chpwd_git_dir_hook() { JOVIAL_REV_GIT_DIR=`command git rev-parse --git-dir 2>/dev/null` }
+_jov_chpwd_git_dir_hook() { JOVIAL_REV_GIT_DIR=`\git rev-parse --git-dir 2>/dev/null` }
 add-zsh-hook chpwd _jov_chpwd_git_dir_hook
 _jov_chpwd_git_dir_hook
 
@@ -72,14 +71,14 @@ _jov_rev_parse_find() {
     local target="$1"
     local current_path="${2:-`pwd`}"
     local whether_output=${3:-false}
-    local parent_path="`command dirname $current_path`"
+    local parent_path=`\dirname $current_path`
     while [[ ${parent_path} != "/" ]]; do
         if [[ -e ${current_path}/${target} ]]; then
             if $whether_output; then echo "$current_path"; fi
             return 0
         fi
         current_path="$parent_path"
-        parent_path="`command dirname $parent_path`"
+        parent_path=`\dirname $parent_path`
     done
     return 1
 }
@@ -100,9 +99,9 @@ _jov_get_user_name() {
 _jov_git_prompt_info () {
     if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
     local ref
-    ref=$(command git symbolic-ref HEAD 2> /dev/null) \
-      || ref=$(command git describe --tags --exact-match 2> /dev/null) \
-      || ref=$(command git rev-parse --short HEAD 2> /dev/null) \
+    ref=$(\git symbolic-ref HEAD 2> /dev/null) \
+      || ref=$(\git describe --tags --exact-match 2> /dev/null) \
+      || ref=$(\git rev-parse --short HEAD 2> /dev/null) \
       || return 0
     echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${JOVIAL_GIT_STATUS_PROMPT}$ZSH_THEME_GIT_PROMPT_SUFFIX"
 }
@@ -114,7 +113,7 @@ _jov_judge_git_dirty () {
     if [[ "$DISABLE_UNTRACKED_FILES_DIRTY" == "true" ]]; then
         FLAGS+='--untracked-files=no'
     fi
-    STATUS=$(command git status ${FLAGS} 2> /dev/null | tail -n1)
+    STATUS=$(\git status ${FLAGS} 2> /dev/null | tail -n1)
 	if [[ -n $STATUS ]]; then
         return 0
 	else
@@ -140,7 +139,7 @@ _jov_current_dir() {
 
 _jov_get_date_time() {
     # echo "%{$reset_color%}%D %*"
-    command date "+%H:%M:%S"
+    \date "+%H:%M:%S"
 }
 
 _jov_get_space_size() {
@@ -184,7 +183,7 @@ _jov_prompt_node_version() {
     if _jov_rev_parse_find "package.json"; then
         if _jov_iscommand node; then
             local NODE_PROMPT_PREFIX="%{$FG[102]%}using%{$FG[120]%} "
-            local NODE_PROMPT="node `command node -v`"
+            local NODE_PROMPT="node `\node -v`"
         else
             local NODE_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local NODE_PROMPT="Nodejs%{$FG[242]%}]"
@@ -198,7 +197,7 @@ _jov_prompt_php_version() {
     if _jov_rev_parse_find "composer.json"; then
         if _jov_iscommand php; then
             local PHP_PROMPT_PREFIX="%{$FG[102]%}using%{$FG[105]%} "
-            local PHP_PROMPT="php `command php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local PHP_PROMPT="php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local PHP_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local PHP_PROMPT="php%{$FG[242]%}]"
@@ -210,11 +209,11 @@ _jov_prompt_php_version() {
 _jov_prompt_python_version() {
     local PYTHON_PROMPT_PREFIX="%{$FG[102]%}using%{$FG[123]%} "
     if _jov_rev_parse_find "venv"; then
-        local PYTHON_PROMPT="`$(_jov_rev_parse_find venv '' true)/venv/bin/python --version 2>&1`"
+        local PYTHON_PROMPT=`$(_jov_rev_parse_find venv '' true)/venv/bin/python --version 2>&1`
         echo "${PYTHON_PROMPT_PREFIX}${PYTHON_PROMPT}%{$reset_color%}"
     elif _jov_rev_parse_find "requirements.txt"; then
         if _jov_iscommand python; then
-            local PYTHON_PROMPT="`command python --version 2>&1`"
+            local PYTHON_PROMPT=`\python --version 2>&1`
         else
             PYTHON_PROMPT_PREFIX="%{$FG[242]%}[%{$FG[009]%}need "
             local PYTHON_PROMPT="Python%{$FG[242]%}]"
@@ -245,8 +244,8 @@ _jov_git_action_prompt() {
     local rebase_merge="${JOVIAL_REV_GIT_DIR}/rebase-merge"
     local rebase_apply="${JOVIAL_REV_GIT_DIR}/rebase-apply"
 	if [[ -d ${rebase_merge} ]]; then
-        local rebase_step=`command cat "${rebase_merge}/msgnum"`
-        local rebase_total=`command cat "${rebase_merge}/end"`
+        local rebase_step=`\cat "${rebase_merge}/msgnum"`
+        local rebase_total=`\cat "${rebase_merge}/end"`
         local rebase_process="${rebase_step}/${rebase_total}"
 		if [[ -f ${rebase_merge}/interactive ]]; then
 			action="REBASE-i"
@@ -254,8 +253,8 @@ _jov_git_action_prompt() {
 			action="REBASE-m"
 		fi
 	elif [[ -d ${rebase_apply} ]]; then
-        local rebase_step=`command cat "${rebase_apply}/next"`
-        local rebase_total=`command cat "${rebase_apply}/last"`
+        local rebase_step=`\cat "${rebase_apply}/next"`
+        local rebase_total=`\cat "${rebase_apply}/last"`
         local rebase_process="${rebase_step}/${rebase_total}"
         if [[ -f ${rebase_apply}/rebasing ]]; then
             action="REBASE"
@@ -295,9 +294,9 @@ _jov_git_action_prompt_hook() {
     fi
 
     if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
-        JOVIAL_GIT_STATUS_PROMPT="`_jov_git_action_prompt`${GIT_PROMPT_DIRTY_STYLE}"
+        JOVIAL_GIT_STATUS_PROMPT="$(_jov_git_action_prompt)${GIT_PROMPT_DIRTY_STYLE}"
     else
-        JOVIAL_GIT_STATUS_PROMPT="`_jov_git_action_prompt`${ZSH_THEME_GIT_PROMPT_CLEAN}"
+        JOVIAL_GIT_STATUS_PROMPT="$(_jov_git_action_prompt)${ZSH_THEME_GIT_PROMPT_CLEAN}"
     fi
 }
 
@@ -309,7 +308,7 @@ local -A JOVIAL_PROMPT_FORMATS=(
     path ' $(_jov_current_dir)'
     dev_env '$(_jov_dev_env_segment)'
     git_info ' $(_jov_git_prompt_info)'
-    current_time '$(_jov_align_right " `_jov_get_date_time`")'
+    current_time '$(_jov_align_right " $(_jov_get_date_time)")'
 )
 
 local JOVIAL_PROMPT_PRIORITY=(
