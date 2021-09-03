@@ -1,40 +1,75 @@
 # jovial.zsh-theme
 # https://github.com/zthxxx/jovial
 
+autoload -Uz add-zsh-hook
+autoload -Uz regexp-replace
+
 # Development code style:
 #
-# use "@jov."" prefix for jovial internal functions, and use "kebab-case" style for function names
+# use "@jov."" prefix for jovial internal functions
+# use "kebab-case" style for function names and mapping key
 # use "snake_case" for function's internal variables, and declare it with "local" mark
 # use "SNAKE_CASE" for global variables
 # use indent spaces 4
 
-# References:
+
+export JOVIAL_VERSION='2.0.0'
+
+# jovial theme element symbol mapping
 #
-# http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
-# https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_output_sequences
-# https://donsnotes.com/tech/charsets/ascii.html
-#
-# Cursor Up        <ESC>[{COUNT}A
-# Cursor Down      <ESC>[{COUNT}B
-# Cursor Right     <ESC>[{COUNT}C
-# Cursor Left      <ESC>[{COUNT}D
-# Cursor Horizontal Absolute      <ESC>[{COUNT}G
+# (the syntax `local -A xxx` is means to declare a `associative-array` in zsh, it's like `dictionary`)
+local -A JOVIAL_SYMBOL=(
+    corner.top    '╭─'
+    corner.bottom '╰─'
 
-export JOVIAL_VERSION='1.1.8'
+    git.dirty '✘✘✘'
+    git.clean '✔'
 
-# JOVIAL_ARROW='─>'
-# JOVIAL_ARROW='─▶'
-local JOVIAL_ARROW='─➤'
-local JOVIAL_ARROW_ON_GIT_CLEAN='(๑˃̵ᴗ˂̵)و'
-local JOVIAL_ARROW_ON_GIT_DIRTY='(ﾉ˚Д˚)ﾉ'
+    ## preset arrows
+    # arrow '─>'
+    # arrow '─▶'
+    arrow '─➤'
+    arrow.git-clean '(๑˃̵ᴗ˂̵)و'
+    arrow.git-dirty '(ﾉ˚Д˚)ﾉ'
+)
 
-local   JOVIAL_PROMPT_UP_CORNER='╭─'
-local JOVIAL_PROMPT_DOWN_CORNER='╰─'
+# jovial theme colors mapping
+# use `sheet:color` plugin function to see color table
+local -A JOVIAL_PALETTE=(
+    # hostname
+    host "${FG[157]}"
 
-ZSH_THEME_GIT_PROMPT_PREFIX="%{$FG[102]%}on%{$reset_color%} (%{$FG[159]%}"
-ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
-GIT_PROMPT_DIRTY_STYLE="%{$FG[202]%}✘✘✘"
-ZSH_THEME_GIT_PROMPT_CLEAN="%{$FG[040]%}✔"
+    # common user name
+    user "${FG[255]}"
+
+    # only root user
+    root "${terminfo[bold]}${FG[203]}"
+
+    # current work dir path
+    path "${terminfo[bold]}${FG[228]}"
+
+    # git status info (dirty or clean / rebase / merge / cherry-pick)
+    git "${FG[159]}"
+
+    # virtual env activate prompt for python
+    venv "${FG[159]}"
+ 
+    # time tip at end-of-line
+    time "${FG[254]}"
+
+    # exit code of last command
+    exit.mark "${FG[246]}"
+    exit.code "${terminfo[bold]}${FG[203]}"
+
+    # "conj.": short for "conjunction", like as, at, in, on, using
+    conj. "${FG[102]}"
+
+    # for other common case text color
+    normal "${FG[253]}"
+
+    success "${FG[040]}"
+    error "${FG[203]}"
+)
 
 
 # set this flag for hidden python venv default prompt
@@ -55,6 +90,9 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 # https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
 @jov.unstyle-len() {
     local str="$1"
+    # remove vcs_info mark like "%{", "%}", it is used in `print -P``
+    str="${str//\%[\{\}]/}"
+
     ## regexp with PCRE mode
     ## used with `setopt RE_MATCH_PCRE`
     ## but it is not compatible with macOS Catalina default zsh version
@@ -93,19 +131,25 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 }
 
 @jov.venv-info-prompt() {
-    [[ -n ${VIRTUAL_ENV} ]] && echo "$FG[242](%{$FG[159]%}$(basename $VIRTUAL_ENV)$FG[242])%{$reset_color%} "
+    [[ -z ${VIRTUAL_ENV} ]] && return 0
+    echo "${JOVIAL_PALETTE[normal]}(${JOVIAL_PALETTE[venv]}$(basename $VIRTUAL_ENV)${JOVIAL_PALETTE[normal]}) "
 }
 
-@jov.get-host-name() { echo "[%{$FG[157]%}%m%{$reset_color%}]"; }
+@jov.get-host-name() {
+    echo "${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[host]}%m${JOVIAL_PALETTE[normal]}]"
+}
 
 @jov.get-user-name() {
-    local name_prefix="%{$reset_color%}"
+    local name_prefix="${JOVIAL_PALETTE[user]}"
     if [[ $USER == 'root' || $UID == 0 ]]; then
-        name_prefix="%{$FG[203]%}"
+        name_prefix="${JOVIAL_PALETTE[root]}"
     fi
-    echo "${name_prefix}%n%{$reset_color%}"
+    echo "${name_prefix}%n"
 }
 
+@jov.current-dir() {
+    echo "${JOVIAL_PALETTE[path]}%~"
+}
 
 @jov.git-prompt-info() {
     if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
@@ -114,7 +158,10 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
       || ref=$(\git describe --tags --exact-match 2> /dev/null) \
       || ref=$(\git rev-parse --short HEAD 2> /dev/null) \
       || return 0
-    echo "$ZSH_THEME_GIT_PROMPT_PREFIX${ref#refs/heads/}${JOVIAL_GIT_STATUS_PROMPT}$ZSH_THEME_GIT_PROMPT_SUFFIX"
+    ref="${ref#refs/heads/}"
+
+    local prefix="${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}("
+    echo "${prefix}${JOVIAL_PALETTE[git]}${ref}${JOVIAL_GIT_STATUS_PROMPT}"
 }
 
 @jov.judge-git-dirty() {
@@ -132,38 +179,45 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     fi
 }
 
-@jov.type-tip-pointer() {
+@jov.typing-pointer() {
     if [[ -n ${JOVIAL_REV_GIT_DIR} ]]; then
         if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then
-            echo "${JOVIAL_ARROW_ON_GIT_CLEAN}"
+            echo -n "${JOVIAL_SYMBOL[arrow.git-clean]}"
         else
-            echo "${JOVIAL_ARROW_ON_GIT_DIRTY}"
+            echo -n "${JOVIAL_SYMBOL[arrow.git-dirty]}"
         fi
     else
-        echo "${JOVIAL_ARROW}"
+        echo -n "${JOVIAL_SYMBOL[arrow]}"
     fi
 }
 
-@jov.current-dir() {
-    echo "%{$terminfo[bold]$FG[228]%}%~%{$reset_color%}"
-}
 
 @jov.get-date-time() {
-    # echo "%{$reset_color%}%D %*"
+    echo -n "${JOVIAL_PALETTE[time]}"
     \date "+%H:%M:%S"
 }
 
 @jov.get-space-size() {
-    # ref: http://zsh.sourceforge.net/Doc/Release/Expansion.html#Parameter-Expansion-Flags
     local str="$1"
-    local zero_pattern='%([BSUbfksu]|([FB]|){*})'
-    local len=${#${(S%%)str//$~zero_pattern/}}
+    local len=$(@jov.unstyle-len "$str")
     local size=$(( $COLUMNS - $len + 1 ))
     echo "$size"
 }
 
 @jov.previous-align-right() {
+    # References:
+    #
     # CSI ref: https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences
+    # http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html
+    # https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_output_sequences
+    # https://donsnotes.com/tech/charsets/ascii.html
+    #
+    # Cursor Up        <ESC>[{COUNT}A
+    # Cursor Down      <ESC>[{COUNT}B
+    # Cursor Right     <ESC>[{COUNT}C
+    # Cursor Left      <ESC>[{COUNT}D
+    # Cursor Horizontal Absolute      <ESC>[{COUNT}G
+
     local new_line_space='\n '
     local str="$1"
     local align_site=`@jov.get-space-size "$str"`
@@ -184,7 +238,7 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     # because $? must be read in the first function of PROMPT, so we need it be params
     local exit_code=${1:-0}
     if [[ $exit_code != 0 ]]; then
-        local exit_code_warn=" %{$FG[246]%}exit:%{$fg_bold[red]%}${exit_code}%{$reset_color%}"
+        local exit_code_warn=" ${JOVIAL_PALETTE[exit.mark]}exit:${JOVIAL_PALETTE[exit.code]}${exit_code}"
         @jov.previous-align-right "$exit_code_warn"
     fi
 }
@@ -192,13 +246,13 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.prompt-node-version() {
     if @jov.rev-parse-find "package.json"; then
         if @jov.iscommand node; then
-            local node_prompt_prefix="%{$FG[102]%}using%{$FG[120]%} "
-            local node_prompt="node `\node -v`"
+            local node_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
+            local node_prompt="${FG[120]}node `\node -v`"
         else
-            local node_prompt_prefix="%{$FG[242]%}[%{$FG[009]%}need "
-            local node_prompt="Nodejs%{$FG[242]%}]"
+            local node_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
+            local node_prompt="Nodejs${JOVIAL_PALETTE[normal]}]"
         fi
-        echo "${node_prompt_prefix}${node_prompt}%{$reset_color%}"
+        echo "${node_prompt_prefix}${node_prompt}"
     fi
 }
 
@@ -206,43 +260,47 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.prompt-php-version() {
     if @jov.rev-parse-find "composer.json"; then
         if @jov.iscommand php; then
-            local php_prompt_prefix="%{$FG[102]%}using%{$FG[105]%} "
-            local php_prompt="php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local php_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
+            local php_prompt="${FG[105]}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
-            local php_prompt_prefix="%{$FG[242]%}[%{$FG[009]%}need "
-            local php_prompt="php%{$FG[242]%}]"
+            local php_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
+            local php_prompt="php${JOVIAL_PALETTE[normal]}]"
         fi
-        echo "${php_prompt_prefix}${php_prompt}%{$reset_color%}"
+        echo "${php_prompt_prefix}${php_prompt}"
     fi
 }
 
 @jov.prompt-python-version() {
-    local python_prompt_prefix="%{$FG[102]%}using%{$FG[123]%} "
+    local python_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
 
-    if @jov.rev-parse-find "venv"; then
-        local PYTHON_PROMPT=`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`
-        echo "${python_prompt_prefix}${PYTHON_PROMPT}%{$reset_color%}"
-    elif @jov.rev-parse-find "requirements.txt"; then
+    if [[ -n ${VIRTUAL_ENV} ]] && @jov.rev-parse-find "venv"; then
+        local python_prompt="${FG[123]}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
+        echo "${python_prompt_prefix}${python_prompt}"
+        return 0
+    fi
+
+    if @jov.rev-parse-find "requirements.txt"; then
         if @jov.iscommand python; then
-            local PYTHON_PROMPT=`\python --version 2>&1`
+            local python_prompt="${FG[123]}`\python --version 2>&1`"
         else
-            python_prompt_prefix="%{$FG[242]%}[%{$FG[009]%}need "
-            local PYTHON_PROMPT="Python%{$FG[242]%}]"
+            python_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
+            local python_prompt="Python${JOVIAL_PALETTE[normal]}]"
         fi
-        echo "${python_prompt_prefix}${PYTHON_PROMPT}%{$reset_color%}"
+        echo "${python_prompt_prefix}${python_prompt}"
     fi
 }
 
+local JOVIAL_DEV_ENV_DETECT_FUNCS=(
+    @jov.prompt-node-version
+    @jov.prompt-python-version
+    @jov.prompt-php-version
+)
+
 @jov.dev-env-segment() {
-    local segment_funcs=(
-        @jov.prompt-node-version
-        @jov.prompt-php-version
-        @jov.prompt-python-version
-    )
-    for segment_func in "${segment_funcs[@]}"; do
+    for segment_func in "${JOVIAL_DEV_ENV_DETECT_FUNCS[@]}"; do
         local segment=`${segment_func}`
         if [[ -n $segment ]]; then 
-            echo " $segment"
+            echo "$segment"
             break
         fi
     done
@@ -291,7 +349,7 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
         action="|$action"
     fi
 
-    echo "$action%{$reset_color%})"
+    echo "${action}${JOVIAL_PALETTE[normal]})"
 }
 
 
@@ -304,45 +362,49 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
         JOVIAL_IS_GIT_DIRTY=false
     fi
 
-    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
-        JOVIAL_GIT_STATUS_PROMPT="$(@jov.git-action-prompt)${GIT_PROMPT_DIRTY_STYLE}"
+    if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then
+        JOVIAL_GIT_STATUS_PROMPT="$(@jov.git-action-prompt)${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
     else
-        JOVIAL_GIT_STATUS_PROMPT="$(@jov.git-action-prompt)${ZSH_THEME_GIT_PROMPT_CLEAN}"
+        JOVIAL_GIT_STATUS_PROMPT="$(@jov.git-action-prompt)${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
     fi
 }
 
-local -A JOVIAL_PROMPT_FORMATS=(
-    host '$(@jov.get-host-name)%{$FG[102]%} as'
-    user ' $(@jov.get-user-name)%{$FG[102]%} in'
-    path ' $(@jov.current-dir)'
-    dev_env '$(@jov.dev-env-segment)'
-    git_info ' $(@jov.git-prompt-info)'
-    current_time '$(@jov.align-right " $(@jov.get-date-time)")'
-)
+# SGR (Select Graphic Rendition) parameters
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
+# "%{ %}" use for print command (vcs_info style)
+local SGR_RESET="%{${reset_color}%}"
 
+# partial prompt priority from high to low,
+# decide whether to still keep dispaly while terminal width is no enough
 local JOVIAL_PROMPT_PRIORITY=(
-    # path
-    git_info
+    ## `path` will always keep dispaly
+    git-info
     user
     host
-    dev_env
-    # current_time
+    dev-env
+    ## `current-time` will always auto detect rest spaces
+)
+
+local -A JOVIAL_PROMPT_FORMATS=(
+    host            '${SGR_RESET}$(@jov.get-host-name) ${JOVIAL_PALETTE[conj.]}as'
+    user            '${SGR_RESET} $(@jov.get-user-name) ${JOVIAL_PALETTE[conj.]}in'
+    path            '${SGR_RESET} $(@jov.current-dir)'
+    dev-env         '${SGR_RESET} $(@jov.dev-env-segment)'
+    git-info        '${SGR_RESET} $(@jov.git-prompt-info)'
+    current-time    '${SGR_RESET}$(@jov.align-right " $(@jov.get-date-time)")'
 )
 
 @jovial-prompt() {
     local exit_code=$?
-    local -i total_length=${#JOVIAL_PROMPT_UP_CORNER}
+    local -i total_length=${#JOVIAL_SYMBOL[corner.top]}
     local -A prompts=(
         host ''
         user ''
         path ''
-        dev_env ''
-        git_info ''
-        current_time ''
+        dev-env ''
+        git-info ''
+        current-time ''
     )
-
-    # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current_time]}` -> ` hh:mm:ss`
-    local -i len_datetime=9
 
     # always display current path
     prompts[path]=$(print -P "${JOVIAL_PROMPT_FORMATS[path]}")
@@ -360,18 +422,21 @@ local JOVIAL_PROMPT_PRIORITY=(
         prompts[${key}]="${item}"
     done
 
+    # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current-time]}` -> ` hh:mm:ss`
+    local -i len_datetime=9
+
     if (( total_length + len_datetime <= COLUMNS )); then
-        prompts[current_time]=$(print -P "${JOVIAL_PROMPT_FORMATS[current_time]}")
+        prompts[current-time]=$(print -P "${JOVIAL_PROMPT_FORMATS[current-time]}")
     fi
 
-    echo "$(@jov.get-pin-exit-code ${exit_code})"
-    echo   "${JOVIAL_PROMPT_UP_CORNER}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev_env]}${prompts[git_info]}${prompts[current_time]}"
-    echo "${JOVIAL_PROMPT_DOWN_CORNER}$(@jov.type-tip-pointer) $(@jov.venv-info-prompt) "
+    local corner_top="${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    local corner_bottom="${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
+
+    echo "${SGR_RESET}$(@jov.get-pin-exit-code ${exit_code})"
+    echo "${SGR_RESET}${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
+    echo "${SGR_RESET}${corner_bottom}$(@jov.typing-pointer) $(@jov.venv-info-prompt) ${SGR_RESET}"
 }
 
-
-autoload -Uz add-zsh-hook
-autoload -Uz regexp-replace
 
 add-zsh-hook precmd @jov.git-action-prompt-hook
 @jov.git-action-prompt-hook

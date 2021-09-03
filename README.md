@@ -39,7 +39,7 @@
 **[for NOT root**]
 
 ```bash
-curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.zsh | sudo bash -s $USER
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo bash -s $USER
 ```
 
 
@@ -47,7 +47,7 @@ curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.zsh | sudo bash 
 
 
 ```bash
-curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.zsh | bash
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | bash
 ```
 
 NOTE: it will also install `zsh` and `oh-my-zsh` automatically.

@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.1'
+export JOVIAL_PLUGIN_VERSION='1.1.2'
 
 #
 # ########## Aliases ##########
@@ -223,9 +223,9 @@ function sheet:color {
             bg_color="${${:-000${i}}:(-3)}"
             i="${${:-   ${i}}:(-3)}"
             if (( bg_color > 0 )); then
-                fg_color=000
+                fg_color=236
             else
-                fg_color=015
+                fg_color=254
             fi
             if (( i % 6 == 0 )); then
                 echo -n "${reset_color}  "
@@ -239,9 +239,9 @@ function sheet:color {
                 echo -n "${reset_color}\n  "
             fi
             if (( (row % 6) > 2 )); then
-                fg_color=000
+                fg_color=236
             else
-                fg_color=015
+                fg_color=254
             fi
             for block in {0..2}; do
                 for col in {0..5}; do

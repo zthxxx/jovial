@@ -1,17 +1,21 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
+
+# bash strict mode (https://gist.github.com/mohanpedala/1e2ff5661761d3abd0385e8223e16425)
+set -xo pipefail
 
 S_USER=root
 S_HOME="$HOME"
-# cat install.zsh  | bash -s $USER
+
+
 if [[ -n $1 ]]; then 
     S_USER="$1"
     S_HOME=`sudo -u "$S_USER" -i echo '$HOME'`
 fi
 
-is_command() { command -v $@ &> /dev/null; }
+is-command() { command -v $@ &> /dev/null; }
 
-install_via_manager() {
-    echo "+ install_via_manager $@"
+install-via-manager() {
+    echo "+ install-via-manager $@"
 
     local packages=( $@ )
     local package
@@ -25,12 +29,12 @@ install_via_manager() {
     done
 }
 
-install_zsh() {
-    echo '+ install_zsh'
+install.zsh() {
+    echo '++ install.zsh'
 
     # other ref: https://unix.stackexchange.com/questions/136423/making-zsh-default-shell-without-root-access?answertab=active#tab-top
     if [[ -z ${ZSH_VERSION} ]]; then
-        if is_command zsh || install_via_manager zsh; then
+        if is-command zsh || install-via-manager zsh; then
             echo "+ chsh to zsh"
             chsh -s `command -v zsh` $S_USER
             return 0
@@ -41,36 +45,36 @@ install_zsh() {
     fi
 }
 
-install_ohmyzsh() {
-    echo '+ install_ohmyzsh'
+install.ohmyzsh() {
+    echo '++ install.ohmyzsh'
 
     if [[ ! -d ${S_HOME}/.oh-my-zsh && (-z ${ZSH} || -z ${ZSH_CUSTOM}) ]]; then
         echo "this theme base on oh-my-zsh, now will install it!" >&2
-        install_via_manager git
+        install-via-manager git
         curl -fsSL -H 'Cache-Control: no-cache' install.ohmyz.sh | sudo -u $S_USER -i sh
     fi
 }
 
 
-install_zsh_plugins() {
-    echo '+ install_zsh_plugins'
+install.zsh-plugins() {
+    echo '++ install.zsh-plugins'
 
     local plugin_dir="${ZSH_CUSTOM:-"${S_HOME}/.oh-my-zsh/custom"}/plugins"
 
-    install_via_manager git autojump terminal-notifier source-highlight
+    install-via-manager git autojump terminal-notifier source-highlight
 
     if [[ ! -e ${plugin_dir}/zsh-autosuggestions ]]; then
-        echo '+ install zsh-autosuggestions'
+        echo '++ install zsh-autosuggestions'
         sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git "${plugin_dir}/zsh-autosuggestions"
     fi
 
     if [[ ! -e ${plugin_dir}/zsh-syntax-highlighting ]]; then
-        echo '+ install zsh-syntax-highlighting'
+        echo '++ install zsh-syntax-highlighting'
         sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git "${plugin_dir}/zsh-syntax-highlighting"
     fi
 
     if [[ ! -e ${plugin_dir}/zsh-history-enquirer ]]; then
-        echo '+ install zsh-history-enquirer'
+        echo '++ install zsh-history-enquirer'
         curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/scripts/installer.zsh | sudo -u $S_USER -i zsh
     fi
 
@@ -93,18 +97,18 @@ install_zsh_plugins() {
     perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" ${S_HOME}/.zshrc
 }
 
-preference_zsh() {
-    echo '+ preference_zsh'
+preference-zsh() {
+    echo '++ preference-zsh'
 
-    if is_command brew; then
+    if is-command brew; then
         perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" ${S_HOME}/.zshrc
         echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> ${S_HOME}/.zshrc
     fi
-    install_zsh_plugins
+    install.zsh-plugins
 }
 
-install_theme() {
-    echo '+ install_theme'
+install.theme() {
+    echo '++ install.theme'
 
     local ZTHEME="jovial"
     local git_prefix="https://github.com/zthxxx/${ZTHEME}/raw/master"
@@ -124,10 +128,10 @@ install_theme() {
 }
 
 
-(install_zsh && install_ohmyzsh) || exit 1
+(install.zsh && install.ohmyzsh) || exit 1
 
-install_theme
-preference_zsh
+install.theme
+preference-zsh
 
 
-echo '+ jovial installed'
+echo '++ jovial installed'
