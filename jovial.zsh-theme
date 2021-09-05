@@ -256,6 +256,26 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     fi
 }
 
+@jov.prompt-golang-version() {
+    if @jov.rev-parse-find "go.mod"; then
+        if @jov.iscommand go; then
+            local go_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
+            # go version go1.7.4 linux/amd64
+            local go_version=`go version`
+            if [[ ${go_version} =~ ' go([0-9]+\.[0-9]+\.[0-9]+) ' ]]; then
+                go_version="${match[1]}"
+            else
+                return 1
+            fi
+            local go_prompt="${FG[086]}Golang ${go_version}"
+        else
+            local go_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
+            local go_prompt="Golang${JOVIAL_PALETTE[normal]}]"
+        fi
+        echo "${go_prompt_prefix}${go_prompt}"
+    fi
+}
+
 # http://php.net/manual/en/reserved.constants.php
 @jov.prompt-php-version() {
     if @jov.rev-parse-find "composer.json"; then
@@ -292,6 +312,7 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 
 local JOVIAL_DEV_ENV_DETECT_FUNCS=(
     @jov.prompt-node-version
+    @jov.prompt-golang-version
     @jov.prompt-python-version
     @jov.prompt-php-version
 )
