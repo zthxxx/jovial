@@ -1,83 +1,153 @@
 #!/usr/bin/env bash
 
+# Usage
+#   $ cat installer.sh | sudo -E bash -s $USER
+#
+# use sudo to make this script has access, and use '-E' for preserve most env variables;
+# use '-s $USER' to pass "real target user" to this install script
+
+COLOR_RED=`tput setaf 9`
+COLOR_GREEN=`tput setaf 10`
+COLOR_YELLOW=`tput setaf 11`
+SGR_RESET=`tput sgr 0`
+
 # bash strict mode (https://gist.github.com/mohanpedala/1e2ff5661761d3abd0385e8223e16425)
 set -xo pipefail
 
-S_USER=root
+S_USER="$USER"
 S_HOME="$HOME"
 
-
+# set the real target user by params
 if [[ -n $1 ]]; then 
     S_USER="$1"
-    S_HOME=`sudo -u "$S_USER" -i echo '$HOME'`
+    S_HOME=`sudo -u "${S_USER}" -i echo '$HOME'`
 fi
+
+# setup oh-my-zsh env variables
+if [[ -z "${ZSH}" ]]; then
+    # If ZSH is not defined, use the current script's directory.
+    ZSH="${S_HOME}/.oh-my-zsh"
+fi
+
+# Set ZSH_CUSTOM to the path where your custom config files
+ZSH_CUSTOM="${ZSH}/custom"
+
+log.info() {
+    set +x
+    echo -e "\n${COLOR_YELLOW} $@ ${SGR_RESET}\n"
+    set -x
+}
+
+log.success() {
+    set +x
+    echo -e "\n${COLOR_GREEN} $@ ${SGR_RESET}\n"
+    set -x
+}
+
+log.error() {
+    set +x
+    echo -e "\n${COLOR_RED} $@ ${SGR_RESET}\n" >&2
+    set -x
+}
 
 is-command() { command -v $@ &> /dev/null; }
 
 install-via-manager() {
-    echo "+ install-via-manager $@"
+    local package="$1"
+    log.info "[jovial] install package: ${package}"
 
+    if is-command brew; then
+        sudo -Eu ${S_USER} brew install ${package}
+
+    elif is-command apt; then
+        apt install -y ${package}
+
+    elif is-command apt-get; then
+        apt-get install -y ${package}
+
+    elif is-command yum; then
+        yum install -y ${package}
+
+    elif is-command pacman; then
+        pacman -S --noconfirm --needed ${package}
+    fi
+}
+
+install.packages() {
     local packages=( $@ )
+    log.info "[jovial] install packages: ${packages[@]}"
+
     local package
 
     for package in ${packages[@]}; do
-        (sudo -u $S_USER -i brew install ${package}) || \
-            apt install -y ${package} || \
-            apt-get install -y ${package} || \
-            yum -y install ${package} || \
-            pacman -S --noconfirm --needed ${package}
+        install-via-manager ${package}
     done
 }
 
 install.zsh() {
-    echo '++ install.zsh'
+    log.info "[jovial] detect whether installed zsh"
 
-    # other ref: https://unix.stackexchange.com/questions/136423/making-zsh-default-shell-without-root-access?answertab=active#tab-top
-    if [[ -z ${ZSH_VERSION} ]]; then
-        if is-command zsh || install-via-manager zsh; then
-            echo "+ chsh to zsh"
-            chsh -s `command -v zsh` $S_USER
-            return 0
-        else
-            echo "ERROR, plz install zsh manual."
-            return 1
-        fi
+    if [[ "${SHELL}" =~ '/zsh$' ]]; then
+        log.success "[jovial] default shell is zsh, skip to install"
+        return 0
+    fi
+
+    if is-command zsh || install.packages zsh; then
+        log.info "[jovial] switch default login shell to zsh"
+        chsh -s `command -v zsh` ${S_USER}
+        return 0
+    else
+        log.error "[ERROR][jovial] cannot find or install zsh, please install zsh manually"
+        return 1
     fi
 }
 
 install.ohmyzsh() {
-    echo '++ install.ohmyzsh'
+    log.info "[jovial] detect whether installed oh-my-zsh"
 
-    if [[ ! -d ${S_HOME}/.oh-my-zsh && (-z ${ZSH} || -z ${ZSH_CUSTOM}) ]]; then
-        echo "this theme base on oh-my-zsh, now will install it!" >&2
-        install-via-manager git
-        curl -fsSL -H 'Cache-Control: no-cache' install.ohmyz.sh | sudo -u $S_USER -i sh
+    if [[ -d ${ZSH} && -d ${ZSH_CUSTOM} ]]; then
+        log.success "[jovial] oh-my-zsh detected, skip to install"
+        return 0
     fi
+
+    log.info "[jovial] this theme base on oh-my-zsh, now will install it"
+
+    if ! is-command git; then
+        install.packages git
+    fi
+    
+    # https://ohmyz.sh/#install
+    curl -sSL -H 'Cache-Control: no-cache' https://github.com/ohmyzsh/ohmyzsh/raw/master/tools/install.sh | sudo -Eu ${S_USER} sh    
 }
 
 
 install.zsh-plugins() {
-    echo '++ install.zsh-plugins'
+    log.info "[jovial] install zsh plugins"
 
-    local plugin_dir="${ZSH_CUSTOM:-"${S_HOME}/.oh-my-zsh/custom"}/plugins"
+    local plugin_dir="${ZSH_CUSTOM}/plugins"
 
-    install-via-manager git autojump terminal-notifier source-highlight
-
-    if [[ ! -e ${plugin_dir}/zsh-autosuggestions ]]; then
-        echo '++ install zsh-autosuggestions'
-        sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git "${plugin_dir}/zsh-autosuggestions"
+    if ! is-command git; then
+        install.packages git
     fi
 
-    if [[ ! -e ${plugin_dir}/zsh-syntax-highlighting ]]; then
-        echo '++ install zsh-syntax-highlighting'
-        sudo -u $S_USER -i git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git "${plugin_dir}/zsh-syntax-highlighting"
+    install.packages autojump terminal-notifier source-highlight
+
+    if [[ ! -d ${plugin_dir}/zsh-autosuggestions ]]; then
+        log.info "[jovial] install plugin zsh-autosuggestions"
+        sudo -Eu ${S_USER} git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git "${plugin_dir}/zsh-autosuggestions"
     fi
 
-    if [[ ! -e ${plugin_dir}/zsh-history-enquirer ]]; then
-        echo '++ install zsh-history-enquirer'
-        curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/scripts/installer.zsh | sudo -u $S_USER -i zsh
+    if [[ ! -d ${plugin_dir}/zsh-syntax-highlighting ]]; then
+        log.info "[jovial] install plugin zsh-syntax-highlighting"
+        sudo -Eu ${S_USER} git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git "${plugin_dir}/zsh-syntax-highlighting"
     fi
 
+    if [[ ! -d ${plugin_dir}/zsh-history-enquirer ]]; then
+        log.info "[jovial] install plugin zsh-history-enquirer"
+        curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/scripts/installer.zsh | sudo -Eu ${S_USER} zsh
+    fi
+
+    log.info "[jovial] setup oh-my-zsh plugins in ~/.zshrc"
     local plugins=(
         git
         autojump
@@ -94,37 +164,38 @@ install.zsh-plugins() {
 
     local plugin_str="${plugins[@]}"
     plugin_str="\n  ${plugin_str// /\\n  }\n"
-    perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" ${S_HOME}/.zshrc
+    perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" "${S_HOME}/.zshrc"
 }
 
 preference-zsh() {
-    echo '++ preference-zsh'
+    log.info "[jovial] preference zsh in ~/.zshrc"
 
     if is-command brew; then
-        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" ${S_HOME}/.zshrc
-        echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> ${S_HOME}/.zshrc
+        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" "${S_HOME}/.zshrc"
+        echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> "${S_HOME}/.zshrc"
     fi
+
     install.zsh-plugins
 }
 
 install.theme() {
-    echo '++ install.theme'
+    log.info "[jovial] install theme 'jovial'"
 
-    local ZTHEME="jovial"
-    local git_prefix="https://github.com/zthxxx/${ZTHEME}/raw/master"
+    local theme_name="jovial"
+    local git_prefix="https://github.com/zthxxx/${theme_name}/raw/master"
 
-    local theme_remote="${git_prefix}/${ZTHEME}.zsh-theme"
-    local plugin_remote="${git_prefix}/${ZTHEME}.plugin.zsh"
+    local theme_remote="${git_prefix}/${theme_name}.zsh-theme"
+    local plugin_remote="${git_prefix}/${theme_name}.plugin.zsh"
 
     local custom_dir="${ZSH_CUSTOM:-"${S_HOME}/.oh-my-zsh/custom"}"
 
-    sudo -u $S_USER -i mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins/${ZTHEME}"
-    local theme_local="${custom_dir}/themes/${ZTHEME}.zsh-theme"
-    local plugin_local="${custom_dir}/plugins/${ZTHEME}/${ZTHEME}.plugin.zsh"
+    sudo -Eu ${S_USER} mkdir -p "${custom_dir}/themes" "${custom_dir}/plugins/${theme_name}"
+    local theme_local="${custom_dir}/themes/${theme_name}.zsh-theme"
+    local plugin_local="${custom_dir}/plugins/${theme_name}/${theme_name}.plugin.zsh"
 
-    sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' "$theme_remote" -o "$theme_local"
-    sudo -u $S_USER -i curl -sSL -H 'Cache-Control: no-cache' "$plugin_remote" -o "$plugin_local"
-    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${ZTHEME}\"/g" ${S_HOME}/.zshrc
+    sudo -Eu ${S_USER} curl -sSL -H 'Cache-Control: no-cache' "${theme_remote}" -o "${theme_local}"
+    sudo -Eu ${S_USER} curl -sSL -H 'Cache-Control: no-cache' "${plugin_remote}" -o "${plugin_local}"
+    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${theme_name}\"/g" "${S_HOME}/.zshrc"
 }
 
 
@@ -134,4 +205,4 @@ install.theme
 preference-zsh
 
 
-echo '++ jovial installed'
+log.success "[jovial] installed"

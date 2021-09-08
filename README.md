@@ -36,18 +36,8 @@
 
 ## Install
 
-**[for NOT root**]
-
 ```bash
-curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo bash -s $USER
-```
-
-
-**[for root]** if you want install to **root** user, please make sure you are loggin as 'root' now, and use this command:
-
-
-```bash
-curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | bash
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
 ```
 
 NOTE: it will also install `zsh` and `oh-my-zsh` automatically.
