@@ -45,7 +45,7 @@ NOTE: it will also install `zsh` and `oh-my-zsh` automatically.
 ## Font Recommended
 
 - `Monaco` in iTerm2
-- `Melon` in VSCode
+- `Menlo` in VSCode
 - `JetBrains Mono` in JetBrains IDEs
 
 NOTE: also remember to set font line-height to 1.0

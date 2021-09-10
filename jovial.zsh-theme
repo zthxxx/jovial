@@ -267,8 +267,8 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     # because $? must be read in the first function of PROMPT, so we need it be params
     local exit_code=${1:-0}
     if [[ $exit_code != 0 ]]; then
-        local exit_code_warn=" ${JOVIAL_PALETTE[exit.mark]}exit:${JOVIAL_PALETTE[exit.code]}${exit_code}"
-        @jov.previous-align-right "$exit_code_warn"
+        local exit_code_warn="${JOVIAL_PALETTE[exit.mark]}exit:${JOVIAL_PALETTE[exit.code]}${exit_code}"
+        @jov.previous-align-right " ${exit_code_warn} "
     fi
 }
 
@@ -457,7 +457,7 @@ local -A JOVIAL_PROMPT_FORMATS=(
     path            '${SGR_RESET} $(@jov.current-dir)'
     dev-env         '${SGR_RESET}$(@jov.dev-env-segment)'
     git-info        '${SGR_RESET} $(@jov.git-prompt-info)'
-    current-time    '${SGR_RESET}$(@jov.align-right " $(@jov.get-date-time)")'
+    current-time    '${SGR_RESET}$(@jov.align-right " $(@jov.get-date-time) ")'
 )
 
 @jovial-prompt() {
@@ -487,8 +487,8 @@ local -A JOVIAL_PROMPT_FORMATS=(
         prompts[${key}]="${item}"
     done
 
-    # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current-time]}` -> ` hh:mm:ss`
-    local -i len_datetime=9
+    # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current-time]}` -> ` hh:mm:ss `
+    local -i len_datetime=10
 
     if (( total_length + len_datetime <= COLUMNS )); then
         prompts[current-time]=$(print -P "${JOVIAL_PROMPT_FORMATS[current-time]}")
