@@ -80,9 +80,57 @@ local JOVIAL_REV_GIT_DIR=""
 local JOVIAL_IS_GIT_DIRTY=false
 local JOVIAL_GIT_STATUS_PROMPT=""
 
+
+# @jov.rev-parse-find(filename:string, path:string, output:boolean)
+# reverse from path to root wanna find the targe file
+# output: whether show the file path
+@jov.rev-parse-find() {
+    local target="$1"
+    local current_path="${2:-$PWD}"
+    local whether_output=${3:-false}
+
+    # [hacking] it's same as  parent_path=`\dirname $current_path`,
+    # but better performance due to reduce subprocess call
+    if [[ ${current_path} =~ '^(/)[^/]*$' || ${current_path} =~ '^((/[^/]+)+)/[^/]+/?$' ]]; then
+        local parent_path="${match[1]}"
+    else
+        return 1
+    fi
+
+    while [[ ${parent_path} != "/" && ${parent_path} != "${HOME}" ]]; do
+        if [[ -e ${current_path}/${target} ]]; then
+            if ${whether_output}; then echo "$current_path"; fi
+            return 0
+        fi
+        current_path="$parent_path"
+
+        # [hacking] it's same as  parent_path=`\dirname $parent_path`,
+        # but better performance due to reduce subprocess call
+        if [[ ${parent_path} =~ '^(/)[^/]*$' || ${parent_path} =~ '^((/[^/]+)+)/[^/]+/?$' ]]; then
+            parent_path="${match[1]}"
+        else
+            return 1
+        fi
+    done
+    return 1
+}
+
+
 @jov.iscommand() { [[ -e $commands[$1] ]] }
 
-@jov.chpwd-git-dir-hook() { JOVIAL_REV_GIT_DIR=`\git rev-parse --git-dir 2>/dev/null` }
+@jov.chpwd-git-dir-hook() {
+    # it's the same as  JOVIAL_REV_GIT_DIR=`\git rev-parse --git-dir 2>/dev/null`
+    # but better performance due to reduce subprocess call
+
+    local project_root_dir="$(@jov.rev-parse-find .git '' true)"
+
+    if [[ -n ${project_root_dir} ]]; then
+        JOVIAL_REV_GIT_DIR="${project_root_dir}/.git"
+    else
+        JOVIAL_REV_GIT_DIR=""
+    fi
+}
+
 add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.chpwd-git-dir-hook
 
@@ -109,25 +157,6 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     regexp-replace str "\[[0-9;]*[a-zA-Z]" ''
 
     echo ${#str}
-}
-
-# @jov.rev-parse-find(filename:string, path:string, output:boolean)
-# reverse from path to root wanna find the targe file
-# output: whether show the file path
-@jov.rev-parse-find() {
-    local target="$1"
-    local current_path="${2:-`pwd`}"
-    local whether_output=${3:-false}
-    local parent_path=`\dirname $current_path`
-    while [[ ${parent_path} != "/" ]]; do
-        if [[ -e ${current_path}/${target} ]]; then
-            if $whether_output; then echo "$current_path"; fi
-            return 0
-        fi
-        current_path="$parent_path"
-        parent_path=`\dirname $parent_path`
-    done
-    return 1
 }
 
 @jov.venv-info-prompt() {
@@ -243,6 +272,22 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     fi
 }
 
+local -i JOVIAL_PROMPT_RUN_COUNT=0
+@jov.pin-exit-code() {
+    local exit_code=$?
+
+    JOVIAL_PROMPT_RUN_COUNT+=1
+
+    # donot print empty line when prompt initial load, if terminal height less than 10 lines
+    if (( JOVIAL_PROMPT_RUN_COUNT == 1 )) && (( LINES <= 10 )); then
+        return 0
+    fi
+
+    print -P "${SGR_RESET}$(@jov.get-pin-exit-code ${exit_code})"
+}
+
+add-zsh-hook precmd @jov.pin-exit-code
+
 @jov.prompt-node-version() {
     if @jov.rev-parse-find "package.json"; then
         if @jov.iscommand node; then
@@ -320,8 +365,8 @@ local JOVIAL_DEV_ENV_DETECT_FUNCS=(
 @jov.dev-env-segment() {
     for segment_func in "${JOVIAL_DEV_ENV_DETECT_FUNCS[@]}"; do
         local segment=`${segment_func}`
-        if [[ -n $segment ]]; then 
-            echo "$segment"
+        if [[ -n ${segment} ]]; then 
+            echo " ${segment}"
             break
         fi
     done
@@ -410,13 +455,12 @@ local -A JOVIAL_PROMPT_FORMATS=(
     host            '${SGR_RESET}$(@jov.get-host-name) ${JOVIAL_PALETTE[conj.]}as'
     user            '${SGR_RESET} $(@jov.get-user-name) ${JOVIAL_PALETTE[conj.]}in'
     path            '${SGR_RESET} $(@jov.current-dir)'
-    dev-env         '${SGR_RESET} $(@jov.dev-env-segment)'
+    dev-env         '${SGR_RESET}$(@jov.dev-env-segment)'
     git-info        '${SGR_RESET} $(@jov.git-prompt-info)'
     current-time    '${SGR_RESET}$(@jov.align-right " $(@jov.get-date-time)")'
 )
 
 @jovial-prompt() {
-    local exit_code=$?
     local -i total_length=${#JOVIAL_SYMBOL[corner.top]}
     local -A prompts=(
         host ''
@@ -453,11 +497,9 @@ local -A JOVIAL_PROMPT_FORMATS=(
     local corner_top="${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
     local corner_bottom="${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
-    echo "${SGR_RESET}$(@jov.get-pin-exit-code ${exit_code})"
     echo "${SGR_RESET}${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
     echo "${SGR_RESET}${corner_bottom}$(@jov.typing-pointer) $(@jov.venv-info-prompt) ${SGR_RESET}"
 }
-
 
 add-zsh-hook precmd @jov.git-action-prompt-hook
 @jov.git-action-prompt-hook
