@@ -442,13 +442,14 @@ local SGR_RESET="%{${reset_color}%}"
 
 # partial prompt priority from high to low,
 # decide whether to still keep dispaly while terminal width is no enough
+#
+# `path` will always keep dispaly, it's highest priority
+# `current-time` will always auto detect rest spaces, it's lowest priority
 local JOVIAL_PROMPT_PRIORITY=(
-    ## `path` will always keep dispaly
     git-info
     user
     host
     dev-env
-    ## `current-time` will always auto detect rest spaces
 )
 
 local -A JOVIAL_PROMPT_FORMATS=(
