@@ -25,11 +25,35 @@ Quick install with just a simple one-line command:
 curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
 ```
 
-(more details see the [Install](#install) section)
+> for more install details see the **[Install section](#install)**
+>
+> 
+>
+> for more custom config see **[Customization section](#customization)**
 
+<br />
 
+## TOC
 
-## Feature & Preview
+<p align="center">
+  <span><strong>　·　</strong></span>
+  <a href="#features--preview"><strong>Features</strong></a>
+  <span>　/　</span>
+  <a href="#plugins-integration"><strong>Plugins</strong></a>
+  <span>　/　</span>
+  <a href="#install"><strong>Install</strong></a>
+  <span>　/　</span>
+  <a href="#customization"><strong>Customization</strong></a>
+  <span>　/　</span>
+  <a href="#benchmark"><strong>Benchmark</strong></a>
+  <span>　/　</span>
+  <a href="#migration"><strong>Migration</strong></a>
+  <span><strong>　·　</strong></span>
+</p>
+
+<br />
+
+## Features & Preview
 
 ### whole ability
 
@@ -50,7 +74,7 @@ The description of each parts:
 
 ### responsive design
 
-Each parts of prompt is "responsive" with terminal windows width, so you can safely use it in narrow terminal.
+Each parts of prompt is **"responsive"** with terminal windows width, so you can safely use it in narrow terminal.
 
 <!-- ./docs/jovial-responsive-desigin.mp4 -->
 <div><video controls muted autoplay loop src="https://user-images.githubusercontent.com/15135943/143185697-e1c612bb-d4ac-43a1-8c20-ae2a6c53e28a.mp4"></video></div>
@@ -61,7 +85,7 @@ Each parts of prompt is "responsive" with terminal windows width, so you can saf
 
 In addition to the basic git state (branch / tag / hash, dirty or clean),
 
-there are also some prompt to hint you are in **merge** / **rebase** / **cherry-pick** now with conflict or not.
+there are also some prompts to hint that you are in **merge** / **rebase** / **cherry-pick** now with conflict or not.
 
 <p align="center">
   <img src="./docs/jovial-git-actions.png" alt="jovial-git-actions" width="860">
@@ -70,29 +94,31 @@ there are also some prompt to hint you are in **merge** / **rebase** / **cherry-
 
 ### development env detecting
 
-It will detect and show your development programming language and version in current working directory, such as:
+It will detect to show your development programming language and version in current working directory, such as:
 
 <p align="center">
   <img src="./docs/jovial-develop-env-detect.png" alt="jovial-develop-env-detect" width="740">
 </p>
 
 
+
 ## Plugins Integration
 
-> Integrated plugins will be auto setup by install script, you can see `install.zsh-plugins` functions in [installer.sh](https://github.com/zthxxx/jovial/blob/master/installer.sh)
+> These integrated plugins below will be auto setup by the install script, you can see the `install.zsh-plugins` function in [installer.sh](https://github.com/zthxxx/jovial/blob/master/installer.sh)
 
-- **[jovial](https://github.com/zthxxx/jovial/blob/master/jovial.plugin.zsh)**: plugin defined some utils functions and alias, you can see in [jovial.plugin.zsh](https://github.com/zthxxx/jovial/blob/master/jovial.plugin.zsh)
+- **[jovial](https://github.com/zthxxx/jovial/blob/master/jovial.plugin.zsh)**: jovial plugin defined some utils functions and alias, you can see in [jovial.plugin.zsh](https://github.com/zthxxx/jovial/blob/master/jovial.plugin.zsh)
 - **[git](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git)**: some short alias for commonly used command
 - **[autojump](https://github.com/wting/autojump)**: make you can use `j <keyword>` to jump to the full path folder
 - **[bgnotify](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/bgnotify)**: background notifications for long running commands
-- **[zsh-history-enquirer](https://github.com/zthxxx/zsh-history-enquirer)**: widget for history search, enhance `Ctrl+R`
+- **[zsh-history-enquirer](https://github.com/zthxxx/zsh-history-enquirer)**: widget for history searching, enhance `Ctrl+R`
 - **[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)**: shell auto-completion
 - **[zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)**: user input syntax highlighting
 
+<br />
 
 ## Install
 
-Just run the simple one-line install command
+Just run the simple one-line install command:
 
 ```bash
 curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
@@ -100,20 +126,24 @@ curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bas
 
 > **Note**: The install script is designed to be **"Idempotent"**, so you can safely execute it multiple times.
 
+
+
 > **Tips**: you may want to use some **http proxy**, just export proxy variables before run install command,
 >
 > 　　like: `export all_proxy=http://127.0.0.1:1086`  
 >
 > 　　(it's equal to `export http_proxy=http://127.0.0.1:1086 http_proxys=http://127.0.0.1:1086`)
 
+
+
 Here are what the install command and script do:
 
-- explain command:
+- Explain the command:
   - `sudo`: make sure script run with access for install packages and change default login shell
   - `-E`: passthrough env variables while use sudo, for receive like `http_proxy`
   - `-s $USER`: pass the params to script, which is the real target user for install
 
-- explain script:
+- The script do these steps:
   - if `zsh` or `oh-my-zsh` not found, will install them
   - change default login shell to `zsh`
   - download jovial theme/plugin files in oh-my-zsh custom folder
@@ -123,23 +153,27 @@ Here are what the install command and script do:
 
 ### Upgrade
 
-Due to the install script is designed to be "Idempotent", if you want to upgrade the jovial theme, run the install command again.
+Due to the install script is designed to be **"Idempotent"**, if you want to upgrade the jovial theme, run the install command again.
 
-> Pay attention to the [migration tips](#migration)
+> NOTE: pay attention to the [tips of Migration / BreakingChange](#migration)
+
+<br />
 
 ## Customization
 
-All the elements / symbols / colors can be easily customized by override theme variables in `.zshrc`
+All the elements / symbols / colors can be easily customized by override theme variables in `~/.zshrc`
 
-Those variables designed for customization: `JOVIAL_SYMBOL`, `JOVIAL_PALETTE`, `JOVIAL_DEV_ENV_DETECT_FUNCS`, `JOVIAL_PROMPT_PRIORITY`
+Thses variables designed for customization: `JOVIAL_SYMBOL`, `JOVIAL_PALETTE`, `JOVIAL_DEV_ENV_DETECT_FUNCS`, `JOVIAL_PROMPT_PRIORITY`
 
-You can find them in [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme) (`~/.oh-my-zsh/custom/themes/jovial.zsh-theme`)
+You can find them default values in [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme) (`~/.oh-my-zsh/custom/themes/jovial.zsh-theme`)
 
 ### symbols
 
 You can set variables one-by-one to override symbols, such as arrows:
 
 ```zsh
+# ~/.zshrc
+
 JOVIAL_SYMBOL[arrow]='->'
 JOVIAL_SYMBOL[arrow.git-clean]='->'
 JOVIAL_SYMBOL[arrow.git-dirty]='->'
@@ -222,11 +256,13 @@ local -A JOVIAL_PALETTE=(
 )
 ```
 
-**🧐 Mess up with variables and numbers?**
+**🧐 Feeling mess with those variables and numbers?**
 
-Well, `${terminfo[bold]}` set font to **bold** style, 
+Well, `${terminfo[bold]}` is set font to **bold** style, 
 
 and `${FG[]}` / `${BG[]}` is color sheet of **font** / **background**.
+
+Such as `${FG[015]}` is set font color to "white", and  `${FG[123]}` is set font color close to "cyan"
 
 **🤓 So, where is the color sheet?**
 
@@ -239,8 +275,7 @@ it will looks like:
 </p>
 
 
-
-## Font Recommended
+### Font Recommended
 
 - `Monaco` in iTerm2
 - `Menlo` in VSCode
@@ -248,11 +283,11 @@ it will looks like:
 
 > NOTE: also remember to set font line-height to 1.0
 
-
+<br />
 
 ## Benchmark
 
-Run 10 times in benchmark.zsh:
+Run jovial theme 10 times in [benchmark.zsh](./dev/benchmark.zsh):
 
 ```zsh
 $ zsh -il dev/benchmark.zsh
@@ -260,9 +295,9 @@ $ zsh -il dev/benchmark.zsh
 ( for i in {1..10}; do; print -P "${PROMPT}"; done; )  0.19s user 0.41s system 79% cpu 0.653 total
 ```
 
-Average: **65ms** per this theme exec
+Average: **65ms** per jovial theme exec
 
-
+<br />
 
 ## Migration
 
@@ -277,9 +312,9 @@ some customized variables and functions renamed:
 - variable `JOVIAL_ARROW` => `JOVIAL_SYMBOL[arrow]`
 - function `_jov_type_tip_pointer` => `@jov.typing-pointer`,
 - and now, arrows could replace with variables `JOVIAL_SYMBOL[arrow.git-clean]` and `JOVIAL_SYMBOL[arrow.git-dirty]`
-- some keys in JOVIAL_PROMPT_PRIORITY renamed, `git_info` => `git-info`, `dev_env` => `dev-env`
+- some keys in ` JOVIAL_PROMPT_PRIORITY` renamed, `git_info` => `git-info`, `dev_env` => `dev-env`
 
-
+<br />
 
 ## Author
 
