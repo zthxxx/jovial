@@ -52,6 +52,11 @@ log.error() {
 
 is-command() { command -v $@ &> /dev/null; }
 
+# it's same as `realpath <file>`, but `realpath` is GNU only and not builtin
+prel-realpath() {
+  perl -MCwd -e 'print Cwd::realpath($ARGV[0]),qq<\n>' $1
+}
+
 install-via-manager() {
     local package="$1"
     log.info "[jovial] install package: ${package}"
@@ -164,14 +169,14 @@ install.zsh-plugins() {
 
     local plugin_str="${plugins[@]}"
     plugin_str="\n  ${plugin_str// /\\n  }\n"
-    perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" "${S_HOME}/.zshrc"
+    perl -0i -pe "s/^plugins=\(.*?\) *$/plugins=(${plugin_str})/gms" $(prel-realpath "${S_HOME}/.zshrc")
 }
 
 preference-zsh() {
     log.info "[jovial] preference zsh in ~/.zshrc"
 
     if is-command brew; then
-        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" "${S_HOME}/.zshrc"
+        perl -i -pe "s/.*HOMEBREW_NO_AUTO_UPDATE.*//gms" $(prel-realpath "${S_HOME}/.zshrc")
         echo "export HOMEBREW_NO_AUTO_UPDATE=true" >> "${S_HOME}/.zshrc"
     fi
 
@@ -195,7 +200,7 @@ install.theme() {
 
     sudo -Eu ${S_USER} curl -sSL -H 'Cache-Control: no-cache' "${theme_remote}" -o "${theme_local}"
     sudo -Eu ${S_USER} curl -sSL -H 'Cache-Control: no-cache' "${plugin_remote}" -o "${plugin_local}"
-    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${theme_name}\"/g" "${S_HOME}/.zshrc"
+    perl -i -pe "s/^ZSH_THEME=.*/ZSH_THEME=\"${theme_name}\"/g" $(prel-realpath "${S_HOME}/.zshrc")
 }
 
 
