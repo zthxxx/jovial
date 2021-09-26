@@ -25,11 +25,10 @@ Quick install with just a simple one-line command:
 curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
 ```
 
-> for more install details see the **[Install section](#install)**
+> for more install details see the **[Install section](#install)**; (manually install or without oh-my-zsh is okay)
 >
-> 
 >
-> for more custom config see **[Customization section](#customization)**
+> custom colors/symbols is easy, see **[Customization section](#customization)**;
 
 <br />
 
@@ -127,7 +126,6 @@ curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bas
 > **Note**: The install script is designed to be **"Idempotent"**, so you can safely execute it multiple times.
 
 
-
 > **Tips**: you may want to use some **http proxy**, just export proxy variables before run install command,
 >
 > 　　like: `export all_proxy=http://127.0.0.1:1086`  
@@ -135,27 +133,60 @@ curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bas
 > 　　(it's equal to `export http_proxy=http://127.0.0.1:1086 http_proxys=http://127.0.0.1:1086`)
 
 
-
 Here are what the install command and script do:
 
 - Explain the command:
-  - `sudo`: make sure script run with access for install packages and change default login shell
-  - `-E`: passthrough env variables while use sudo, for receive like `http_proxy`
-  - `-s $USER`: pass the params to script, which is the real target user for install
+  - **`sudo`**: make sure script run with access for install packages and change default login shell
+  - **`-E`**: passthrough env variables while use sudo, for receive like `http_proxy`
+  - **`-s $USER`**: pass the params to script, which is the real target user for install
 
 - The script do these steps:
-  - if `zsh` or `oh-my-zsh` not found, will install them
-  - change default login shell to `zsh`
-  - download jovial theme/plugin files in oh-my-zsh custom folder
-  - install integrated plugins via local package manager
-  - auto rewrite `ZSH_THEME` and `plugins` in user's `.zshrc`
+  - if **`zsh`** or **`oh-my-zsh`** not found, will install them
+  - change default login shell to **`zsh`**
+  - download the **jovial** theme/plugin files in **oh-my-zsh** custom folder
+  - install [**integrated plugins**](#plugins-integration) via local package manager
+  - auto **rewrite** `ZSH_THEME` and `plugins` variables in user's **`.zshrc`**
 
 
-### Upgrade
+### upgrade
 
 Due to the install script is designed to be **"Idempotent"**, if you want to upgrade the jovial theme, run the install command again.
 
 > NOTE: pay attention to the [tips of Migration / BreakingChange](#migration)
+
+<br />
+
+### manually install without oh-my-zsh
+
+First, you need download the [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme) file manually. For example, use `curl` will like:
+
+```bash
+curl -sSL "https://github.com/zthxxx/jovial/raw/master/jovial.zsh-theme" -o ~/jovial.zsh-theme
+```
+
+Then, add these zsh setting code in your `~/.zshrc` and load theme file:
+
+```zsh
+# ~/.zshrc
+
+setopt prompt_subst
+autoload -U colors && colors
+
+typeset -AHg FG BG
+
+for color in {000..255}; do
+  FG[$color]="%{\e[38;5;${color}m%}"
+  BG[$color]="%{\e[48;5;${color}m%}"
+done
+
+source ~/jovial.zsh-theme
+```
+
+Finally, don't forget to change the default login shell to `zsh`, maybe you can use `chsh` command:
+
+```zsh
+sudo chsh -s `command -v zsh` $USER
+```
 
 <br />
 
@@ -280,6 +311,8 @@ it will looks like:
 - `Monaco` in iTerm2
 - `Menlo` in VSCode
 - `JetBrains Mono` in JetBrains IDEs
+
+Just the most common monospaced fonts, no need any special font.
 
 > NOTE: also remember to set font line-height to 1.0
 
