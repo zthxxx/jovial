@@ -13,7 +13,7 @@ autoload -Uz regexp-replace
 # use indent spaces 4
 
 
-export JOVIAL_VERSION='2.0.0'
+export JOVIAL_VERSION='2.0.1'
 
 # jovial theme element symbol mapping
 #
@@ -97,7 +97,7 @@ local JOVIAL_GIT_STATUS_PROMPT=""
         return 1
     fi
 
-    while [[ ${parent_path} != "/" && ${parent_path} != "${HOME}" ]]; do
+    while [[ ${parent_path} != "/" && ${current_path} != "${HOME}" ]]; do
         if [[ -e ${current_path}/${target} ]]; then
             if ${whether_output}; then echo "$current_path"; fi
             return 0
