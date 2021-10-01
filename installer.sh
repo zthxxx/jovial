@@ -147,10 +147,8 @@ install.zsh-plugins() {
         sudo -Eu ${S_USER} git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git "${plugin_dir}/zsh-syntax-highlighting"
     fi
 
-    if [[ ! -d ${plugin_dir}/zsh-history-enquirer ]]; then
-        log.info "[jovial] install plugin zsh-history-enquirer"
-        curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/scripts/installer.zsh | sudo -Eu ${S_USER} zsh
-    fi
+    log.info "[jovial] install plugin zsh-history-enquirer"
+    curl -sSL -H 'Cache-Control: no-cache' https://github.com/zthxxx/zsh-history-enquirer/raw/master/scripts/installer.zsh | sudo -Eu ${S_USER} zsh
 
     log.info "[jovial] setup oh-my-zsh plugins in ~/.zshrc"
     local plugins=(
