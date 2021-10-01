@@ -13,12 +13,12 @@ autoload -Uz regexp-replace
 # use indent spaces 4
 
 
-export JOVIAL_VERSION='2.0.1'
+export JOVIAL_VERSION='2.0.2'
 
 # jovial theme element symbol mapping
 #
 # (the syntax `local -A xxx` is means to declare a `associative-array` in zsh, it's like `dictionary`)
-local -A JOVIAL_SYMBOL=(
+typeset -gA JOVIAL_SYMBOL=(
     corner.top    '╭─'
     corner.bottom '╰─'
 
@@ -35,7 +35,7 @@ local -A JOVIAL_SYMBOL=(
 
 # jovial theme colors mapping
 # use `sheet:color` plugin function to see color table
-local -A JOVIAL_PALETTE=(
+typeset -gA JOVIAL_PALETTE=(
     # hostname
     host "${FG[157]}"
 
@@ -76,9 +76,9 @@ local -A JOVIAL_PALETTE=(
 export VIRTUAL_ENV_DISABLE_PROMPT=true
 
 # git prompt
-local JOVIAL_REV_GIT_DIR=""
-local JOVIAL_IS_GIT_DIRTY=false
-local JOVIAL_GIT_STATUS_PROMPT=""
+typeset -g JOVIAL_REV_GIT_DIR=""
+typeset -g JOVIAL_IS_GIT_DIRTY=false
+typeset -g JOVIAL_GIT_STATUS_PROMPT=""
 
 
 # @jov.rev-parse-find(filename:string, path:string, output:boolean)
@@ -272,7 +272,7 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     fi
 }
 
-local -i JOVIAL_PROMPT_RUN_COUNT=0
+typeset -gi JOVIAL_PROMPT_RUN_COUNT=0
 @jov.pin-exit-code() {
     local exit_code=$?
 
@@ -355,7 +355,7 @@ add-zsh-hook precmd @jov.pin-exit-code
     fi
 }
 
-local JOVIAL_DEV_ENV_DETECT_FUNCS=(
+typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     @jov.prompt-node-version
     @jov.prompt-golang-version
     @jov.prompt-python-version
@@ -438,21 +438,21 @@ local JOVIAL_DEV_ENV_DETECT_FUNCS=(
 # SGR (Select Graphic Rendition) parameters
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 # "%{ %}" use for print command (vcs_info style)
-local SGR_RESET="%{${reset_color}%}"
+typeset -g SGR_RESET="%{${reset_color}%}"
 
 # partial prompt priority from high to low,
 # decide whether to still keep dispaly while terminal width is no enough
 #
 # `path` will always keep dispaly, it's highest priority
 # `current-time` will always auto detect rest spaces, it's lowest priority
-local JOVIAL_PROMPT_PRIORITY=(
+typeset -ga JOVIAL_PROMPT_PRIORITY=(
     git-info
     user
     host
     dev-env
 )
 
-local -A JOVIAL_PROMPT_FORMATS=(
+typeset -gA JOVIAL_PROMPT_FORMATS=(
     host            '${SGR_RESET}$(@jov.get-host-name) ${JOVIAL_PALETTE[conj.]}as'
     user            '${SGR_RESET} $(@jov.get-user-name) ${JOVIAL_PALETTE[conj.]}in'
     path            '${SGR_RESET} $(@jov.current-dir)'

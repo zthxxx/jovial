@@ -213,7 +213,7 @@ JOVIAL_SYMBOL[arrow.git-dirty]='->'
 Or just replace all of them:
 
 ```zsh
-local -A JOVIAL_SYMBOL=(
+typeset -gA JOVIAL_SYMBOL=(
     corner.top    '╭─'
     corner.bottom '╰─'
 
@@ -238,7 +238,7 @@ JOVIAL_DEV_ENV_DETECT_FUNCS+=( your-function-name )
 
 Or disable it by set empty list:
 ```zsh
-local JOVIAL_DEV_ENV_DETECT_FUNCS=()
+typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=()
 ```
 
 ### colors
@@ -250,7 +250,7 @@ whole override like:
 ```zsh
 # jovial theme colors mapping
 # use `sheet:color` plugin function to see color table
-local -A JOVIAL_PALETTE=(
+typeset -gA JOVIAL_PALETTE=(
     # hostname
     host "${FG[157]}"
 
