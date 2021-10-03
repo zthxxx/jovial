@@ -13,7 +13,7 @@ autoload -Uz regexp-replace
 # use indent spaces 4
 
 
-export JOVIAL_VERSION='2.0.2'
+export JOVIAL_VERSION='2.0.3'
 
 # jovial theme element symbol mapping
 #
@@ -196,11 +196,11 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.judge-git-dirty() {
     local git_status
     local -a flags
-    flags=('--porcelain' '--ignore-submodules=dirty')
+    flags=('--porcelain' '--ignore-submodules')
     if [[ "${DISABLE_UNTRACKED_FILES_DIRTY}" == "true" ]]; then
         flags+='--untracked-files=no'
     fi
-    git_status=$(\git status ${flags} 2> /dev/null | tail -n1)
+    git_status=$(\git status ${flags} 2> /dev/null)
     if [[ -n ${git_status} ]]; then
         return 0
     else

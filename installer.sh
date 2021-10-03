@@ -160,9 +160,6 @@ install.zsh-plugins() {
         zsh-syntax-highlighting
         zsh-history-enquirer
         jovial
-
-        # TODO: case "$OSTYPE" in (darwin*)
-        macos
     )
 
     local plugin_str="${plugins[@]}"
