@@ -2,7 +2,6 @@
 # https://github.com/zthxxx/jovial
 
 autoload -Uz add-zsh-hook
-autoload -Uz regexp-replace
 
 # Development code style:
 #
@@ -78,7 +77,45 @@ export VIRTUAL_ENV_DISABLE_PROMPT=true
 # git prompt
 typeset -g JOVIAL_REV_GIT_DIR=""
 typeset -g JOVIAL_IS_GIT_DIRTY=false
-typeset -g JOVIAL_GIT_STATUS_PROMPT=""
+typeset -g JOVIAL_GIT_ACTION_PROMPT=""
+
+
+# https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
+# https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
+@jov.unstyle-len() {
+    # remove vcs_info mark like "%{", "%}", it is used in `print -P``
+    local str="${1//\%[\{\}]/}"
+
+    ## regexp with POSIX mode
+    ## compatible with macOS Catalina default zsh
+    #
+    ## !!! NOTE: note that the "empty space" in this regexp at the beginning is not a common "space",
+    ## it is the ANSI escape ESC char ("\e") which is cannot wirte as literal in there
+    local unstyle_regex="\[[0-9;]*[a-zA-Z]"
+
+    # inspired by zsh builtin regexp-replace
+    # https://github.com/zsh-users/zsh/blob/zsh-5.8/Functions/Misc/regexp-replace
+    # it same as next line
+    # regexp-replace str "${unstyle_regex}" ''
+
+    local unstyled
+    # `MBEGIN` `MEND` are zsh builtin variables
+    # https://zsh.sourceforge.io/Doc/Release/Expansion.html
+
+    while [[ -n ${str} ]]; do
+        if [[ ${str} =~ ${unstyle_regex} ]]; then
+            # append initial part and subsituted match
+            unstyled+=${str[1,MBEGIN-1]}
+            # truncate remaining string
+            str=${str[MEND+1,-1]}
+        else
+            break
+        fi
+    done
+    unstyled+=${str}
+
+    echo ${#unstyled}
+}
 
 
 # @jov.rev-parse-find(filename:string, path:string, output:boolean)
@@ -89,9 +126,14 @@ typeset -g JOVIAL_GIT_STATUS_PROMPT=""
     local current_path="${2:-$PWD}"
     local whether_output=${3:-false}
 
+    local root_regex='^(/)[^/]*$'
+    local dirname_regex='^((/[^/]+)+)/[^/]+/?$'
+
     # [hacking] it's same as  parent_path=`\dirname $current_path`,
     # but better performance due to reduce subprocess call
-    if [[ ${current_path} =~ '^(/)[^/]*$' || ${current_path} =~ '^((/[^/]+)+)/[^/]+/?$' ]]; then
+    # `match` is zsh builtin variable
+    # https://zsh.sourceforge.io/Doc/Release/Expansion.html
+    if [[ ${current_path} =~ ${root_regex} || ${current_path} =~ ${dirname_regex} ]]; then
         local parent_path="${match[1]}"
     else
         return 1
@@ -106,7 +148,7 @@ typeset -g JOVIAL_GIT_STATUS_PROMPT=""
 
         # [hacking] it's same as  parent_path=`\dirname $parent_path`,
         # but better performance due to reduce subprocess call
-        if [[ ${parent_path} =~ '^(/)[^/]*$' || ${parent_path} =~ '^((/[^/]+)+)/[^/]+/?$' ]]; then
+        if [[ ${parent_path} =~ ${root_regex} || ${parent_path} =~ ${dirname_regex} ]]; then
             parent_path="${match[1]}"
         else
             return 1
@@ -134,30 +176,6 @@ typeset -g JOVIAL_GIT_STATUS_PROMPT=""
 add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.chpwd-git-dir-hook
 
-# https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
-# https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
-@jov.unstyle-len() {
-    local str="$1"
-    # remove vcs_info mark like "%{", "%}", it is used in `print -P``
-    str="${str//\%[\{\}]/}"
-
-    ## regexp with PCRE mode
-    ## used with `setopt RE_MATCH_PCRE`
-    ## but it is not compatible with macOS Catalina default zsh version
-    ## so need "brew install zsh && sudo chsh -s `command -v zsh` $USER"
-    #
-    # setopt RE_MATCH_PCRE
-    # regexp-replace str '\e\[[0-9;]*[a-zA-Z]' ''
-
-    ## regexp with POSIX mode
-    ## compatible with macOS Catalina default zsh
-    #
-    ## !!! NOTE: note that the "empty space" in this regexp at the beginning is not a common "space",
-    ## it is the ANSI escape ESC char ("\e") which is cannot wirte as literal in there
-    regexp-replace str "\[[0-9;]*[a-zA-Z]" ''
-
-    echo ${#str}
-}
 
 @jov.venv-info-prompt() {
     [[ -z ${VIRTUAL_ENV} ]] && return 0
@@ -182,22 +200,31 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 
 @jov.git-prompt-info() {
     if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
+
     local ref
     ref=$(\git symbolic-ref HEAD 2> /dev/null) \
       || ref=$(\git describe --tags --exact-match 2> /dev/null) \
       || ref=$(\git rev-parse --short HEAD 2> /dev/null) \
       || return 0
-    ref="${ref#refs/heads/}"
+    ref="${JOVIAL_PALETTE[git]}${ref#refs/heads/}"
 
-    local prefix="${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}("
-    echo "${prefix}${JOVIAL_PALETTE[git]}${ref}${JOVIAL_GIT_STATUS_PROMPT}"
+    local prefix=" ${JOVIAL_PALETTE[conj.]}on"
+    local git_status
+
+    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
+        git_status="${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
+    else
+        git_status="${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
+    fi
+
+    echo "${prefix} ${JOVIAL_PALETTE[normal]}(${ref}${JOVIAL_GIT_ACTION_PROMPT}${JOVIAL_PALETTE[normal]})${git_status}"
 }
 
 @jov.judge-git-dirty() {
     local git_status
     local -a flags
     flags=('--porcelain' '--ignore-submodules')
-    if [[ "${DISABLE_UNTRACKED_FILES_DIRTY}" == "true" ]]; then
+    if [[ ${DISABLE_UNTRACKED_FILES_DIRTY} == true ]]; then
         flags+='--untracked-files=no'
     fi
     git_status=$(\git status ${flags} 2> /dev/null)
@@ -415,7 +442,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
         action="|$action"
     fi
 
-    echo "${action}${JOVIAL_PALETTE[normal]})"
+    echo "${action}"
 }
 
 
@@ -428,11 +455,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
         JOVIAL_IS_GIT_DIRTY=false
     fi
 
-    if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then
-        JOVIAL_GIT_STATUS_PROMPT="$(@jov.git-action-prompt)${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
-    else
-        JOVIAL_GIT_STATUS_PROMPT="$(@jov.git-action-prompt)${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
-    fi
+    JOVIAL_GIT_ACTION_PROMPT="$(@jov.git-action-prompt)"
 }
 
 # SGR (Select Graphic Rendition) parameters
@@ -457,7 +480,7 @@ typeset -gA JOVIAL_PROMPT_FORMATS=(
     user            '${SGR_RESET} $(@jov.get-user-name) ${JOVIAL_PALETTE[conj.]}in'
     path            '${SGR_RESET} $(@jov.current-dir)'
     dev-env         '${SGR_RESET}$(@jov.dev-env-segment)'
-    git-info        '${SGR_RESET} $(@jov.git-prompt-info)'
+    git-info        '${SGR_RESET}$(@jov.git-prompt-info)'
     current-time    '${SGR_RESET}$(@jov.align-right " $(@jov.get-date-time) ")'
 )
 
@@ -479,6 +502,10 @@ typeset -gA JOVIAL_PROMPT_FORMATS=(
     for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
         local item=$(print -P "${JOVIAL_PROMPT_FORMATS[${key}]}")
         local -i item_length=$(@jov.unstyle-len "${item}")
+
+        if (( ! item_length )); then
+            continue
+        fi
 
         if (( total_length + item_length > COLUMNS )); then
             break

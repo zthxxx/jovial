@@ -50,6 +50,7 @@ alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/danglin
 
 # similar to 'ps aux', list all processes but log custom metrics
 alias psx="ps -A -o user,pid,ppid,pcpu,pmem,vsz,rss,time,etime,command"
+alias psxg="psx | grep"
 
 # 
 # ########## Utils ##########
@@ -163,6 +164,16 @@ function py2venv {
         python2 -m virtualenv venv && py2venv
     fi
 }
+
+
+function zsh-theme-benchmark() {
+    time (
+        for i in {1..10}; do
+            print -P "${PROMPT}"
+        done
+    )
+}
+
 
 # 
 # ########## App Config ##########
