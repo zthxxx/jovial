@@ -16,7 +16,7 @@ export JOVIAL_VERSION='2.0.3'
 
 # jovial theme element symbol mapping
 #
-# (the syntax `local -A xxx` is means to declare a `associative-array` in zsh, it's like `dictionary`)
+# (the syntax `typeset -A xxx` is means to declare a `associative-array` in zsh, it's like `dictionary`)
 typeset -gA JOVIAL_SYMBOL=(
     corner.top    '╭─'
     corner.bottom '╰─'
@@ -177,13 +177,25 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.chpwd-git-dir-hook
 
 
+@jov.typing-pointer() {
+    if [[ -n ${JOVIAL_REV_GIT_DIR} ]]; then
+        if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then
+            echo -n "${JOVIAL_SYMBOL[arrow.git-clean]}"
+        else
+            echo -n "${JOVIAL_SYMBOL[arrow.git-dirty]}"
+        fi
+    else
+        echo -n "${JOVIAL_SYMBOL[arrow]}"
+    fi
+}
+
 @jov.venv-info-prompt() {
     [[ -z ${VIRTUAL_ENV} ]] && return 0
     echo "${JOVIAL_PALETTE[normal]}(${JOVIAL_PALETTE[venv]}$(basename $VIRTUAL_ENV)${JOVIAL_PALETTE[normal]}) "
 }
 
 @jov.get-host-name() {
-    echo "${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[host]}%m${JOVIAL_PALETTE[normal]}]"
+    echo "${JOVIAL_PALETTE[host]}%m"
 }
 
 @jov.get-user-name() {
@@ -197,56 +209,6 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.current-dir() {
     echo "${JOVIAL_PALETTE[path]}%~"
 }
-
-@jov.git-prompt-info() {
-    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
-
-    local ref
-    ref=$(\git symbolic-ref HEAD 2> /dev/null) \
-      || ref=$(\git describe --tags --exact-match 2> /dev/null) \
-      || ref=$(\git rev-parse --short HEAD 2> /dev/null) \
-      || return 0
-    ref="${JOVIAL_PALETTE[git]}${ref#refs/heads/}"
-
-    local prefix=" ${JOVIAL_PALETTE[conj.]}on"
-    local git_status
-
-    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
-        git_status="${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
-    else
-        git_status="${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
-    fi
-
-    echo "${prefix} ${JOVIAL_PALETTE[normal]}(${ref}${JOVIAL_GIT_ACTION_PROMPT}${JOVIAL_PALETTE[normal]})${git_status}"
-}
-
-@jov.judge-git-dirty() {
-    local git_status
-    local -a flags
-    flags=('--porcelain' '--ignore-submodules')
-    if [[ ${DISABLE_UNTRACKED_FILES_DIRTY} == true ]]; then
-        flags+='--untracked-files=no'
-    fi
-    git_status=$(\git status ${flags} 2> /dev/null)
-    if [[ -n ${git_status} ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-@jov.typing-pointer() {
-    if [[ -n ${JOVIAL_REV_GIT_DIR} ]]; then
-        if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then
-            echo -n "${JOVIAL_SYMBOL[arrow.git-clean]}"
-        else
-            echo -n "${JOVIAL_SYMBOL[arrow.git-dirty]}"
-        fi
-    else
-        echo -n "${JOVIAL_SYMBOL[arrow]}"
-    fi
-}
-
 
 @jov.get-date-time() {
     echo -n "${JOVIAL_PALETTE[time]}"
@@ -314,6 +276,7 @@ typeset -gi JOVIAL_PROMPT_RUN_COUNT=0
 }
 
 add-zsh-hook precmd @jov.pin-exit-code
+
 
 @jov.prompt-node-version() {
     if @jov.rev-parse-find "package.json"; then
@@ -399,6 +362,22 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     done
 }
 
+
+@jov.judge-git-dirty() {
+    local git_status
+    local -a flags
+    flags=('--porcelain' '--ignore-submodules')
+    if [[ ${DISABLE_UNTRACKED_FILES_DIRTY} == true ]]; then
+        flags+='--untracked-files=no'
+    fi
+    git_status=$(\git status ${flags} 2> /dev/null)
+    if [[ -n ${git_status} ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 @jov.git-action-prompt() {
     # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
 
@@ -445,9 +424,8 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     echo "${action}"
 }
 
-
 @jov.git-action-prompt-hook() {
-    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return 1; fi
+    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return; fi
 
     if @jov.judge-git-dirty; then
         JOVIAL_IS_GIT_DIRTY=true
@@ -458,30 +436,79 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     JOVIAL_GIT_ACTION_PROMPT="$(@jov.git-action-prompt)"
 }
 
+add-zsh-hook precmd @jov.git-action-prompt-hook
+@jov.git-action-prompt-hook
+
+@jov.git-branch() {
+    # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
+
+    local ref
+    ref=$(\git symbolic-ref HEAD 2> /dev/null) \
+      || ref=$(\git describe --tags --exact-match 2> /dev/null) \
+      || ref=$(\git rev-parse --short HEAD 2> /dev/null) \
+      || return 0
+    ref="${JOVIAL_PALETTE[git]}${ref#refs/heads/}"
+
+    echo "${ref}"
+}
+
+@jov.git-dirty-status() {
+    # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
+
+    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
+        echo "${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
+    else
+        echo "${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
+    fi
+}
+
+@jov.git-info-prompt() {
+    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return; fi
+
+    echo "${JOVIAL_PREFIXES[git-info]}$(@jov.git-branch)${JOVIAL_GIT_ACTION_PROMPT}${JOVIAL_SUFFIXES[git-info]}$(@jov.git-dirty-status)"
+}
+
 # SGR (Select Graphic Rendition) parameters
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 # "%{ %}" use for print command (vcs_info style)
 typeset -g SGR_RESET="%{${reset_color}%}"
 
 # partial prompt priority from high to low,
-# decide whether to still keep dispaly while terminal width is no enough
+# decide whether to still keep dispaly while terminal width is no enough;
 #
-# `path` will always keep dispaly, it's highest priority
+# the highest priority element will always keep dispaly;
 # `current-time` will always auto detect rest spaces, it's lowest priority
 typeset -ga JOVIAL_PROMPT_PRIORITY=(
+    path
     git-info
     user
     host
     dev-env
 )
 
+typeset -gA JOVIAL_PREFIXES=(
+    host            "${JOVIAL_PALETTE[normal]}["
+    user            " "
+    path            " "
+    dev-env         ""
+    git-info        " ${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}("
+)
+
+typeset -gA JOVIAL_SUFFIXES=(
+    host            "${JOVIAL_PALETTE[normal]}] ${JOVIAL_PALETTE[conj.]}as"
+    user            " ${JOVIAL_PALETTE[conj.]}in"
+    path            ""
+    dev-env         ""
+    git-info        "${JOVIAL_PALETTE[normal]})"
+)
+
 typeset -gA JOVIAL_PROMPT_FORMATS=(
-    host            '${SGR_RESET}$(@jov.get-host-name) ${JOVIAL_PALETTE[conj.]}as'
-    user            '${SGR_RESET} $(@jov.get-user-name) ${JOVIAL_PALETTE[conj.]}in'
-    path            '${SGR_RESET} $(@jov.current-dir)'
-    dev-env         '${SGR_RESET}$(@jov.dev-env-segment)'
-    git-info        '${SGR_RESET}$(@jov.git-prompt-info)'
-    current-time    '${SGR_RESET}$(@jov.align-right " $(@jov.get-date-time) ")'
+    host            '${JOVIAL_PREFIXES[host]}$(@jov.get-host-name)${JOVIAL_SUFFIXES[host]}'
+    user            '${JOVIAL_PREFIXES[user]}$(@jov.get-user-name)${JOVIAL_SUFFIXES[user]}'
+    path            '${JOVIAL_PREFIXES[path]}$(@jov.current-dir)${JOVIAL_SUFFIXES[path]}'
+    dev-env         '${JOVIAL_PREFIXES[dev-env]}$(@jov.dev-env-segment)${JOVIAL_SUFFIXES[dev-env]}'
+    git-info        '$(@jov.git-info-prompt)'
+    current-time    '$(@jov.align-right " $(@jov.get-date-time) ")'
 )
 
 @jovial-prompt() {
@@ -495,13 +522,19 @@ typeset -gA JOVIAL_PROMPT_FORMATS=(
         current-time ''
     )
 
-    # always display current path
-    prompts[path]=$(print -P "${JOVIAL_PROMPT_FORMATS[path]}")
-    total_length+=$(@jov.unstyle-len "${prompts[path]}")
+    local prompt_is_emtpy=true
 
     for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
-        local item=$(print -P "${JOVIAL_PROMPT_FORMATS[${key}]}")
+        local item=$(print -P "${SGR_RESET}${JOVIAL_PROMPT_FORMATS[${key}]}")
         local -i item_length=$(@jov.unstyle-len "${item}")
+
+        if [[ ${prompt_is_emtpy} == true ]]; then
+            total_length+=${item_length}
+            prompts[${key}]="${item}"
+
+            prompt_is_emtpy=false
+            continue
+        fi
 
         if (( ! item_length )); then
             continue
@@ -518,18 +551,17 @@ typeset -gA JOVIAL_PROMPT_FORMATS=(
     # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current-time]}` -> ` hh:mm:ss `
     local -i len_datetime=10
 
+    # always auto detect rest spaces to float current time
     if (( total_length + len_datetime <= COLUMNS )); then
         prompts[current-time]=$(print -P "${JOVIAL_PROMPT_FORMATS[current-time]}")
     fi
 
-    local corner_top="${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
-    local corner_bottom="${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
+    local corner_top="${SGR_RESET}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    local corner_bottom="${SGR_RESET}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
-    echo "${SGR_RESET}${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
-    echo "${SGR_RESET}${corner_bottom}$(@jov.typing-pointer) $(@jov.venv-info-prompt) ${SGR_RESET}"
+    echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
+    echo "${corner_bottom}$(@jov.typing-pointer) $(@jov.venv-info-prompt) ${SGR_RESET}"
 }
 
-add-zsh-hook precmd @jov.git-action-prompt-hook
-@jov.git-action-prompt-hook
 
 PROMPT='$(@jovial-prompt)'
