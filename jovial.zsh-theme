@@ -1,22 +1,34 @@
 # jovial.zsh-theme
 # https://github.com/zthxxx/jovial
 
-autoload -Uz add-zsh-hook
+
+export JOVIAL_VERSION='2.0.3'
+
 
 # Development code style:
 #
 # use "@jov."" prefix for jovial internal functions
 # use "kebab-case" style for function names and mapping key
-# use "snake_case" for function's internal variables, and declare it with "local" mark
-# use "SNAKE_CASE" for global variables
+# use "snake_case" for function's internal variables, and also declare it with "local" mark
+# use "CAPITAL_SNAKE_CASE" for global variables that design for user customization
+# use "snake_case" for global but only used for jovial theme
 # use indent spaces 4
 
+# https://zsh.sourceforge.io/Doc/Release/Functions.html#Hook-Functions
+autoload -Uz add-zsh-hook
 
-export JOVIAL_VERSION='2.0.3'
+# https://zsh.sourceforge.io/Doc/Release/Zsh-Modules.html#The-zsh_002fdatetime-Module
+zmodload zsh/datetime
+
+# setup this flag for hidden python `venv` default prompt
+# https://github.com/python/cpython/blob/3.10/Lib/venv/scripts/common/activate#L56
+export VIRTUAL_ENV_DISABLE_PROMPT=true
+
 
 # jovial theme element symbol mapping
 #
 # (the syntax `typeset -A xxx` is means to declare a `associative-array` in zsh, it's like `dictionary`)
+# more `typeset` syntax see https://zsh.sourceforge.io/Doc/Release/Shell-Builtin-Commands.html
 typeset -gA JOVIAL_SYMBOL=(
     corner.top    '╭─'
     corner.bottom '╰─'
@@ -71,12 +83,9 @@ typeset -gA JOVIAL_PALETTE=(
 )
 
 
-# set this flag for hidden python venv default prompt
-export VIRTUAL_ENV_DISABLE_PROMPT=true
-
 # variables for git prompt
-typeset -g JOVIAL_REV_GIT_DIR=""
-typeset -g JOVIAL_IS_GIT_DIRTY=false
+typeset -g jovial_rev_git_dir=""
+typeset -g jovial_is_git_dirty=false
 
 
 # https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
@@ -160,15 +169,15 @@ typeset -g JOVIAL_IS_GIT_DIRTY=false
 @jov.iscommand() { [[ -e $commands[$1] ]] }
 
 @jov.chpwd-git-dir-hook() {
-    # it's the same as  JOVIAL_REV_GIT_DIR=`\git rev-parse --git-dir 2>/dev/null`
+    # it's the same as  jovial_rev_git_dir=`\git rev-parse --git-dir 2>/dev/null`
     # but better performance due to reduce subprocess call
 
     local project_root_dir="$(@jov.rev-parse-find .git '' true)"
 
     if [[ -n ${project_root_dir} ]]; then
-        JOVIAL_REV_GIT_DIR="${project_root_dir}/.git"
+        jovial_rev_git_dir="${project_root_dir}/.git"
     else
-        JOVIAL_REV_GIT_DIR=""
+        jovial_rev_git_dir=""
     fi
 }
 
@@ -177,8 +186,8 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 
 
 @jov.typing-pointer() {
-    if [[ -n ${JOVIAL_REV_GIT_DIR} ]]; then
-        if [[ ${JOVIAL_IS_GIT_DIRTY} == false ]]; then
+    if [[ -n ${jovial_rev_git_dir} ]]; then
+        if [[ ${jovial_is_git_dirty} == false ]]; then
             echo -n "${JOVIAL_SYMBOL[arrow.git-clean]}"
         else
             echo -n "${JOVIAL_SYMBOL[arrow.git-dirty]}"
@@ -260,18 +269,18 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
     fi
 }
 
-typeset -gi JOVIAL_PROMPT_RUN_COUNT=0
+typeset -gi jovial_prompt_run_count=0
 @jov.pin-exit-code() {
     local exit_code=$?
 
-    JOVIAL_PROMPT_RUN_COUNT+=1
+    jovial_prompt_run_count+=1
 
     # donot print empty line when prompt initial load, if terminal height less than 10 lines
-    if (( JOVIAL_PROMPT_RUN_COUNT == 1 )) && (( LINES <= 10 )); then
+    if (( jovial_prompt_run_count == 1 )) && (( LINES <= 10 )); then
         return 0
     fi
 
-    print -P "${SGR_RESET}$(@jov.get-pin-exit-code ${exit_code})"
+    print -P "${sgr_reset}$(@jov.get-pin-exit-code ${exit_code})"
 }
 
 add-zsh-hook precmd @jov.pin-exit-code
@@ -371,7 +380,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     if [[ ${DISABLE_UNTRACKED_FILES_DIRTY} == true ]]; then
         flags+='--untracked-files=no'
     fi
-    git_status=$(\git status ${flags} 2> /dev/null)
+    git_status="$(\git status ${flags} 2> /dev/null)"
     if [[ -n ${git_status} ]]; then
         return 0
     else
@@ -380,11 +389,11 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 @jov.git-action-prompt() {
-    # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
+    # always depend on ${jovial_rev_git_dir} path is existed
 
     local action=""
-    local rebase_merge="${JOVIAL_REV_GIT_DIR}/rebase-merge"
-    local rebase_apply="${JOVIAL_REV_GIT_DIR}/rebase-apply"
+    local rebase_merge="${jovial_rev_git_dir}/rebase-merge"
+    local rebase_apply="${jovial_rev_git_dir}/rebase-apply"
     if [[ -d ${rebase_merge} ]]; then
         local rebase_step="$(< ${rebase_merge}/msgnum)"
         local rebase_total="$(< ${rebase_merge}/end)"
@@ -405,13 +414,13 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
         else
             action="AM/REBASE"
         fi
-    elif [[ -f ${JOVIAL_REV_GIT_DIR}/MERGE_HEAD ]]; then
+    elif [[ -f ${jovial_rev_git_dir}/MERGE_HEAD ]]; then
         action="MERGING"
-    elif [[ -f ${JOVIAL_REV_GIT_DIR}/CHERRY_PICK_HEAD ]]; then
+    elif [[ -f ${jovial_rev_git_dir}/CHERRY_PICK_HEAD ]]; then
         action="CHERRY-PICKING"
-    elif [[ -f ${JOVIAL_REV_GIT_DIR}/REVERT_HEAD ]]; then
+    elif [[ -f ${jovial_rev_git_dir}/REVERT_HEAD ]]; then
         action="REVERTING"
-    elif [[ -f ${JOVIAL_REV_GIT_DIR}/BISECT_LOG ]]; then
+    elif [[ -f ${jovial_rev_git_dir}/BISECT_LOG ]]; then
         action="BISECTING"
     fi
 
@@ -426,24 +435,24 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 @jov.git-action-prompt-hook() {
-    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return; fi
+    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
 
     if @jov.judge-git-dirty; then
-        JOVIAL_IS_GIT_DIRTY=true
+        jovial_is_git_dirty=true
     else
-        JOVIAL_IS_GIT_DIRTY=false
+        jovial_is_git_dirty=false
     fi
 }
 
 add-zsh-hook precmd @jov.git-action-prompt-hook
 
 @jov.git-branch() {
-    # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
+    # always depend on ${jovial_rev_git_dir} path is existed
 
     local ref
-    ref=$(\git symbolic-ref HEAD 2> /dev/null) \
-      || ref=$(\git describe --tags --exact-match 2> /dev/null) \
-      || ref=$(\git rev-parse --short HEAD 2> /dev/null) \
+    ref="$(\git symbolic-ref HEAD 2> /dev/null)" \
+      || ref="$(\git describe --tags --exact-match 2> /dev/null)" \
+      || ref="$(\git rev-parse --short HEAD 2> /dev/null)" \
       || return 0
     ref="${JOVIAL_PALETTE[git]}${ref#refs/heads/}"
 
@@ -457,7 +466,7 @@ add-zsh-hook precmd @jov.git-action-prompt-hook
 #   fd 4 -> git branch
 #   fd 5 -> git action
 @jov.git-info-prompt() {
-    if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return; fi
+    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
 
     exec 4<> <(@jov.git-branch)
     exec 5<> <(@jov.git-action-prompt)
@@ -467,23 +476,23 @@ add-zsh-hook precmd @jov.git-action-prompt-hook
 
     local git_dirty_status
 
-    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
+    if [[ ${jovial_is_git_dirty} == true ]]; then
         git_dirty_status="${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
     else
         git_dirty_status="${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
     fi
 
-    echo "${JOVIAL_PREFIXES[git-info]}${git_branch}${git_action}${JOVIAL_SUFFIXES[git-info]}${git_dirty_status}"
+    echo "${JOVIAL_AFFIXES[git-info.prefix]}${git_branch}${git_action}${JOVIAL_AFFIXES[git-info.suffix]}${git_dirty_status}"
 }
 
 
 # SGR (Select Graphic Rendition) parameters
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 # "%{ %}" use for print command (vcs_info style)
-typeset -g SGR_RESET="%{${reset_color}%}"
+typeset -g sgr_reset="%{${reset_color}%}"
 
 
-# partial prompt priority from high to low,
+# partial prompt priority from high to low, for `responsive design`.
 # decide whether to still keep dispaly while terminal width is no enough;
 #
 # the highest priority element will always keep dispaly;
@@ -496,33 +505,35 @@ typeset -ga JOVIAL_PROMPT_PRIORITY=(
     dev-env
 )
 
-typeset -gA JOVIAL_PREFIXES=(
-    host            "${JOVIAL_PALETTE[normal]}["
-    user            " "
-    path            " "
-    dev-env         ""
-    git-info        " ${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}("
+# prefixes and suffixes of jovial prompt part
+typeset -gA JOVIAL_AFFIXES=(
+    host.prefix            "${JOVIAL_PALETTE[normal]}["
+    host.suffix            "${JOVIAL_PALETTE[normal]}] ${JOVIAL_PALETTE[conj.]}as"
+
+    user.prefix            " "
+    user.suffix            " ${JOVIAL_PALETTE[conj.]}in"
+
+    path.prefix            " "
+    path.suffix            ""
+
+    dev-env.prefix         ""
+    dev-env.suffix         ""
+
+    git-info.prefix        " ${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}("
+    git-info.suffix        "${JOVIAL_PALETTE[normal]})"
 )
 
-typeset -gA JOVIAL_SUFFIXES=(
-    host            "${JOVIAL_PALETTE[normal]}] ${JOVIAL_PALETTE[conj.]}as"
-    user            " ${JOVIAL_PALETTE[conj.]}in"
-    path            ""
-    dev-env         ""
-    git-info        "${JOVIAL_PALETTE[normal]})"
-)
-
-typeset -gA JOVIAL_PROMPT_FORMATS=(
-    host            '${JOVIAL_PREFIXES[host]}$(@jov.get-host-name)${JOVIAL_SUFFIXES[host]}'
-    user            '${JOVIAL_PREFIXES[user]}$(@jov.get-user-name)${JOVIAL_SUFFIXES[user]}'
-    path            '${JOVIAL_PREFIXES[path]}$(@jov.current-dir)${JOVIAL_SUFFIXES[path]}'
-    dev-env         '${JOVIAL_PREFIXES[dev-env]}$(@jov.dev-env-segment)${JOVIAL_SUFFIXES[dev-env]}'
+typeset -gA jovial_prompt_formats=(
+    host            '${JOVIAL_AFFIXES[host.prefix]}$(@jov.get-host-name)${JOVIAL_AFFIXES[host.suffix]}'
+    user            '${JOVIAL_AFFIXES[user.prefix]}$(@jov.get-user-name)${JOVIAL_AFFIXES[user.suffix]}'
+    path            '${JOVIAL_AFFIXES[path.prefix]}$(@jov.current-dir)${JOVIAL_AFFIXES[path.suffix]}'
+    dev-env         '${JOVIAL_AFFIXES[dev-env.prefix]}$(@jov.dev-env-segment)${JOVIAL_AFFIXES[dev-env.suffix]}'
     git-info        '$(@jov.git-info-prompt)'
     current-time    '$(@jov.align-right " $(@jov.get-date-time) ")'
 )
 
-# file descriptors for prompt output
-typeset -gA JOVIAL_OUTPUT_FDS=(
+# file descriptors map for prompt output
+typeset -gA jovial_output_fds=(
     host 3
     user 4
     path 5
@@ -543,23 +554,25 @@ typeset -gA JOVIAL_OUTPUT_FDS=(
     )
 
     # use `exec` to parallel run commands and capture stdout into file descriptor
-    #   (file descriptors are define in `JOVIAL_OUTPUT_FDS`)
+    #   (file descriptors are define in `jovial_output_fds`)
     # but due to `exec 6<>` syntax cannot replace by variables like `exec ${fd_number}<>`,
     # so expand the for-loop iteration
-    exec 7<> <(print -P "${JOVIAL_PROMPT_FORMATS[git-info]}")
-    exec 6<> <(print -P "${JOVIAL_PROMPT_FORMATS[dev-env]}")
-    exec 8<> <(print -P "${JOVIAL_PROMPT_FORMATS[current-time]}")
+    # https://zsh.sourceforge.io/Doc/Release/Redirection.html
+    # https://zsh.sourceforge.io/Doc/Release/Expansion.html#Process-Substitution
+    exec 7<> <(print -P "${jovial_prompt_formats[git-info]}")
+    exec 6<> <(print -P "${jovial_prompt_formats[dev-env]}")
+    exec 8<> <(print -P "${jovial_prompt_formats[current-time]}")
 
-    exec 3<> <(print -P "${JOVIAL_PROMPT_FORMATS[host]}")
-    exec 4<> <(print -P "${JOVIAL_PROMPT_FORMATS[user]}")
-    exec 5<> <(print -P "${JOVIAL_PROMPT_FORMATS[path]}")
+    exec 3<> <(print -P "${jovial_prompt_formats[host]}")
+    exec 4<> <(print -P "${jovial_prompt_formats[user]}")
+    exec 5<> <(print -P "${jovial_prompt_formats[path]}")
 
     local prompt_is_emtpy=true
     local prompt_key
 
     for prompt_key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
         # read output from file descriptor
-        local output="$(<& ${JOVIAL_OUTPUT_FDS[${prompt_key}]})"
+        local output="$(<& ${jovial_output_fds[${prompt_key}]})"
 
         local -i output_length=$(@jov.unstyle-len "${output}")
 
@@ -570,23 +583,23 @@ typeset -gA JOVIAL_OUTPUT_FDS=(
         prompt_is_emtpy=false
 
         total_length+=${output_length}
-        prompts[${prompt_key}]="${SGR_RESET}${output}"
+        prompts[${prompt_key}]="${sgr_reset}${output}"
     done
 
 
-    # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current-time]}` -> ` hh:mm:ss `
+    # datetime length is fixed numbers of `${jovial_prompt_formats[current-time]}` -> ` hh:mm:ss `
     local -i len_datetime=10
 
     # always auto detect rest spaces to float current time
     if (( total_length + len_datetime <= COLUMNS )); then
-        prompts[current-time]="$(<& ${JOVIAL_OUTPUT_FDS[current-time]})"
+        prompts[current-time]="$(<& ${jovial_output_fds[current-time]})"
     fi
 
-    local corner_top="${SGR_RESET}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
-    local corner_bottom="${SGR_RESET}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
+    local corner_top="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
     echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
-    echo "${corner_bottom}$(@jov.typing-pointer) $(@jov.venv-info-prompt) ${SGR_RESET}"
+    echo "${corner_bottom}$(@jov.typing-pointer) $(@jov.venv-info-prompt) ${sgr_reset}"
 }
 
 
