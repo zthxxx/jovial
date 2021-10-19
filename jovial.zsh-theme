@@ -74,10 +74,9 @@ typeset -gA JOVIAL_PALETTE=(
 # set this flag for hidden python venv default prompt
 export VIRTUAL_ENV_DISABLE_PROMPT=true
 
-# git prompt
+# variables for git prompt
 typeset -g JOVIAL_REV_GIT_DIR=""
 typeset -g JOVIAL_IS_GIT_DIRTY=false
-typeset -g JOVIAL_GIT_ACTION_PROMPT=""
 
 
 # https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
@@ -363,6 +362,8 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 
+# return 0 for dirty
+# return 1 for clean
 @jov.judge-git-dirty() {
     local git_status
     local -a flags
@@ -385,8 +386,8 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     local rebase_merge="${JOVIAL_REV_GIT_DIR}/rebase-merge"
     local rebase_apply="${JOVIAL_REV_GIT_DIR}/rebase-apply"
     if [[ -d ${rebase_merge} ]]; then
-        local rebase_step=`\cat "${rebase_merge}/msgnum"`
-        local rebase_total=`\cat "${rebase_merge}/end"`
+        local rebase_step="$(< ${rebase_merge}/msgnum)"
+        local rebase_total="$(< ${rebase_merge}/end)"
         local rebase_process="${rebase_step}/${rebase_total}"
         if [[ -f ${rebase_merge}/interactive ]]; then
             action="REBASE-i"
@@ -394,8 +395,8 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
             action="REBASE-m"
         fi
     elif [[ -d ${rebase_apply} ]]; then
-        local rebase_step=`\cat "${rebase_apply}/next"`
-        local rebase_total=`\cat "${rebase_apply}/last"`
+        local rebase_step="$(< ${rebase_merge}/next)"
+        local rebase_total="$(< ${rebase_merge}/last)"
         local rebase_process="${rebase_step}/${rebase_total}"
         if [[ -f ${rebase_apply}/rebasing ]]; then
             action="REBASE"
@@ -432,12 +433,9 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     else
         JOVIAL_IS_GIT_DIRTY=false
     fi
-
-    JOVIAL_GIT_ACTION_PROMPT="$(@jov.git-action-prompt)"
 }
 
 add-zsh-hook precmd @jov.git-action-prompt-hook
-@jov.git-action-prompt-hook
 
 @jov.git-branch() {
     # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
@@ -452,26 +450,38 @@ add-zsh-hook precmd @jov.git-action-prompt-hook
     echo "${ref}"
 }
 
-@jov.git-dirty-status() {
-    # always depend on ${JOVIAL_REV_GIT_DIR} path is existed
 
-    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
-        echo "${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
-    else
-        echo "${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
-    fi
-}
-
+# use `exec` to parallel run commands and capture stdout into file descriptor
+# so need run this function in subprocess like `print -P`
+# file descriptors:
+#   fd 4 -> git branch
+#   fd 5 -> git action
 @jov.git-info-prompt() {
     if [[ -z ${JOVIAL_REV_GIT_DIR} ]]; then return; fi
 
-    echo "${JOVIAL_PREFIXES[git-info]}$(@jov.git-branch)${JOVIAL_GIT_ACTION_PROMPT}${JOVIAL_SUFFIXES[git-info]}$(@jov.git-dirty-status)"
+    exec 4<> <(@jov.git-branch)
+    exec 5<> <(@jov.git-action-prompt)
+
+    local git_branch="$(<& 4)"
+    local git_action="$(<& 5)"
+
+    local git_dirty_status
+
+    if [[ ${JOVIAL_IS_GIT_DIRTY} == true ]]; then
+        git_dirty_status="${JOVIAL_PALETTE[error]}${JOVIAL_SYMBOL[git.dirty]}"
+    else
+        git_dirty_status="${JOVIAL_PALETTE[success]}${JOVIAL_SYMBOL[git.clean]}"
+    fi
+
+    echo "${JOVIAL_PREFIXES[git-info]}${git_branch}${git_action}${JOVIAL_SUFFIXES[git-info]}${git_dirty_status}"
 }
+
 
 # SGR (Select Graphic Rendition) parameters
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 # "%{ %}" use for print command (vcs_info style)
 typeset -g SGR_RESET="%{${reset_color}%}"
+
 
 # partial prompt priority from high to low,
 # decide whether to still keep dispaly while terminal width is no enough;
@@ -511,6 +521,16 @@ typeset -gA JOVIAL_PROMPT_FORMATS=(
     current-time    '$(@jov.align-right " $(@jov.get-date-time) ")'
 )
 
+# file descriptors for prompt output
+typeset -gA JOVIAL_OUTPUT_FDS=(
+    host 3
+    user 4
+    path 5
+    dev-env 6
+    git-info 7
+    current-time 8
+)
+
 @jovial-prompt() {
     local -i total_length=${#JOVIAL_SYMBOL[corner.top]}
     local -A prompts=(
@@ -522,38 +542,44 @@ typeset -gA JOVIAL_PROMPT_FORMATS=(
         current-time ''
     )
 
+    # use `exec` to parallel run commands and capture stdout into file descriptor
+    #   (file descriptors are define in `JOVIAL_OUTPUT_FDS`)
+    # but due to `exec 6<>` syntax cannot replace by variables like `exec ${fd_number}<>`,
+    # so expand the for-loop iteration
+    exec 7<> <(print -P "${JOVIAL_PROMPT_FORMATS[git-info]}")
+    exec 6<> <(print -P "${JOVIAL_PROMPT_FORMATS[dev-env]}")
+    exec 8<> <(print -P "${JOVIAL_PROMPT_FORMATS[current-time]}")
+
+    exec 3<> <(print -P "${JOVIAL_PROMPT_FORMATS[host]}")
+    exec 4<> <(print -P "${JOVIAL_PROMPT_FORMATS[user]}")
+    exec 5<> <(print -P "${JOVIAL_PROMPT_FORMATS[path]}")
+
     local prompt_is_emtpy=true
+    local prompt_key
 
-    for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
-        local item=$(print -P "${SGR_RESET}${JOVIAL_PROMPT_FORMATS[${key}]}")
-        local -i item_length=$(@jov.unstyle-len "${item}")
+    for prompt_key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
+        # read output from file descriptor
+        local output="$(<& ${JOVIAL_OUTPUT_FDS[${prompt_key}]})"
 
-        if [[ ${prompt_is_emtpy} == true ]]; then
-            total_length+=${item_length}
-            prompts[${key}]="${item}"
+        local -i output_length=$(@jov.unstyle-len "${output}")
 
-            prompt_is_emtpy=false
-            continue
-        fi
-
-        if (( ! item_length )); then
-            continue
-        fi
-
-        if (( total_length + item_length > COLUMNS )); then
+        if (( total_length + output_length > COLUMNS )) && [[ ${prompt_is_emtpy} == false ]] ; then
             break
         fi
+        
+        prompt_is_emtpy=false
 
-        total_length+=${item_length}
-        prompts[${key}]="${item}"
+        total_length+=${output_length}
+        prompts[${prompt_key}]="${SGR_RESET}${output}"
     done
+
 
     # datetime length is fixed numbers of `${JOVIAL_PROMPT_FORMATS[current-time]}` -> ` hh:mm:ss `
     local -i len_datetime=10
 
     # always auto detect rest spaces to float current time
     if (( total_length + len_datetime <= COLUMNS )); then
-        prompts[current-time]=$(print -P "${JOVIAL_PROMPT_FORMATS[current-time]}")
+        prompts[current-time]="$(<& ${JOVIAL_OUTPUT_FDS[current-time]})"
     fi
 
     local corner_top="${SGR_RESET}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
