@@ -521,22 +521,26 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 @jov.git-action-prompt() {
     # always depend on ${jovial_rev_git_dir} path is existed
 
-    local action=""
+    local action=''
+    local rebase_process=''
     local rebase_merge="${jovial_rev_git_dir}/rebase-merge"
     local rebase_apply="${jovial_rev_git_dir}/rebase-apply"
+
     if [[ -d ${rebase_merge} ]]; then
-        local rebase_step="$(< ${rebase_merge}/msgnum)"
-        local rebase_total="$(< ${rebase_merge}/end)"
-        local rebase_process="${rebase_step}/${rebase_total}"
         if [[ -f ${rebase_merge}/interactive ]]; then
             action="REBASE-i"
         else
             action="REBASE-m"
         fi
+
+        # while edit rebase interactive message,
+        # `msgnum` `end` are not exist yet
+        if [[ -d ${rebase_merge}/msgnum ]]; then
+            local rebase_step="$(< ${rebase_merge}/msgnum)"
+            local rebase_total="$(< ${rebase_merge}/end)"
+            rebase_process="${rebase_step}/${rebase_total}"
+        fi
     elif [[ -d ${rebase_apply} ]]; then
-        local rebase_step="$(< ${rebase_merge}/next)"
-        local rebase_total="$(< ${rebase_merge}/last)"
-        local rebase_process="${rebase_step}/${rebase_total}"
         if [[ -f ${rebase_apply}/rebasing ]]; then
             action="REBASE"
         elif [[ -f ${rebase_apply}/applying ]]; then
@@ -544,6 +548,10 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
         else
             action="AM/REBASE"
         fi
+
+        local rebase_step="$(< ${rebase_merge}/next)"
+        local rebase_total="$(< ${rebase_merge}/last)"
+        rebase_process="${rebase_step}/${rebase_total}"
     elif [[ -f ${jovial_rev_git_dir}/MERGE_HEAD ]]; then
         action="MERGING"
     elif [[ -f ${jovial_rev_git_dir}/CHERRY_PICK_HEAD ]]; then
