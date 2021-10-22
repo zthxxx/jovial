@@ -238,7 +238,7 @@ typeset -gA jovial_parts=() jovial_part_lengths=()
         dev-env         ''
         git-info        ''
         current-time    ''
-        arrow           ''
+        typing          ''
         venv            ''
     )
 
@@ -270,19 +270,19 @@ typeset -gA jovial_affix_lengths=()
     done
 }
 
-@jov.typing-pointer() {
+@jov.set-typing-pointer() {
     if [[ -n ${jovial_rev_git_dir} ]]; then
         if [[ ${jovial_is_git_dirty} == false ]]; then
-            jovial_parts[arrow]="${JOVIAL_SYMBOL[arrow.git-clean]}"
+            jovial_parts[typing]="${JOVIAL_SYMBOL[arrow.git-clean]}"
         else
-            jovial_parts[arrow]="${JOVIAL_SYMBOL[arrow.git-dirty]}"
+            jovial_parts[typing]="${JOVIAL_SYMBOL[arrow.git-dirty]}"
         fi
     else
-        jovial_parts[arrow]="${JOVIAL_SYMBOL[arrow]}"
+        jovial_parts[typing]="${JOVIAL_SYMBOL[arrow]}"
     fi
 }
 
-@jov.venv-info-prompt() {
+@jov.set-venv-info() {
     if [[ -z ${VIRTUAL_ENV} ]]; then
         jovial_parts[venv]=''
     else
@@ -291,7 +291,7 @@ typeset -gA jovial_affix_lengths=()
 }
 
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html
-@jov.get-host-name() {
+@jov.set-host-name() {
     jovial_parts[host]="${(%):-%m}"
     jovial_part_lengths[host]=$((
         ${#jovial_parts[host]}
@@ -301,7 +301,7 @@ typeset -gA jovial_affix_lengths=()
     jovial_parts[host]="${JOVIAL_AFFIXES[host.prefix]}${JOVIAL_PALETTE[host]}${jovial_parts[host]}${JOVIAL_AFFIXES[host.suffix]}"
 }
 
-@jov.get-user-name() {
+@jov.set-user-name() {
     jovial_parts[user]="${(%):-%n}"
 
     jovial_part_lengths[user]=$((
@@ -317,7 +317,7 @@ typeset -gA jovial_affix_lengths=()
     jovial_parts[user]="${JOVIAL_AFFIXES[user.prefix]}${name_color}${jovial_parts[user]}${JOVIAL_AFFIXES[user.suffix]}"
 }
 
-@jov.current-dir() {
+@jov.set-current-dir() {
     jovial_parts[path]="${(%):-%~}"
 
     jovial_part_lengths[path]=$((
@@ -328,7 +328,7 @@ typeset -gA jovial_affix_lengths=()
     jovial_parts[path]="${JOVIAL_AFFIXES[path.prefix]}${JOVIAL_PALETTE[path]}${jovial_parts[path]}${JOVIAL_AFFIXES[path.suffix]}"
 }
 
-@jov.get-date-time() {
+@jov.set-date-time() {
     local current_time="${JOVIAL_PALETTE[time]} ${(%):-%D{%H:%M:%S\}} "
     @jov.align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
 }
@@ -375,7 +375,7 @@ typeset -gA jovial_affix_lengths=()
 
 
 # pin the last commad exit code at previous line end
-@jov.pin-exit-code() {
+@jov.set-exit-code() {
     local exit_code="${1:-0}"
 
     # donot print empty line when prompt initial load, if terminal height less than 10 lines
@@ -485,7 +485,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 
-@jov.set-dev-env-part() {
+@jov.set-dev-env-info() {
     local result=''
     @jov.dev-env-detect result
 
@@ -600,7 +600,7 @@ add-zsh-hook precmd @jov.git-check-dirty
 
 # use `exec` to parallel run commands and capture stdout into file descriptor
 # (file descriptors are define in `jovial_output_fds`)
-@jov.git-info-prompt() {
+@jov.set-git-info() {
     if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
 
     exec 4<> <(@jov.git-branch)
@@ -647,14 +647,14 @@ typeset -gi jovial_prompt_run_count=0
 
     @jov.reset-prompt-parts
 
-    @jov.pin-exit-code ${exit_code}
-    @jov.get-host-name
-    @jov.get-user-name
-    @jov.current-dir
-    @jov.git-info-prompt
-    @jov.set-dev-env-part
-    @jov.typing-pointer
-    @jov.venv-info-prompt
+    @jov.set-exit-code ${exit_code}
+    @jov.set-host-name
+    @jov.set-user-name
+    @jov.set-current-dir
+    @jov.set-git-info
+    @jov.set-dev-env-info
+    @jov.set-typing-pointer
+    @jov.set-venv-info
 }
 
 add-zsh-hook precmd @jov.prompt-prepare
@@ -697,7 +697,7 @@ typeset -gA jovial_output_fds=(
 
     # always auto detect rest spaces to float current time
     if (( total_length + ${jovial_part_lengths[current-time]} <= COLUMNS )); then
-        @jov.get-date-time
+        @jov.set-date-time
         prompts[current-time]="${jovial_parts[current-time]}"
     fi
 
@@ -705,7 +705,7 @@ typeset -gA jovial_output_fds=(
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
     echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
-    echo "${corner_bottom}${jovial_parts[arrow]} ${jovial_parts[venv]} ${sgr_reset}"
+    echo "${corner_bottom}${jovial_parts[typing]} ${jovial_parts[venv]} ${sgr_reset}"
 }
 
 
