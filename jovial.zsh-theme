@@ -19,6 +19,8 @@ autoload -Uz add-zsh-hook
 
 # https://zsh.sourceforge.io/Doc/Release/Zsh-Modules.html#The-zsh_002fdatetime-Module
 zmodload zsh/datetime
+zmodload zsh/zpty
+zmodload zsh/zle
 
 # setup this flag for hidden python `venv` default prompt
 # https://github.com/python/cpython/blob/3.10/Lib/venv/scripts/common/activate#L56
@@ -118,11 +120,14 @@ typeset -gA JOVIAL_AFFIXES=(
 
 
 
+@jov.iscommand() { [[ -e ${commands[$1]} ]] }
+
 # https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
 # https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
 @jov.unstyle-len() {
     # remove vcs_info mark like "%{", "%}", it is used in `print -P``
     local str="${1//\%[\{\}]/}"
+    local store_var="$2"
 
     ## regexp with POSIX mode
     ## compatible with macOS Catalina default zsh
@@ -152,7 +157,7 @@ typeset -gA JOVIAL_AFFIXES=(
     done
     unstyled+=${str}
 
-    echo ${#unstyled}
+    eval ${store_var}=${#unstyled}
 }
 
 
@@ -198,7 +203,98 @@ typeset -gA JOVIAL_AFFIXES=(
 }
 
 
-@jov.iscommand() { [[ -e ${commands[$1]} ]] }
+# map for { job-name -> file-descriptor }
+typeset -gA jovial_async_jobs=()
+# map for { file-descriptor -> job-name }
+typeset -gA jovial_async_fds=()
+# map for { job-name -> callback }
+typeset -gA jovial_async_callbacks=()
+
+# tiny util for run async job with callback via zpty and zle
+#
+# @jov.async <job-name> <handler-func> <callback-func>
+#
+# `handler-func`  cannot handle with not any param
+# `callback-func` can only receive one param: <output-data>
+# 
+# https://zsh.sourceforge.io/Doc/Release/Zsh-Line-Editor.html
+@jov.async() {
+    local job_name=$1
+    local handler=$2
+    local callback=$3
+
+    # if job is running, donot run again
+    if zpty -t ${job_name} 2> /dev/null; then
+        return
+    fi
+
+    # async run as non-blocking output subprocess in zpty
+    zpty -b ${job_name} @jov.zpty-worker ${handler}
+    # REPLY a file-descriptor which was opened by the lost zpty job 
+    local -i fd=${REPLY}
+
+    jovial_async_jobs[${job_name}]=${fd}
+    jovial_async_fds[${fd}]=${job_name}
+    jovial_async_callbacks[${job_name}]=${callback}
+
+    zle -F ${fd} @jov.zle-callback-handler
+}
+
+@jov.zpty-worker() {
+    local handler=$1
+
+    ${handler}
+
+    # always print new line to avoid handler has not any output that cannot trigger callback
+    echo ''
+    # due to zpty cannot read output after subprocess is done and exit,
+    # run cat to keep zpty subprocess always alive,
+    # so that we can actually read it once
+    \cat
+}
+
+# callback for zle, forward zpty output to really job callback
+@jov.zle-callback-handler() {
+    local -i fd=$1
+    local data=''
+
+    local job_name=${jovial_async_fds[${fd}]}
+    local callback=${jovial_async_callbacks[${job_name}]}
+
+    # assume the job only have one-line output
+    # so if the handler called, we can read all message at this time,
+    # then we can remove callback and kill subprocess safety
+    zle -F ${fd}
+    zpty -r ${job_name} data
+    zpty -d ${job_name}
+
+    unset "jovial_async_jobs[${job_name}]"
+    unset "jovial_async_fds[${fd}]"
+    unset "jovial_async_callbacks[${job_name}]"
+
+    # forward callback, trim all line breaks, we only need one-line
+    ${callback} "${data//[$'\r\n']}"
+}
+
+
+typeset -g jovial_prompt_part_changed=false
+
+@jov.infer-prompt-rerender() {
+    local has_changed="$1"
+
+    if [[ ${has_changed} == true ]]; then
+        jovial_prompt_part_changed=true
+    fi
+
+    # only rerender if changed and all async jobs done
+    if [[ ${jovial_prompt_part_changed} == true ]] && (( ! ${(k)#jovial_async_jobs} )); then
+        jovial_prompt_part_changed=false
+        zle reset-prompt
+    fi
+}
+
+zle -N @jov.infer-prompt-rerender
+
 
 # SGR (Select Graphic Rendition) parameters
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
@@ -228,9 +324,15 @@ add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 
 # jovial prompt element value
 typeset -gA jovial_parts=() jovial_part_lengths=()
+typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
 
 @jov.reset-prompt-parts() {
-    typeset -gA jovial_parts=(
+    for key in ${(k)jovial_parts}; do
+        jovial_previous_parts[${key}]="${jovial_parts[${key}]}"
+        jovial_previous_lengths[${key}]="${jovial_part_lengths[${key}]}"
+    done
+
+    jovial_parts=(
         exit-code       ''
         host            ''
         user            ''
@@ -242,7 +344,7 @@ typeset -gA jovial_parts=() jovial_part_lengths=()
         venv            ''
     )
 
-    typeset -gA jovial_part_lengths=(
+    jovial_part_lengths=(
         host            0
         user            0
         path            0
@@ -263,9 +365,13 @@ typeset -gA jovial_affix_lengths=()
         # remove `.prefix`, `.suffix`
         # `xxx.prefix`` -> `xxx`
         local part="${key/%.(prefix|suffix)/}"
+
+        local -i affix_len
+        @jov.unstyle-len "${JOVIAL_AFFIXES[${key}]}" affix_len
+
         jovial_affix_lengths[${part}]=$((
             ${jovial_affix_lengths[${part}]:-0}
-            + $(@jov.unstyle-len "${JOVIAL_AFFIXES[${key}]}")
+            + affix_len
         ))
     done
 }
@@ -329,8 +435,9 @@ typeset -gA jovial_affix_lengths=()
 }
 
 @jov.set-date-time() {
-    local current_time="${JOVIAL_PALETTE[time]} ${(%):-%D{%H:%M:%S\}} "
-    @jov.align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
+    # jovial_parts[current-time]='xxx'
+    local current_time="${next_line}${JOVIAL_PALETTE[time]} ${(%):-%D{%H:%M:%S\}}"
+    @jov.next-align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
 }
 
 
@@ -352,23 +459,28 @@ typeset -gA jovial_affix_lengths=()
     local len=$2
     local store_var="$3"
 
-    local new_line_space='\n\n'
     local align_site=$(( ${COLUMNS} - ${len} + 1 ))
-    local previous_line="\e[1A"
-    local cursor_cols="\e[${align_site}G"
-    local result="${previous_line}${cursor_cols}${str}${new_line_space}"
+    local previous_line="\e[1F"
+    local next_line="\e[1E"
+    local cursor_col="\e[${align_site}G"
+    local begin_col="\e[G"
+    local result="${previous_line}${cursor_col}${str}${next_line}${begin_col}"
 
     eval ${store_var}=${(q)result}
 }
 
-@jov.align-right() {
+@jov.next-align-right() {
     local str="$1"
     local len=$2
     local store_var="$3"
 
     local align_site=$(( ${COLUMNS} - ${len} + 1 ))
-    local cursor_cols="\e[${align_site}G"
-    local result="${cursor_cols}${str}"
+    local previous_line="\e[1F"
+    local next_line="\e[1E"
+    local new_line="\n"
+    local cursor_col="\e[${align_site}G"
+    local begin_col="\e[G"
+    local result="${next_line}${cursor_col}${str}${previous_line}${begin_col}"
 
     eval ${store_var}=${(q)result}
 }
@@ -380,15 +492,12 @@ typeset -gA jovial_affix_lengths=()
 
     # donot print empty line when prompt initial load, if terminal height less than 10 lines
     if (( jovial_prompt_run_count == 1 )) && (( LINES <= 12 )); then
-        jovial_parts[exit-code]=''
         return
     fi
 
-    if [[ ${exit_code} == 0 ]]; then
-        jovial_parts[exit-code]='\n'
-    else
+    if [[ ${exit_code} != 0 ]]; then
         local exit_mark='exit:'
-        local exit_code_warn="${sgr_reset} ${JOVIAL_PALETTE[exit.mark]}${exit_mark}${JOVIAL_PALETTE[exit.code]}${exit_code} "
+        local exit_code_warn="${sgr_reset} ${JOVIAL_PALETTE[exit.mark]}${exit_mark}${JOVIAL_PALETTE[exit.code]}${exit_code}"
         # also affix 2 spaces
         local -i warn_len=$(( 2 + ${#exit_mark} + ${#exit_code} ))
 
@@ -474,35 +583,58 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 )
 
 @jov.dev-env-detect() {
-    local store_var="$1"
     for segment_func in ${JOVIAL_DEV_ENV_DETECT_FUNCS[@]}; do
         local segment=`${segment_func}`
         if [[ -n ${segment} ]]; then 
-            eval ${store_var}=${(q)segment}
+            echo "${segment}"
             break
         fi
     done
 }
 
-
 @jov.set-dev-env-info() {
-    local result=''
-    @jov.dev-env-detect result
+    local result="$1"
+    local has_changed=false
 
     if [[ -z ${result} ]]; then
+        if [[ -n ${jovial_previous_parts[dev-env]} ]]; then
+            jovial_parts[dev-env]=''
+            jovial_part_lengths[dev-env]=0
+            has_changed=true
+        fi
+
+        @jov.infer-prompt-rerender ${has_changed}
         return
     fi
 
     jovial_parts[dev-env]="${JOVIAL_AFFIXES[dev-env.prefix]}${result}${JOVIAL_AFFIXES[dev-env.suffix]}"
 
+    local -i result_len
+    @jov.unstyle-len "${result}" result_len
+
     jovial_part_lengths[dev-env]=$((
-        $(@jov.unstyle-len "${result}")
+        result_len
         + ${jovial_affix_lengths[dev-env]}
     ))
+
+    if [[ ${jovial_parts[dev-env]} != ${jovial_previous_parts[dev-env]} ]]; then
+        has_changed=true
+    fi
+
+    @jov.infer-prompt-rerender ${has_changed}
 }
 
-# return 0 for dirty
-# return 1 for clean
+@jov.async-dev-env-detect() {
+    # use cached prompt part for render, and try to update as async
+
+    jovial_parts[dev-env]="${jovial_previous_parts[dev-env]}"
+    jovial_part_lengths[dev-env]="${jovial_previous_lengths[dev-env]}"
+
+    @jov.async 'dev-env' @jov.dev-env-detect @jov.set-dev-env-info
+}
+
+# return `true` for dirty
+# return `false` for clean
 @jov.judge-git-dirty() {
     local git_status
     local -a flags
@@ -512,9 +644,9 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     fi
     git_status="$(\git status ${flags} 2> /dev/null)"
     if [[ -n ${git_status} ]]; then
-        return 0
+        echo true
     else
-        return 1
+        echo false
     fi
 }
 
@@ -572,18 +704,6 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     echo "${action}"
 }
 
-@jov.git-check-dirty() {
-    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
-
-    if @jov.judge-git-dirty; then
-        jovial_is_git_dirty=true
-    else
-        jovial_is_git_dirty=false
-    fi
-}
-
-add-zsh-hook precmd @jov.git-check-dirty
-
 @jov.git-branch() {
     # always depend on ${jovial_rev_git_dir} path is existed
 
@@ -599,15 +719,16 @@ add-zsh-hook precmd @jov.git-check-dirty
 
 
 # use `exec` to parallel run commands and capture stdout into file descriptor
-# (file descriptors are define in `jovial_output_fds`)
 @jov.set-git-info() {
-    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
+    # `jovial_is_git_dirty` is global variable that `true` or `false`
+    jovial_is_git_dirty="$1"
 
-    exec 4<> <(@jov.git-branch)
-    exec 5<> <(@jov.git-action-prompt)
+    local -i branch_fd action_fd
+    exec {branch_fd}<> <(@jov.git-branch)
+    exec {action_fd}<> <(@jov.git-action-prompt)
 
-    local git_branch="$(<& 4)"
-    local git_action="$(<& 5)"
+    # set typing-pointer due to git_dirty state maybe changed
+    @jov.set-typing-pointer
 
     local git_state='' state_color='' git_dirty_status=''
 
@@ -623,6 +744,13 @@ add-zsh-hook precmd @jov.git-check-dirty
 
     git_dirty_status="${JOVIAL_PALETTE[${state_color}]}${JOVIAL_SYMBOL[git.${git_state}]}"
 
+    # read and close file descriptors
+    local git_branch="$(<& ${branch_fd})"
+    local git_action="$(<& ${action_fd})"
+    exec {branch_fd}>& -
+    exec {action_fd}>& -
+
+
     jovial_parts[git-info]="${JOVIAL_AFFIXES[git-info.prefix]}${JOVIAL_PALETTE[git]}${git_branch}${git_action}${JOVIAL_AFFIXES[git-info.suffix]}${git_dirty_status}"
 
     jovial_part_lengths[git-info]=$((
@@ -631,7 +759,27 @@ add-zsh-hook precmd @jov.git-check-dirty
         + ${#git_branch}
         + ${#git_action}
     ))
+
+    local has_changed=false
+
+    if [[ ${jovial_parts[git-info]} != ${jovial_previous_parts[git-info]} ]]; then
+        has_changed=true
+    fi
+
+    @jov.infer-prompt-rerender ${has_changed}
 }
+
+@jov.async-git-check() {
+    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
+
+    # use cached prompt part for render, and try to update as async
+
+    jovial_parts[git-info]="${jovial_previous_parts[git-info]}"
+    jovial_part_lengths[git-info]="${jovial_previous_lengths[git-info]}"
+
+    @jov.async 'git-info' @jov.judge-git-dirty @jov.set-git-info
+}
+
 
 
 typeset -gi jovial_prompt_run_count=0
@@ -647,12 +795,13 @@ typeset -gi jovial_prompt_run_count=0
 
     @jov.reset-prompt-parts
 
+    @jov.async-dev-env-detect
+    @jov.async-git-check
+
     @jov.set-exit-code ${exit_code}
     @jov.set-host-name
     @jov.set-user-name
     @jov.set-current-dir
-    @jov.set-git-info
-    @jov.set-dev-env-info
     @jov.set-typing-pointer
     @jov.set-venv-info
 }
@@ -660,13 +809,6 @@ typeset -gi jovial_prompt_run_count=0
 add-zsh-hook precmd @jov.prompt-prepare
 
 
-
-# file descriptors map for prompt output
-typeset -gA jovial_output_fds=(
-    dev-env 3
-    git.branch 4
-    git.action 5
-)
 
 @jovial-prompt() {
     local -i total_length=${#JOVIAL_SYMBOL[corner.top]}
@@ -701,10 +843,11 @@ typeset -gA jovial_output_fds=(
         prompts[current-time]="${jovial_parts[current-time]}"
     fi
 
-    local corner_top="${jovial_parts[exit-code]}${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    local corner_top="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
-    echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
+    echo "${jovial_parts[exit-code]}${prompts[current-time]}"
+    echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}"
     echo "${corner_bottom}${jovial_parts[typing]} ${jovial_parts[venv]} ${sgr_reset}"
 }
 

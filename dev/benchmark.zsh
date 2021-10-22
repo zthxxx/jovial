@@ -12,6 +12,7 @@ source "${theme_file}"
 
 time (
   for i in {1..10}; do
+    @jov.prompt-prepare
     print -P "${PROMPT}"
   done
 )
