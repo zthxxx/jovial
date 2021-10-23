@@ -26,6 +26,12 @@ zmodload zsh/zle
 # https://github.com/python/cpython/blob/3.10/Lib/venv/scripts/common/activate#L56
 export VIRTUAL_ENV_DISABLE_PROMPT=true
 
+# SGR (Select Graphic Rendition) parameters
+# to disable all visual effects
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
+# "%{ %}" is need for Prompt-Expansion (vcs_info style) (most used in `print -P`)
+typeset -g sgr_reset="%{${reset_color}%}"
+
 
 # jovial theme element symbol mapping
 #
@@ -46,42 +52,52 @@ typeset -gA JOVIAL_SYMBOL=(
     arrow.git-dirty '(ﾉ˚Д˚)ﾉ'
 )
 
+
 # jovial theme colors mapping
 # use `sheet:color` plugin function to see color table
+# https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Visual-effects
+# format quickref:
+#   
+#   %F{xxx}         => foreground color (text color)
+#   %K{xxx}         => background color
+#   %B              => blod
+#   %U              => underline
+#   ${sgr_reset}    => reset all effect
+#
 typeset -gA JOVIAL_PALETTE=(
     # hostname
-    host "${FG[157]}"
+    host "%F{157}"
 
     # common user name
-    user "${FG[255]}"
+    user "%F{255}"
 
     # only root user
-    root "${terminfo[bold]}${FG[203]}"
+    root "%B%F{203}"
 
     # current work dir path
-    path "${terminfo[bold]}${FG[228]}"
+    path "%B%F{228}%}"
 
     # git status info (dirty or clean / rebase / merge / cherry-pick)
-    git "${FG[159]}"
+    git "%F{159}"
 
     # virtual env activate prompt for python
-    venv "${FG[159]}"
+    venv "%F{159}"
  
     # time tip at end-of-line
-    time "${FG[254]}"
+    time "%F{254}"
 
     # exit code of last command
-    exit.mark "${FG[246]}"
-    exit.code "${terminfo[bold]}${FG[203]}"
+    exit.mark "%F{246}"
+    exit.code "%B%F{203}"
 
     # "conj.": short for "conjunction", like as, at, in, on, using
-    conj. "${FG[102]}"
+    conj. "%F{102}"
 
     # for other common case text color
-    normal "${FG[253]}"
+    normal "%F{253}"
 
-    success "${FG[040]}"
-    error "${FG[203]}"
+    success "%F{040}"
+    error "%F{203}"
 )
 
 # partial prompt priority from high to low, for `responsive design`.
@@ -125,8 +141,10 @@ typeset -gA JOVIAL_AFFIXES=(
 # https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
 # https://www.refining-linux.org/archives/52-ZSH-Gem-18-Regexp-search-and-replace-on-parameters.html
 @jov.unstyle-len() {
-    # remove vcs_info mark like "%{", "%}", it is used in `print -P``
-    local str="${1//\%[\{\}]/}"
+    # use (%) for expand `prompt` format like color `%F{123}` or username `%n`
+    # https://zsh.sourceforge.io/Doc/Release/Expansion.html#Parameter-Expansion-Flags
+    # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Prompt-Expansion
+    local str="${(%)1}"
     local store_var="$2"
 
     ## regexp with POSIX mode
@@ -211,6 +229,7 @@ typeset -gA jovial_async_fds=()
 typeset -gA jovial_async_callbacks=()
 
 # tiny util for run async job with callback via zpty and zle
+# inspired by https://github.com/mafredri/zsh-async
 #
 # @jov.async <job-name> <handler-func> <callback-func>
 #
@@ -296,10 +315,6 @@ typeset -g jovial_prompt_part_changed=false
 zle -N @jov.infer-prompt-rerender
 
 
-# SGR (Select Graphic Rendition) parameters
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
-# "%{ %}" use for print command (vcs_info style)
-typeset -g sgr_reset="%{${reset_color}%}"
 
 # variables for git prompt
 typeset -g jovial_rev_git_dir=""
@@ -434,14 +449,8 @@ typeset -gA jovial_affix_lengths=()
     jovial_parts[path]="${JOVIAL_AFFIXES[path.prefix]}${JOVIAL_PALETTE[path]}${jovial_parts[path]}${JOVIAL_AFFIXES[path.suffix]}"
 }
 
-@jov.set-date-time() {
-    # jovial_parts[current-time]='xxx'
-    local current_time="${next_line}${JOVIAL_PALETTE[time]} ${(%):-%D{%H:%M:%S\}}"
-    @jov.next-align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
-}
 
-
-@jov.previous-align-right() {
+@jov.align-previous-right() {
     # References:
     #
     # CSI ref: https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences
@@ -462,25 +471,22 @@ typeset -gA jovial_affix_lengths=()
     local align_site=$(( ${COLUMNS} - ${len} + 1 ))
     local previous_line="\e[1F"
     local next_line="\e[1E"
-    local cursor_col="\e[${align_site}G"
-    local begin_col="\e[G"
-    local result="${previous_line}${cursor_col}${str}${next_line}${begin_col}"
+    local new_line="\n"
+    # use `%{ %}` wrapper to aviod ANSI cause eat previous line after prompt rerender (zle reset-prompt)
+    local cursor_col="%{\e[${align_site}G%}"
+    local result="${previous_line}${cursor_col}${str}${next_line}${new_line}"
 
     eval ${store_var}=${(q)result}
 }
 
-@jov.next-align-right() {
+@jov.align-right() {
     local str="$1"
     local len=$2
     local store_var="$3"
 
     local align_site=$(( ${COLUMNS} - ${len} + 1 ))
-    local previous_line="\e[1F"
-    local next_line="\e[1E"
-    local new_line="\n"
-    local cursor_col="\e[${align_site}G"
-    local begin_col="\e[G"
-    local result="${next_line}${cursor_col}${str}${previous_line}${begin_col}"
+    local cursor_col="%{\e[${align_site}G%}"
+    local result="${cursor_col}${str}"
 
     eval ${store_var}=${(q)result}
 }
@@ -495,16 +501,24 @@ typeset -gA jovial_affix_lengths=()
         return
     fi
 
-    if [[ ${exit_code} != 0 ]]; then
+    if [[ ${exit_code} == 0 ]]; then
+        jovial_parts[exit-code]='\n'
+    else
         local exit_mark='exit:'
         local exit_code_warn="${sgr_reset} ${JOVIAL_PALETTE[exit.mark]}${exit_mark}${JOVIAL_PALETTE[exit.code]}${exit_code}"
         # also affix 2 spaces
         local -i warn_len=$(( 2 + ${#exit_mark} + ${#exit_code} ))
 
-        @jov.previous-align-right "${exit_code_warn}" ${warn_len} 'jovial_parts[exit-code]'
+        @jov.align-previous-right "${exit_code_warn}" ${warn_len} 'jovial_parts[exit-code]'
     fi
 }
 
+
+@jov.set-date-time() {
+    # jovial_parts[current-time]='xxx'
+    local current_time="${next_line}${JOVIAL_PALETTE[time]} ${(%):-%D{%H:%M:%S\}}"
+    @jov.align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
+}
 
 
 
@@ -512,7 +526,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "package.json"; then
         if @jov.iscommand node; then
             local node_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local node_prompt="${FG[120]}node `\node -v`"
+            local node_prompt="%F{120}node `\node -v`"
         else
             local node_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local node_prompt="Nodejs${JOVIAL_PALETTE[normal]}]"
@@ -532,7 +546,7 @@ typeset -gA jovial_affix_lengths=()
             else
                 return 1
             fi
-            local go_prompt="${FG[086]}Golang ${go_version}"
+            local go_prompt="%F{086}Golang ${go_version}"
         else
             local go_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local go_prompt="Golang${JOVIAL_PALETTE[normal]}]"
@@ -546,7 +560,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "composer.json"; then
         if @jov.iscommand php; then
             local php_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local php_prompt="${FG[105]}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local php_prompt="%F{105}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local php_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local php_prompt="php${JOVIAL_PALETTE[normal]}]"
@@ -559,14 +573,14 @@ typeset -gA jovial_affix_lengths=()
     local python_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
 
     if [[ -n ${VIRTUAL_ENV} ]] && @jov.rev-parse-find "venv"; then
-        local python_prompt="${FG[123]}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
+        local python_prompt="%F{123}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
         echo "${python_prompt_prefix}${python_prompt}"
         return 0
     fi
 
     if @jov.rev-parse-find "requirements.txt"; then
         if @jov.iscommand python; then
-            local python_prompt="${FG[123]}`\python --version 2>&1`"
+            local python_prompt="%F{123}`\python --version 2>&1`"
         else
             python_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local python_prompt="Python${JOVIAL_PALETTE[normal]}]"
@@ -827,7 +841,8 @@ add-zsh-hook precmd @jov.prompt-prepare
     for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
         local -i part_length=${jovial_part_lengths[${key}]}
 
-        if (( total_length + part_length > COLUMNS )) && [[ ${prompt_is_emtpy} == false ]] ; then
+        # keep padding right 1 space
+        if (( total_length + part_length + 1 > COLUMNS )) && [[ ${prompt_is_emtpy} == false ]] ; then
             break
         fi
         
@@ -843,11 +858,10 @@ add-zsh-hook precmd @jov.prompt-prepare
         prompts[current-time]="${jovial_parts[current-time]}"
     fi
 
-    local corner_top="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    local corner_top="${jovial_parts[exit-code]}${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
-    echo "${jovial_parts[exit-code]}${prompts[current-time]}"
-    echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}"
+    echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
     echo "${corner_bottom}${jovial_parts[typing]} ${jovial_parts[venv]} ${sgr_reset}"
 }
 
