@@ -66,38 +66,38 @@ typeset -gA JOVIAL_SYMBOL=(
 #
 typeset -gA JOVIAL_PALETTE=(
     # hostname
-    host "%F{157}"
+    host '%F{157}'
 
     # common user name
-    user "%F{255}"
+    user '%F{255}'
 
     # only root user
-    root "%B%F{203}"
+    root '%B%F{203}'
 
     # current work dir path
-    path "%B%F{228}%}"
+    path '%B%F{228}%}'
 
     # git status info (dirty or clean / rebase / merge / cherry-pick)
-    git "%F{159}"
+    git '%F{159}'
 
     # virtual env activate prompt for python
-    venv "%F{159}"
+    venv '%F{159}'
  
     # time tip at end-of-line
-    time "%F{254}"
+    time '%F{254}'
 
     # exit code of last command
-    exit.mark "%F{246}"
-    exit.code "%B%F{203}"
+    exit.mark '%F{246}'
+    exit.code '%B%F{203}'
 
-    # "conj.": short for "conjunction", like as, at, in, on, using
-    conj. "%F{102}"
+    # 'conj.': short for 'conjunction', like as, at, in, on, using
+    conj. '%F{102}'
 
     # for other common case text color
-    normal "%F{253}"
+    normal '%F{253}'
 
-    success "%F{040}"
-    error "%F{203}"
+    success '%F{040}'
+    error '%F{203}'
 )
 
 # partial prompt priority from high to low, for `responsive design`.
@@ -132,6 +132,12 @@ typeset -gA JOVIAL_AFFIXES=(
 
     venv.prefix            '${JOVIAL_PALETTE[normal]}('
     venv.suffix            '${JOVIAL_PALETTE[normal]}) '
+
+    exit-code.prefix       ' ${JOVIAL_PALETTE[exit.mark]}exit:'
+    exit-code.suffix       ' '
+
+    current-time.prefix    ' '
+    current-time.suffix    ' '
 )
 
 
@@ -291,8 +297,11 @@ typeset -gA jovial_async_callbacks=()
     unset "jovial_async_fds[${fd}]"
     unset "jovial_async_callbacks[${job_name}]"
 
-    # forward callback, trim all line breaks, we only need one-line
-    ${callback} "${data//[$'\r\n']}"
+    # forward callback, and trimming any leading/trailing whitespace same as command s  ubstitution
+    # `[[:graph:]]` is glob for whitespace
+    # https://zsh.sourceforge.io/Doc/Release/Expansion.html#Glob-Operators
+    # https://stackoverflow.com/questions/68259691/trimming-whitespace-from-the-ends-of-a-string-in-zsh/68288735#68288735
+    ${callback} "${(MS)data##[[:graph:]]*[[:graph:]]}"
 }
 
 
@@ -349,6 +358,7 @@ typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
 
     jovial_parts=(
         exit-code       ''
+        margin-line     ''
         host            ''
         user            ''
         path            ''
@@ -365,8 +375,7 @@ typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
         path            0
         dev-env         0
         git-info        0
-        # datetime is fixed lenght of ` hh:mm:ss `
-        current-time    10
+        current-time    0
     )
 }
 
@@ -474,7 +483,7 @@ typeset -gA jovial_affix_lengths=()
     local new_line="\n"
     # use `%{ %}` wrapper to aviod ANSI cause eat previous line after prompt rerender (zle reset-prompt)
     local cursor_col="%{\e[${align_site}G%}"
-    local result="${previous_line}${cursor_col}${str}${next_line}${new_line}"
+    local result="${previous_line}${cursor_col}${str}"
 
     eval ${store_var}=${(q)result}
 }
@@ -493,30 +502,34 @@ typeset -gA jovial_affix_lengths=()
 
 
 # pin the last commad exit code at previous line end
-@jov.set-exit-code() {
+@jov.print-exit-code() {
     local exit_code="${1:-0}"
 
-    # donot print empty line when prompt initial load, if terminal height less than 10 lines
-    if (( jovial_prompt_run_count == 1 )) && (( LINES <= 12 )); then
+    if [[ ${exit_code} == 0 ]]; then
         return
     fi
 
-    if [[ ${exit_code} == 0 ]]; then
-        jovial_parts[exit-code]='\n'
-    else
-        local exit_mark='exit:'
-        local exit_code_warn="${sgr_reset} ${JOVIAL_PALETTE[exit.mark]}${exit_mark}${JOVIAL_PALETTE[exit.code]}${exit_code}"
-        # also affix 2 spaces
-        local -i warn_len=$(( 2 + ${#exit_mark} + ${#exit_code} ))
+    # trimming suffix trailing whitespace
+    # donot print trailing whitespace for better interaction while terminal width in narrowing
+    local suffix="${(MS)JOVIAL_AFFIXES[exit-code.suffix]##*[[:graph:]]}"
+    local exit_code_warn="${sgr_reset}${JOVIAL_AFFIXES[exit-code.prefix]}${JOVIAL_PALETTE[exit.code]}${exit_code}${suffix}"
+    # 1 space for margin-right
+    local -i warn_len=$(( ${jovial_affix_lengths[exit-code]} + ${#exit_code} ))
 
-        @jov.align-previous-right "${exit_code_warn}" ${warn_len} 'jovial_parts[exit-code]'
-    fi
+    @jov.align-previous-right "${exit_code_warn}" ${warn_len} 'jovial_parts[exit-code]'
+    
+    print -P "${jovial_parts[exit-code]}"
 }
 
 
 @jov.set-date-time() {
-    # jovial_parts[current-time]='xxx'
-    local current_time="${next_line}${JOVIAL_PALETTE[time]} ${(%):-%D{%H:%M:%S\}}"
+    # trimming suffix trailing whitespace
+    # donot print trailing whitespace for better interaction while terminal width in narrowing
+    local suffix="${(MS)JOVIAL_AFFIXES[current-time.suffix]##*[[:graph:]]}"
+    local current_time="${JOVIAL_AFFIXES[current-time.prefix]}${JOVIAL_PALETTE[time]}${(%):-%D{%H:%M:%S\}}${suffix}"
+    # 8 is fixed lenght of datatime format `hh:mm:ss`
+    # 1 space for margin-right
+    jovial_part_lengths[current-time]=$(( 8 + ${jovial_affix_lengths[current-time]} ))
     @jov.align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
 }
 
@@ -798,6 +811,15 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 
 typeset -gi jovial_prompt_run_count=0
 
+@jov.set-margin-line() {
+    # donot print empty line if terminal height less than 12 lines when prompt initial load
+    if (( jovial_prompt_run_count == 1 )) && (( LINES <= 12 )); then
+        return
+    fi
+
+    jovial_parts[margin-line]='\n'
+}
+
 @jov.prompt-prepare() {
     local exit_code=$?
 
@@ -812,7 +834,8 @@ typeset -gi jovial_prompt_run_count=0
     @jov.async-dev-env-detect
     @jov.async-git-check
 
-    @jov.set-exit-code ${exit_code}
+    @jov.print-exit-code ${exit_code}
+    @jov.set-margin-line
     @jov.set-host-name
     @jov.set-user-name
     @jov.set-current-dir
@@ -853,12 +876,12 @@ add-zsh-hook precmd @jov.prompt-prepare
     done
 
     # always auto detect rest spaces to float current time
+    @jov.set-date-time
     if (( total_length + ${jovial_part_lengths[current-time]} <= COLUMNS )); then
-        @jov.set-date-time
-        prompts[current-time]="${jovial_parts[current-time]}"
+        prompts[current-time]="${sgr_reset}${jovial_parts[current-time]}"
     fi
 
-    local corner_top="${jovial_parts[exit-code]}${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    local corner_top="${sgr_reset}${jovial_parts[margin-line]}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
     echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
