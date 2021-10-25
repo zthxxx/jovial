@@ -317,7 +317,11 @@ typeset -g jovial_prompt_part_changed=false
     # only rerender if changed and all async jobs done
     if [[ ${jovial_prompt_part_changed} == true ]] && (( ! ${(k)#jovial_async_jobs} )); then
         jovial_prompt_part_changed=false
-        zle reset-prompt
+
+        # only call zle rerender while prompt prepared
+        if (( jovial_prompt_run_count > 1 )); then
+            zle reset-prompt
+        fi
     fi
 }
 
@@ -345,6 +349,8 @@ typeset -g jovial_is_git_dirty=false
 add-zsh-hook chpwd @jov.chpwd-git-dir-hook
 @jov.chpwd-git-dir-hook
 
+
+typeset -gi jovial_prompt_run_count=0
 
 # jovial prompt element value
 typeset -gA jovial_parts=() jovial_part_lengths=()
@@ -651,6 +657,16 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     @jov.infer-prompt-rerender ${has_changed}
 }
 
+
+@jov.sync-dev-env-detect() {
+    local -i output_fd=$1
+
+    local dev_env="$(<& ${output_fd})"
+    exec {output_fd}>& -
+
+    @jov.set-dev-env-info "${dev_env}"
+}
+
 @jov.async-dev-env-detect() {
     # use cached prompt part for render, and try to update as async
 
@@ -746,22 +762,35 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 
 
 # use `exec` to parallel run commands and capture stdout into file descriptor
+#   @jov.set-git-info [true|false]
+# first param is whether git is dirty or not (`true` or `false`), 
+# if first param is not set, will try to read by exec
 @jov.set-git-info() {
-    # `jovial_is_git_dirty` is global variable that `true` or `false`
-    jovial_is_git_dirty="$1"
+    local is_dirty="$1"
 
-    local -i branch_fd action_fd
+    local dirty_fd branch_fd action_fd
+
+    if [[ -z ${is_dirty} ]]; then
+        exec {dirty_fd}<> <(@jov.judge-git-dirty)
+    fi
+
     exec {branch_fd}<> <(@jov.git-branch)
     exec {action_fd}<> <(@jov.git-action-prompt)
 
-    # set typing-pointer due to git_dirty state maybe changed
-    @jov.set-typing-pointer
+    # read and close file descriptors
+    local git_branch="$(<& ${branch_fd})"
+    local git_action="$(<& ${action_fd})"
+    exec {branch_fd}>& -
+    exec {action_fd}>& -
+
+    if [[ -n ${dirty_fd} ]]; then
+        is_dirty="$(<& ${dirty_fd})"
+        exec {dirty_fd}>& -
+    fi
 
     local git_state='' state_color='' git_dirty_status=''
-
-    jovial_part_lengths[git-info]=0
-
-    if [[ ${jovial_is_git_dirty} == true ]]; then
+ 
+    if [[ ${is_dirty} == true ]]; then
         git_state='dirty'
         state_color='error'
     else
@@ -770,13 +799,6 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     fi
 
     git_dirty_status="${JOVIAL_PALETTE[${state_color}]}${JOVIAL_SYMBOL[git.${git_state}]}"
-
-    # read and close file descriptors
-    local git_branch="$(<& ${branch_fd})"
-    local git_action="$(<& ${action_fd})"
-    exec {branch_fd}>& -
-    exec {action_fd}>& -
-
 
     jovial_parts[git-info]="${JOVIAL_AFFIXES[git-info.prefix]}${JOVIAL_PALETTE[git]}${git_branch}${git_action}${JOVIAL_AFFIXES[git-info.suffix]}${git_dirty_status}"
 
@@ -793,7 +815,20 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
         has_changed=true
     fi
 
+    # `jovial_is_git_dirty` is global variable that `true` or `false`
+    jovial_is_git_dirty="${is_dirty}"
+
+    # set typing-pointer due to git_dirty state maybe changed
+    @jov.set-typing-pointer
+
     @jov.infer-prompt-rerender ${has_changed}
+}
+
+
+@jov.sync-git-check() {
+    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
+
+    @jov.set-git-info
 }
 
 @jov.async-git-check() {
@@ -809,8 +844,6 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 
 
 
-typeset -gi jovial_prompt_run_count=0
-
 @jov.set-margin-line() {
     # donot print empty line if terminal height less than 12 lines when prompt initial load
     if (( jovial_prompt_run_count == 1 )) && (( LINES <= 12 )); then
@@ -825,14 +858,19 @@ typeset -gi jovial_prompt_run_count=0
 
     jovial_prompt_run_count+=1
 
-    if (( jovial_prompt_run_count == 1 )); then
-        @jov.init-affix
-    fi
-
     @jov.reset-prompt-parts
 
-    @jov.async-dev-env-detect
-    @jov.async-git-check
+    if (( jovial_prompt_run_count == 1 )); then
+        @jov.init-affix
+        
+        local -i dev_env_fd
+        exec {dev_env_fd}<> <(@jov.dev-env-detect)
+        @jov.sync-git-check
+        @jov.sync-dev-env-detect ${dev_env_fd}
+    else
+        @jov.async-dev-env-detect
+        @jov.async-git-check
+    fi
 
     @jov.print-exit-code ${exit_code}
     @jov.set-margin-line
