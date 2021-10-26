@@ -83,8 +83,11 @@ typeset -gA JOVIAL_PALETTE=(
     # virtual env activate prompt for python
     venv '%F{159}'
  
-    # time tip at end-of-line
+    # current time when prompt render, pin at end-of-line
     time '%F{254}'
+
+    # elapsed time of last command executed
+    elapsed '%F{222}'
 
     # exit code of last command
     exit.mark '%F{246}'
@@ -132,6 +135,9 @@ typeset -gA JOVIAL_AFFIXES=(
 
     venv.prefix            '${JOVIAL_PALETTE[normal]}('
     venv.suffix            '${JOVIAL_PALETTE[normal]}) '
+
+    exec-elapsed.prefix    ' ${JOVIAL_PALETTE[elapsed]}~'
+    exec-elapsed.suffix    ' '
 
     exit-code.prefix       ' ${JOVIAL_PALETTE[exit.mark]}exit:'
     exit-code.suffix       ' '
@@ -363,6 +369,7 @@ typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
     done
 
     jovial_parts=(
+        exec-elapsed    ''
         exit-code       ''
         margin-line     ''
         host            ''
@@ -507,24 +514,44 @@ typeset -gA jovial_affix_lengths=()
 }
 
 
-# pin the last commad exit code at previous line end
-@jov.print-exit-code() {
-    local exit_code="${1:-0}"
+# pin last command execute elapsed, if the threshold is reached
+typeset -gi JOVIAL_EXEC_THRESHOLD_SECONDS=4
 
-    if [[ ${exit_code} == 0 ]]; then
-        return
+# pin the last command execute elapsed and exit code at previous line end
+@jov.pin-execute-info() {
+    local -i exec_seconds="${1:-0}"
+    local -i exit_code="${2:-0}"
+
+    local -i pin_length=0
+
+    if (( exec_seconds >= JOVIAL_EXEC_THRESHOLD_SECONDS )); then
+        local -i seconds=$(( exec_seconds % 60 ))
+        local -i minutes=$(( exec_seconds / 60 % 60 ))
+        local -i hours=$(( exec_seconds / 3600 ))
+
+        local -a humanize=()
+
+        (( hours > 0 )) && humanize+="${hours}h"
+        (( minutes > 0 )) && humanize+="${minutes}m"
+        (( seconds > 0 )) && humanize+="${seconds}s"
+
+        # join array with 1 space
+        local elapsed="${(j.:.)humanize}"
+
+        jovial_parts[exec-elapsed]="${sgr_reset}${JOVIAL_AFFIXES[exec-elapsed.prefix]}${JOVIAL_PALETTE[elapsed]}${elapsed}${JOVIAL_AFFIXES[exec-elapsed.suffix]}"
+        pin_length+=$(( ${jovial_affix_lengths[exec-elapsed]} + ${#elapsed} ))
     fi
 
-    # trimming suffix trailing whitespace
-    # donot print trailing whitespace for better interaction while terminal width in narrowing
-    local suffix="${(MS)JOVIAL_AFFIXES[exit-code.suffix]##*[[:graph:]]}"
-    local exit_code_warn="${sgr_reset}${JOVIAL_AFFIXES[exit-code.prefix]}${JOVIAL_PALETTE[exit.code]}${exit_code}${suffix}"
-    # 1 space for margin-right
-    local -i warn_len=$(( ${jovial_affix_lengths[exit-code]} + ${#exit_code} ))
-
-    @jov.align-previous-right "${exit_code_warn}" ${warn_len} 'jovial_parts[exit-code]'
+    if (( exit_code != 0 )); then
+        jovial_parts[exit-code]="${sgr_reset}${JOVIAL_AFFIXES[exit-code.prefix]}${JOVIAL_PALETTE[exit.code]}${exit_code}${JOVIAL_AFFIXES[exit-code.suffix]}"
+        pin_length+=$(( ${jovial_affix_lengths[exit-code]} + ${#exit_code} ))
+    fi
     
-    print -P "${jovial_parts[exit-code]}"
+    if (( pin_length > 0 )); then
+        local pin_message="${jovial_parts[exec-elapsed]}${jovial_parts[exit-code]}"
+        @jov.align-previous-right "${pin_message}" ${pin_length} pin_message
+        print -P "${pin_message}"
+    fi
 }
 
 
@@ -534,7 +561,6 @@ typeset -gA jovial_affix_lengths=()
     local suffix="${(MS)JOVIAL_AFFIXES[current-time.suffix]##*[[:graph:]]}"
     local current_time="${JOVIAL_AFFIXES[current-time.prefix]}${JOVIAL_PALETTE[time]}${(%):-%D{%H:%M:%S\}}${suffix}"
     # 8 is fixed lenght of datatime format `hh:mm:ss`
-    # 1 space for margin-right
     jovial_part_lengths[current-time]=$(( 8 + ${jovial_affix_lengths[current-time]} ))
     @jov.align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
 }
@@ -842,7 +868,13 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     @jov.async 'git-info' @jov.judge-git-dirty @jov.set-git-info
 }
 
-
+# `EPOCHSECONDS` is setup in zsh/datetime module
+# https://zsh.sourceforge.io/Doc/Release/Zsh-Modules.html#The-zsh_002fdatetime-Module
+typeset -gi jovial_exec_timestamp=0
+@jov.exec-timestamp() {
+    jovial_exec_timestamp=${EPOCHSECONDS}
+}
+add-zsh-hook preexec @jov.exec-timestamp
 
 @jov.set-margin-line() {
     # donot print empty line if terminal height less than 12 lines when prompt initial load
@@ -854,7 +886,13 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 @jov.prompt-prepare() {
-    local exit_code=$?
+    local -i exit_code=$?
+    local -i exec_seconds=0
+
+    if (( jovial_exec_timestamp > 0 )); then
+        exec_seconds=$(( EPOCHSECONDS - jovial_exec_timestamp ))
+        jovial_exec_timestamp=0
+    fi
 
     jovial_prompt_run_count+=1
 
@@ -872,7 +910,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
         @jov.async-git-check
     fi
 
-    @jov.print-exit-code ${exit_code}
+    @jov.pin-execute-info ${exec_seconds} ${exit_code}
     @jov.set-margin-line
     @jov.set-host-name
     @jov.set-user-name
@@ -888,12 +926,15 @@ add-zsh-hook precmd @jov.prompt-prepare
 @jovial-prompt() {
     local -i total_length=${#JOVIAL_SYMBOL[corner.top]}
     local -A prompts=(
+        margin-line ''
         host ''
         user ''
         path ''
         dev-env ''
         git-info ''
         current-time ''
+        typing ''
+        venv ''
     )
 
     local prompt_is_emtpy=true
@@ -919,11 +960,15 @@ add-zsh-hook precmd @jov.prompt-prepare
         prompts[current-time]="${sgr_reset}${jovial_parts[current-time]}"
     fi
 
-    local corner_top="${sgr_reset}${jovial_parts[margin-line]}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
+    prompts[typing]="${sgr_reset}${jovial_parts[typing]}"
+    prompts[margin-line]="${sgr_reset}${jovial_parts[margin-line]}"
+    prompts[venv]="${sgr_reset}${jovial_parts[venv]}"
+
+    local corner_top="${prompts[margin-line]}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
     echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
-    echo "${corner_bottom}${jovial_parts[typing]} ${jovial_parts[venv]} ${sgr_reset}"
+    echo "${corner_bottom}${prompts[typing]} ${prompts[venv]} ${sgr_reset}"
 }
 
 
