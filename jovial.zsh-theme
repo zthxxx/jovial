@@ -103,7 +103,10 @@ typeset -gA JOVIAL_PALETTE=(
     error '%F{203}'
 )
 
-# partial prompt priority from high to low, for `responsive design`.
+# parts dispaly order from left to right of jovial theme at the first line 
+typeset -ga JOVIAL_PROMPT_ORDER=( host user path dev-env git-info )
+
+# prompt parts priority from high to low, for `responsive design`.
 # decide whether to still keep dispaly while terminal width is no enough;
 #
 # the highest priority element will always keep dispaly;
@@ -133,8 +136,8 @@ typeset -gA JOVIAL_AFFIXES=(
     git-info.prefix        ' ${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}('
     git-info.suffix        '${JOVIAL_PALETTE[normal]})'
 
-    venv.prefix            '${JOVIAL_PALETTE[normal]}('
-    venv.suffix            '${JOVIAL_PALETTE[normal]}) '
+    venv.prefix            ' ${JOVIAL_PALETTE[normal]}('
+    venv.suffix            '${JOVIAL_PALETTE[normal]})'
 
     exec-elapsed.prefix    ' ${JOVIAL_PALETTE[elapsed]}~'
     exec-elapsed.suffix    ' '
@@ -960,15 +963,20 @@ add-zsh-hook precmd @jov.prompt-prepare
         prompts[current-time]="${sgr_reset}${jovial_parts[current-time]}"
     fi
 
-    prompts[typing]="${sgr_reset}${jovial_parts[typing]}"
     prompts[margin-line]="${sgr_reset}${jovial_parts[margin-line]}"
+    prompts[typing]="${sgr_reset}${jovial_parts[typing]}"
     prompts[venv]="${sgr_reset}${jovial_parts[venv]}"
+
+    local -a ordered_parts=()
+    for key in ${JOVIAL_PROMPT_ORDER[@]}; do
+        ordered_parts+="${prompts[${key}]}"
+    done
 
     local corner_top="${prompts[margin-line]}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.top]}"
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
-    echo "${corner_top}${prompts[host]}${prompts[user]}${prompts[path]}${prompts[dev-env]}${prompts[git-info]}${prompts[current-time]}"
-    echo "${corner_bottom}${prompts[typing]} ${prompts[venv]} ${sgr_reset}"
+    echo "${corner_top}${(j..)ordered_parts}${prompts[current-time]}"
+    echo "${corner_bottom}${prompts[typing]}${prompts[venv]} ${sgr_reset}"
 }
 
 
