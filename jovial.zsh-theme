@@ -245,6 +245,9 @@ typeset -gA jovial_async_jobs=()
 typeset -gA jovial_async_fds=()
 # map for { job-name -> callback }
 typeset -gA jovial_async_callbacks=()
+# map for { job-name -> output }
+typeset -gA jovial_async_output=()
+typeset -gA jovial_async_count=()
 
 # tiny util for run async job with callback via zpty and zle
 # inspired by https://github.com/mafredri/zsh-async
@@ -273,6 +276,7 @@ typeset -gA jovial_async_callbacks=()
     jovial_async_jobs[${job_name}]=${fd}
     jovial_async_fds[${fd}]=${job_name}
     jovial_async_callbacks[${job_name}]=${callback}
+    jovial_async_output[${job_name}]=''
 
     zle -F ${fd} @jov.zle-callback-handler
 }
@@ -283,11 +287,12 @@ typeset -gA jovial_async_callbacks=()
     ${handler}
 
     # always print new line to avoid handler has not any output that cannot trigger callback
-    echo ''
+    # '\0' as EOF for @jov.zle-callback-handler
+    echo -n '\n\0'
     # due to zpty cannot read output after subprocess is done and exit,
     # run cat to keep zpty subprocess always alive,
     # so that we can actually read it once
-    \cat
+    $(<& 0)
 }
 
 # callback for zle, forward zpty output to really job callback
@@ -298,22 +303,34 @@ typeset -gA jovial_async_callbacks=()
     local job_name=${jovial_async_fds[${fd}]}
     local callback=${jovial_async_callbacks[${job_name}]}
 
-    # assume the job only have one-line output
-    # so if the handler called, we can read all message at this time,
-    # then we can remove callback and kill subprocess safety
-    zle -F ${fd}
     zpty -r ${job_name} data
-    zpty -d ${job_name}
+    jovial_async_count[${job_name}]=$(( ${jovial_async_count[${job_name}]:-0} + 1 ))
 
-    unset "jovial_async_jobs[${job_name}]"
-    unset "jovial_async_fds[${fd}]"
-    unset "jovial_async_callbacks[${job_name}]"
+    # use '\0' as EOF flag, it's always output by @jov.zpty-worker
+    if [[ ${data} != $'\0' ]] && (( ${jovial_async_count[${job_name}]} < 5 )); then
+        jovial_async_output[${job_name}]+="${data}"
+        echo -n "${data}" | xxd
+        echo "async count ${job_name} ${jovial_async_count[${job_name}]} \n"
+        echo "async continue ${job_name}\n"
+    else
+        local result="${jovial_async_output[${job_name}]}"
+        echo "async done ${job_name}\n"
 
-    # forward callback, and trimming any leading/trailing whitespace same as command s  ubstitution
-    # `[[:graph:]]` is glob for whitespace
-    # https://zsh.sourceforge.io/Doc/Release/Expansion.html#Glob-Operators
-    # https://stackoverflow.com/questions/68259691/trimming-whitespace-from-the-ends-of-a-string-in-zsh/68288735#68288735
-    ${callback} "${(MS)data##[[:graph:]]*[[:graph:]]}"
+        zle -F ${fd}
+        zpty -d ${job_name}
+
+        unset "jovial_async_jobs[${job_name}]"
+        unset "jovial_async_fds[${fd}]"
+        unset "jovial_async_callbacks[${job_name}]"
+        unset "jovial_async_output[${job_name}]"
+        unset "jovial_async_count[${job_name}]"
+
+        # forward callback, and trimming any leading/trailing whitespace same as command s  ubstitution
+        # `[[:graph:]]` is glob for whitespace
+        # https://zsh.sourceforge.io/Doc/Release/Expansion.html#Glob-Operators
+        # https://stackoverflow.com/questions/68259691/trimming-whitespace-from-the-ends-of-a-string-in-zsh/68288735#68288735
+        ${callback} "${(MS)result##[[:graph:]]*[[:graph:]]}"
+    fi
 }
 
 
