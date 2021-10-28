@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.0.3'
+export JOVIAL_VERSION='2.1.0'
 
 
 # Development code style:
@@ -59,10 +59,10 @@ typeset -gA JOVIAL_SYMBOL=(
 # format quickref:
 #   
 #   %F{xxx}         => foreground color (text color)
-#   %K{xxx}         => background color
+#   %K{xxx}         => background color (color-block)
 #   %B              => blod
 #   %U              => underline
-#   ${sgr_reset}    => reset all effect
+#   ${sgr_reset}    => reset all effect (provide by jovial)
 #
 typeset -gA JOVIAL_PALETTE=(
     # hostname
@@ -118,6 +118,9 @@ typeset -ga JOVIAL_PROMPT_PRIORITY=(
     host
     dev-env
 )
+
+# pin last command execute elapsed, if the threshold is reached
+typeset -gi JOVIAL_EXEC_THRESHOLD_SECONDS=4
 
 # prefixes and suffixes of jovial prompt part
 typeset -gA JOVIAL_AFFIXES=(
@@ -517,9 +520,6 @@ typeset -gA jovial_affix_lengths=()
 }
 
 
-# pin last command execute elapsed, if the threshold is reached
-typeset -gi JOVIAL_EXEC_THRESHOLD_SECONDS=4
-
 # pin the last command execute elapsed and exit code at previous line end
 @jov.pin-execute-info() {
     local -i exec_seconds="${1:-0}"
@@ -527,7 +527,7 @@ typeset -gi JOVIAL_EXEC_THRESHOLD_SECONDS=4
 
     local -i pin_length=0
 
-    if (( exec_seconds >= JOVIAL_EXEC_THRESHOLD_SECONDS )); then
+    if (( JOVIAL_EXEC_THRESHOLD_SECONDS >= 0)) && (( exec_seconds >= JOVIAL_EXEC_THRESHOLD_SECONDS )); then
         local -i seconds=$(( exec_seconds % 60 ))
         local -i minutes=$(( exec_seconds / 60 % 60 ))
         local -i hours=$(( exec_seconds / 3600 ))

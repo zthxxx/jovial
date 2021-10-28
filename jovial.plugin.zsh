@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.2'
+export JOVIAL_PLUGIN_VERSION='1.1.3'
 
 #
 # ########## Aliases ##########
@@ -222,12 +222,14 @@ function sheet:shortcuts {
 
 
 function sheet:color {
+    # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Visual-effects
     # show 256-color pattern
     local block row col fg_color bg_color
     local i
+    local sgr_reset="%{${reset_color}%}"
 
     print -P "$(
-        echo -n "\n"
+        echo ""
         # the 16 base colors
         for i in {0..15}; do
             # use shell substitution for pad zero or space to variable
@@ -239,15 +241,15 @@ function sheet:color {
                 fg_color=254
             fi
             if (( i % 6 == 0 )); then
-                echo -n "${reset_color}  "
+                echo -n "${sgr_reset}  "
             fi
-            echo -n "${reset_color} ${FG[${fg_color}]}${BG[${bg_color}]} $i"
+            echo -n "${sgr_reset} %F{${fg_color}}%K{${bg_color}} $i"
         done
-        echo -n "${reset_color}\n\n  "
+        echo -n "${sgr_reset}\n\n  "
         # 6 colors blocks (per 6 x 6)
         for row in {0..11}; do
             if (( row % 6 == 0 )); then
-                echo -n "${reset_color}\n  "
+                echo -n "${sgr_reset}\n  "
             fi
             if (( (row % 6) > 2 )); then
                 fg_color=236
@@ -260,28 +262,28 @@ function sheet:color {
                     # use shell substitution for pad zero or space to variable
                     bg_color="${${:-000${i}}:(-3)}"
                     i="${${:-   ${i}}:(-3)}"
-                    echo -n "${reset_color} ${FG[${fg_color}]}${BG[${bg_color}]} $i"
+                    echo -n "${sgr_reset} %F{${fg_color}}%K{${bg_color}} $i"
                 done
-                echo -n "${reset_color}  "
+                echo -n "${sgr_reset}  "
             done
-            echo -n "${reset_color}\n  "
+            echo -n "${sgr_reset}\n  "
         done
-        echo -n "\n"
+        echo "${sgr_reset}"
         # the two lines gray level colors
         for i in {232..255}; do
             if (( (i - 16) % 12 == 0 )); then
-                echo -n "\n"
+                echo "${sgr_reset}"
             fi
             if (( (i - 16) % 6 == 0 )); then
-                echo -n "${reset_color}  "
+                echo -n "${sgr_reset}  "
             fi
             if (( i > 243 )); then
                 fg_color=000
             else
                 fg_color=015
             fi
-            echo -n "${reset_color} ${FG[${fg_color}]}${BG[$i]} $i"
+            echo -n "${sgr_reset} %F{${fg_color}}%K{${i}} $i"
         done
-        echo -n "${reset_color}"
+        echo "%f%k${sgr_reset}"
     )"
 }

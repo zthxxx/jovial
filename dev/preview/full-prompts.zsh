@@ -28,9 +28,7 @@ print -P "${PROMPT}"
 
 deactivate
 
-some-error() { return 1; }
-some-error
-@jov.pin-exit-code
+@jov.pin-execute-info 6 1
 
 echo ''
 echo changes >> requirements.txt

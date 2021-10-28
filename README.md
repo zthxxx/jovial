@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <strong>A lovely zsh theme with responsive-design, it's simply but usefully</strong>
+  <strong>A lovely zsh theme with responsive-design, it's pretty fast, keep simple but useful</strong>
 </p>
 
 ## Glance
@@ -19,7 +19,11 @@
   <img src="./docs/jovial.png" alt="jovial" width="720">
 </p>
 
-Quick install with just a simple one-line command:
+That's for people **who don't want much ado about nothing in zsh, and just look for a handy theme**.
+
+So we make everything easy to use, even if you're new to zsh.
+
+First, **quick install** is convenient with only a simple one-line command:
 
 ```bash
 curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
@@ -86,6 +90,8 @@ In addition to the basic git state (branch / tag / hash, dirty or clean),
 
 there are also some prompts to hint that you are in **merge** / **rebase** / **cherry-pick** now with conflict or not.
 
+Note that all git state will be **update in asynchronous**, so that this theme is **pretty fast** even in a huge git repo.
+
 <p align="center">
   <img src="./docs/jovial-git-actions.png" alt="jovial-git-actions" width="860">
 </p>
@@ -148,12 +154,6 @@ Here are what the install command and script do:
   - auto **rewrite** `ZSH_THEME` and `plugins` variables in user's **`.zshrc`**
 
 
-### upgrade
-
-Due to the install script is designed to be **"Idempotent"**, if you want to upgrade the jovial theme, run the install command again.
-
-> NOTE: pay attention to the [tips of Migration / BreakingChange](#migration)
-
 <br />
 
 ### manually install without oh-my-zsh
@@ -161,7 +161,7 @@ Due to the install script is designed to be **"Idempotent"**, if you want to upg
 First, you need download the [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme) file manually. For example, use `curl` will like:
 
 ```bash
-curl -sSL "https://github.com/zthxxx/jovial/raw/master/jovial.zsh-theme" -o ~/jovial.zsh-theme
+curl -sSL "https://github.com/zthxxx/jovial/raw/master/jovial.zsh-theme" -o ~/.config/jovial.zsh-theme
 ```
 
 Then, add these zsh setting code in your `~/.zshrc` and load theme file:
@@ -170,16 +170,7 @@ Then, add these zsh setting code in your `~/.zshrc` and load theme file:
 # ~/.zshrc
 
 setopt prompt_subst
-autoload -U colors && colors
-
-typeset -AHg FG BG
-
-for color in {000..255}; do
-  FG[$color]="%{\e[38;5;${color}m%}"
-  BG[$color]="%{\e[48;5;${color}m%}"
-done
-
-source ~/jovial.zsh-theme
+source ~/.config/jovial.zsh-theme
 ```
 
 Finally, don't forget to change the default login shell to `zsh`, maybe you can use `chsh` command:
@@ -188,32 +179,38 @@ Finally, don't forget to change the default login shell to `zsh`, maybe you can 
 sudo chsh -s `command -v zsh` $USER
 ```
 
+### upgrade
+
+Due to the install script is designed to be **"Idempotent"**, if you want to upgrade the jovial theme, run the install command again.
+
+If you want to upgrade manually without the install command, just download and override `jovial.zsh-theme` file again.
+
+> NOTE: pay attention to the [tips of Migration / BreakingChange](#migration)
+
 <br />
 
 ## Customization
 
 All the elements / symbols / colors can be easily customized by override theme variables in `~/.zshrc`
 
-Thses variables designed for customization: `JOVIAL_SYMBOL`, `JOVIAL_PALETTE`, `JOVIAL_DEV_ENV_DETECT_FUNCS`, `JOVIAL_PROMPT_PRIORITY`
+Thses variables designed for customization: 
+- [`JOVIAL_SYMBOL`](#symbols)
+- [`JOVIAL_PALETTE`](#colors)
+- [`JOVIAL_PROMPT_ORDER`](#order-of-parts)
+- [`JOVIAL_PROMPT_PRIORITY`](#priority-of-parts)
+- [`JOVIAL_AFFIXES`](#affixes)
+- [`JOVIAL_EXEC_THRESHOLD_SECONDS`](#execute-elapsed)
+- [`JOVIAL_DEV_ENV_DETECT_FUNCS`](#detect-development-env)
+
 
 You can find them default values in [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme) (`~/.oh-my-zsh/custom/themes/jovial.zsh-theme`)
 
 ### symbols
 
-You can set variables one-by-one to override symbols, such as arrows:
+All the default symbols defined list that:
 
 ```zsh
-# ~/.zshrc
-
-JOVIAL_SYMBOL[arrow]='->'
-JOVIAL_SYMBOL[arrow.git-clean]='->'
-JOVIAL_SYMBOL[arrow.git-dirty]='->'
-```
-
-Or just replace all of them:
-
-```zsh
-typeset -gA JOVIAL_SYMBOL=(
+JOVIAL_SYMBOL=(
     corner.top    '╭─'
     corner.bottom '╰─'
 
@@ -226,74 +223,84 @@ typeset -gA JOVIAL_SYMBOL=(
 )
 ```
 
-### development env detecting
-
-Each item in `JOVIAL_DEV_ENV_DETECT_FUNCS` is name of function to detect development env,
-
-you can append some custom functions for other programming language (such as Erlang), like this:
+You can override symbols by assign the variable with key in `JOVIAL_SYMBOL`, such as arrows:
 
 ```zsh
-JOVIAL_DEV_ENV_DETECT_FUNCS+=( your-function-name )
+# ~/.zshrc
+
+JOVIAL_SYMBOL[arrow]='->'
+JOVIAL_SYMBOL[arrow.git-clean]='->'
+JOVIAL_SYMBOL[arrow.git-dirty]='->'
 ```
 
-Or disable it by set empty list:
-```zsh
-typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=()
-```
 
 ### colors
 
-Override `JOVIAL_PALETTE` likes `JOVIAL_SYMBOL` above,
+Override keys in `JOVIAL_PALETTE` likes `JOVIAL_SYMBOL` above,
 
-whole override like:
+All the default symbols defined list that:
 
 ```zsh
 # jovial theme colors mapping
 # use `sheet:color` plugin function to see color table
-typeset -gA JOVIAL_PALETTE=(
+# https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Visual-effects
+JOVIAL_PALETTE=(
     # hostname
-    host "${FG[157]}"
+    host '%F{157}'
 
     # common user name
-    user "${FG[255]}"
+    user '%F{255}'
 
     # only root user
-    root "${terminfo[bold]}${FG[203]}"
+    root '%B%F{203}'
 
     # current work dir path
-    path "${terminfo[bold]}${FG[228]}"
+    path '%B%F{228}%}'
 
     # git status info (dirty or clean / rebase / merge / cherry-pick)
-    git "${FG[159]}"
+    git '%F{159}'
 
     # virtual env activate prompt for python
-    venv "${FG[159]}"
+    venv '%F{159}'
  
-    # time tip at end-of-line
-    time "${FG[254]}"
+    # current time when prompt render, pin at end-of-line
+    time '%F{254}'
+
+    # elapsed time of last command executed
+    elapsed '%F{222}'
 
     # exit code of last command
-    exit.mark "${FG[246]}"
-    exit.code "${terminfo[bold]}${FG[203]}"
+    exit.mark '%F{246}'
+    exit.code '%B%F{203}'
 
-    # "conj.": short for "conjunction", like as, at, in, on, using
-    conj. "${FG[102]}"
+    # 'conj.': short for 'conjunction', like as, at, in, on, using
+    conj. '%F{102}'
 
     # for other common case text color
-    normal "${FG[253]}"
+    normal '%F{253}'
 
-    success "${FG[040]}"
-    error "${FG[203]}"
+    success '%F{040}'
+    error '%F{203}'
 )
 ```
 
 **🧐 Feeling mess with those variables and numbers?**
 
-Well, `${terminfo[bold]}` is set font to **bold** style, 
+Well, `%B` is set font to **bold** style, 
 
-and `${FG[]}` / `${BG[]}` is color sheet of **font** / **background**.
+and `%F{xxx}` / `%K{xxx}` is color sheet of **font** / **background**.
 
-Such as `${FG[015]}` is set font color to "white", and  `${FG[123]}` is set font color close to "cyan"
+Such as `%F{015}` is set font color to "white", and  `%F{123}` is set font color close to "cyan"
+
+Quickref: 
+
+```text
+%F{xxx}    => foreground color (text color)
+%K{xxx}    => background color (color-block)
+%B         => blod
+%U         => underline
+```
+
 
 **🤓 So, where is the color sheet?**
 
@@ -305,8 +312,119 @@ it will looks like:
   <img alt="color sheet" src="https://user-images.githubusercontent.com/15135943/143198898-2cf1225c-47e4-4860-95db-2dc29ad1436e.png" width="800">
 </p>
 
+### order of parts
+
+Prompt parts dispaly order can be config with `JOVIAL_PROMPT_ORDER`, items means from left to right of jovial theme at the first line.
+
+Defaults are:
+
+```zsh
+JOVIAL_PROMPT_ORDER=( host user path dev-env git-info )
+```
+
+### priority of parts
+
+In the `responsive design`, prompt parts can be set priority list with `JOVIAL_PROMPT_PRIORITY`,
+
+items means priority from high to low, for decide whether to still keep dispaly while terminal width is no enough;
+
+Defaults are:
+
+```zsh
+JOVIAL_PROMPT_PRIORITY=(
+    path
+    git-info
+    user
+    host
+    dev-env
+)
+```
+
+> The highest priority element will always keep dispaly;
+>
+> `current-time` will always auto detect rest spaces, it's lowest priority
+
+You can change order of them to obtain different effects of responsive design.
+
+If you want to disable some part, just remove it from the priority list.
+
+### affixes
+
+Prefixes and suffixes of jovial prompt part, override them same as above.
+
+Defaults are:
+
+```zsh
+JOVIAL_AFFIXES=(
+    host.prefix            '${JOVIAL_PALETTE[normal]}['
+    host.suffix            '${JOVIAL_PALETTE[normal]}] ${JOVIAL_PALETTE[conj.]}as'
+
+    user.prefix            ' '
+    user.suffix            ' ${JOVIAL_PALETTE[conj.]}in'
+
+    path.prefix            ' '
+    path.suffix            ''
+
+    dev-env.prefix         ' '
+    dev-env.suffix         ''
+
+    git-info.prefix        ' ${JOVIAL_PALETTE[conj.]}on ${JOVIAL_PALETTE[normal]}('
+    git-info.suffix        '${JOVIAL_PALETTE[normal]})'
+
+    venv.prefix            '${JOVIAL_PALETTE[normal]}('
+    venv.suffix            '${JOVIAL_PALETTE[normal]}) '
+
+    exec-elapsed.prefix    ' ${JOVIAL_PALETTE[elapsed]}~'
+    exec-elapsed.suffix    ' '
+
+    exit-code.prefix       ' ${JOVIAL_PALETTE[exit.mark]}exit:'
+    exit-code.suffix       ' '
+
+    current-time.prefix    ' '
+    current-time.suffix    ' '
+)
+```
+
+### execute elapsed
+
+Default is:
+
+```zsh
+JOVIAL_EXEC_THRESHOLD_SECONDS=4
+```
+
+This threshold is seconds for last command execute elapsed time, will pin the info if the threshold is reached,
+
+set to `-1` if you want to disable display time.
+
+<p align="center">
+  <img src="./docs/jovial-exec-elapsed.png" alt="jovial-exec-elapsed" width="600">
+</p>
+
+### detect development env
+
+Each item in `JOVIAL_DEV_ENV_DETECT_FUNCS` is name of function to detect development env,
+
+you can append some custom functions for other programming language (such as Erlang), like this:
+
+```zsh
+# ~/.zshrc
+
+JOVIAL_DEV_ENV_DETECT_FUNCS+=( your-function-name )
+```
+
+Or disable it by set empty list:
+
+```zsh
+# ~/.zshrc
+
+JOVIAL_DEV_ENV_DETECT_FUNCS=()
+```
+
 
 ### Font Recommended
+
+(no need to install any specify fonts, these usually come with the OS)
 
 - `Monaco` in iTerm2
 - `Menlo` in VSCode
@@ -320,15 +438,17 @@ Just the most common monospaced fonts, no need any special font.
 
 ## Benchmark
 
-Run jovial theme 10 times in [benchmark.zsh](./dev/benchmark.zsh):
+By asynchronous update git status, it's so fast in render and interaction.
+
+Average: jovial theme only takes **4ms** per render.
+
+Run jovial theme 10 times in [benchmark.zsh](./dev/benchmark.zsh), you can get like this:
 
 ```zsh
 $ zsh -il dev/benchmark.zsh
 
-( for i in {1..10}; do; print -P "${PROMPT}"; done; )  0.19s user 0.41s system 79% cpu 0.653 total
+( for i in {1..10}; do; theme.render; done; )  0.01s user 0.02s system 95% cpu 0.039 total
 ```
-
-Average: **65ms** per jovial theme exec
 
 <br />
 
