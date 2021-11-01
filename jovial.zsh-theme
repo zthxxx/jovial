@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.1.0'
+export JOVIAL_VERSION='2.1.1'
 
 
 # Development code style:
@@ -284,10 +284,6 @@ typeset -gA jovial_async_callbacks=()
 
     # always print new line to avoid handler has not any output that cannot trigger callback
     echo ''
-    # due to zpty cannot read output after subprocess is done and exit,
-    # run cat to keep zpty subprocess always alive,
-    # so that we can actually read it once
-    \cat
 }
 
 # callback for zle, forward zpty output to really job callback
