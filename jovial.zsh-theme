@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.1.1'
+export JOVIAL_VERSION='2.1.2'
 
 
 # Development code style:
@@ -25,6 +25,8 @@ zmodload zsh/zle
 # setup this flag for hidden python `venv` default prompt
 # https://github.com/python/cpython/blob/3.10/Lib/venv/scripts/common/activate#L56
 export VIRTUAL_ENV_DISABLE_PROMPT=true
+
+export TERM=xterm-256color
 
 # SGR (Select Graphic Rendition) parameters
 # to disable all visual effects
