@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.1.2'
+export JOVIAL_VERSION='2.1.3'
 
 
 # Development code style:
@@ -263,7 +263,10 @@ typeset -gA jovial_async_callbacks=()
     local callback=$3
 
     # if job is running, donot run again
-    if zpty -t ${job_name} 2> /dev/null; then
+    # by believe all zpty job will clear itself by trigger in callback
+    # it's an alternative to`zpty -t ${job_name}`
+    # because zpty test job done not means the job cleared, they cannot create again
+    if [[ -n ${jovial_async_jobs[${job_name}]} ]]; then
         return
     fi
 

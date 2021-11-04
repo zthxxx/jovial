@@ -1,6 +1,26 @@
 # Changelog
 
 
+## 2.1.3
+
+### Fix
+
+- fix async job rerun with wrong edge case
+
+## 2.1.2
+
+### Chore
+
+- set xterm 256 color mode by default, for out-of-the-box effect in [gnu/screen](https://www.gnu.org/software/screen/) or [tmux](https://github.com/tmux/tmux)
+
+## 2.1.1
+
+### Fix
+
+- remove read stdin for block subprocess,
+
+  we found this cause zpty callback blocked in zsh v5.3
+
 ## 2.1.0
 
 ### Feat
