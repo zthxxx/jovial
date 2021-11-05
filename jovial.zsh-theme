@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.1.4'
+export JOVIAL_VERSION='2.2.0'
 
 
 # Development code style:
@@ -71,7 +71,7 @@ typeset -gA JOVIAL_PALETTE=(
     host '%F{157}'
 
     # common user name
-    user '%F{255}'
+    user '%F{253}'
 
     # only root user
     root '%B%F{203}'
@@ -98,8 +98,11 @@ typeset -gA JOVIAL_PALETTE=(
     # 'conj.': short for 'conjunction', like as, at, in, on, using
     conj. '%F{102}'
 
+    # shell typing area pointer
+    typing '%F{252}'
+
     # for other common case text color
-    normal '%F{253}'
+    normal '%F{252}'
 
     success '%F{040}'
     error '%F{203}'
@@ -421,14 +424,16 @@ typeset -gA jovial_affix_lengths=()
 }
 
 @jov.set-typing-pointer() {
+    jovial_parts[typing]="${JOVIAL_PALETTE[typing]}"
+
     if [[ -n ${jovial_rev_git_dir} ]]; then
         if [[ ${jovial_is_git_dirty} == false ]]; then
-            jovial_parts[typing]="${JOVIAL_SYMBOL[arrow.git-clean]}"
+            jovial_parts[typing]+="${JOVIAL_SYMBOL[arrow.git-clean]}"
         else
-            jovial_parts[typing]="${JOVIAL_SYMBOL[arrow.git-dirty]}"
+            jovial_parts[typing]+="${JOVIAL_SYMBOL[arrow.git-dirty]}"
         fi
     else
-        jovial_parts[typing]="${JOVIAL_SYMBOL[arrow]}"
+        jovial_parts[typing]+="${JOVIAL_SYMBOL[arrow]}"
     fi
 }
 
