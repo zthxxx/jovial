@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 2.1.4
+
+### Fix
+
+- fix progress display miss in git rebase interactive
+
 ## 2.1.3
 
 ### Fix

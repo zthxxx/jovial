@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.1.3'
+export JOVIAL_VERSION='2.1.4'
 
 
 # Development code style:
@@ -740,7 +740,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 
         # while edit rebase interactive message,
         # `msgnum` `end` are not exist yet
-        if [[ -d ${rebase_merge}/msgnum ]]; then
+        if [[ -f ${rebase_merge}/msgnum ]]; then
             local rebase_step="$(< ${rebase_merge}/msgnum)"
             local rebase_total="$(< ${rebase_merge}/end)"
             rebase_process="${rebase_step}/${rebase_total}"
