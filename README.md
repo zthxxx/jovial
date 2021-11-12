@@ -185,6 +185,8 @@ Due to the install script is designed to be **"Idempotent"**, if you want to upg
 
 If you want to upgrade manually without the install command, just download and override `jovial.zsh-theme` file again.
 
+Changelogs you can see in [CHANGELOG.md](./CHANGELOG.md), and current version you used can be see by run `echo ${JOVIAL_VERSION}`.
+
 > NOTE: pay attention to the [tips of Migration / BreakingChange](#migration)
 
 <br />
@@ -249,7 +251,7 @@ JOVIAL_PALETTE=(
     host '%F{157}'
 
     # common user name
-    user '%F{255}'
+    user '%F{253}'
 
     # only root user
     root '%B%F{203}'
@@ -276,8 +278,11 @@ JOVIAL_PALETTE=(
     # 'conj.': short for 'conjunction', like as, at, in, on, using
     conj. '%F{102}'
 
+    # shell typing area pointer
+    typing '%F{252}'
+
     # for other common case text color
-    normal '%F{253}'
+    normal '%F{252}'
 
     success '%F{040}'
     error '%F{203}'
@@ -452,9 +457,16 @@ $ zsh -il dev/benchmark.zsh
 
 <br />
 
+
+## Changelog
+
+see in [CHANGELOG.md](./CHANGELOG.md)
+
+<br />
+
 ## Migration
 
-> run `echo ${JOVIAL_VERSION}` to see current version
+> run `echo ${JOVIAL_VERSION}` in terminal to see what version you used now.
 
 ### from v1 to v2
 

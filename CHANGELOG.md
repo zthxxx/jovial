@@ -1,5 +1,13 @@
 # Changelog
 
+> Note: you can run `echo ${JOVIAL_VERSION}` in terminal to see what version you used now.
+
+
+## 2.2.0
+
+### Style
+
+- add default color for typing-pointer and customization, darken the normal color
 
 ## 2.1.4
 
@@ -29,9 +37,12 @@
 
 ## 2.1.0
 
-### Feat
+### Perf
 
 - refactor to asynchronous update git status, now it's so fast in render and interaction. (4ms pre render)
+
+### Feat
+
 - pin last command execute elapsed time (same as exit code).
 - support custom order and affixes of each prompt parts.
 - remove dependencies on `autoload -U colors` or `FG[$color]` / `BG[$color]` settings anymore, in manually load theme.
