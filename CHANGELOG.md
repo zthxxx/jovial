@@ -3,31 +3,55 @@
 > Note: you can run `echo ${JOVIAL_VERSION}` in terminal to see what version you used now.
 
 
-## 2.2.0
+<br />
+
+
+## v2.2.1
+
+### Fix
+
+- fix reset style (`sgr_reset`) in manually used without `oh-my-zsh` or `zmodload zsh/colors`
+
+<br />
+
+
+## v2.2.0
 
 ### Style
 
 - add default color for typing-pointer and customization, darken the normal color
 
-## 2.1.4
+<br />
+
+
+## v2.1.4
 
 ### Fix
 
 - fix progress display miss in git rebase interactive
 
-## 2.1.3
+<br />
+
+
+## v2.1.3
 
 ### Fix
 
 - fix async job rerun with wrong edge case
 
-## 2.1.2
+<br />
+
+
+## v2.1.2
 
 ### Chore
 
 - set xterm 256 color mode by default, for out-of-the-box effect in [gnu/screen](https://www.gnu.org/software/screen/) or [tmux](https://github.com/tmux/tmux)
 
-## 2.1.1
+<br />
+
+
+## v2.1.1
 
 ### Fix
 
@@ -35,7 +59,10 @@
 
   we found this cause zpty callback blocked in zsh v5.3
 
-## 2.1.0
+<br />
+
+
+## v2.1.0
 
 ### Perf
 
@@ -51,8 +78,10 @@
 
 - fix bug that rerender will eat previous line
 
+<br />
 
-## 2.0.3
+
+## v2.0.3
 
 ### Fix
 
@@ -65,8 +94,10 @@
 - remove useless git cli params in theme, and remove plugin macos in installer
 - always reinstall `zsh-history-enquirer` by npm
 
+<br />
 
-## 2.0.0
+
+## v2.0.0
 
 ### Feat
 

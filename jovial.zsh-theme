@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.2.0'
+export JOVIAL_VERSION='2.2.1'
 
 
 # Development code style:
@@ -28,11 +28,13 @@ export VIRTUAL_ENV_DISABLE_PROMPT=true
 
 export TERM=xterm-256color
 
-# SGR (Select Graphic Rendition) parameters
-# to disable all visual effects
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
-# "%{ %}" is need for Prompt-Expansion (vcs_info style) (most used in `print -P`)
-typeset -g sgr_reset="%{${reset_color}%}"
+# `\e[00m` is SGR (Select Graphic Rendition) parameters
+# which to disable all visual effects.
+# this literal as same as `reset_color` defined in [zsh/colors](https://github.com/zsh-users/zsh/blob/zsh-5.8/Functions/Misc/colors#L98)
+#
+# SGR link: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
+# "%{ %}" is escape values in Prompt-Expansion (vcs_info style) (for used in `print -P`)
+typeset -g sgr_reset="%{\e[00m%}"
 
 
 # jovial theme element symbol mapping
