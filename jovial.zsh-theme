@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.2.1'
+export JOVIAL_VERSION='2.3.0'
 
 
 # Development code style:
@@ -21,6 +21,10 @@ autoload -Uz add-zsh-hook
 zmodload zsh/datetime
 zmodload zsh/zpty
 zmodload zsh/zle
+
+# expand and execute the PROMPT variable 
+# https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html
+setopt prompt_subst
 
 # setup this flag for hidden python `venv` default prompt
 # https://github.com/python/cpython/blob/3.10/Lib/venv/scripts/common/activate#L56

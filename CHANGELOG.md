@@ -6,6 +6,17 @@
 <br />
 
 
+## v2.3.0
+
+### Feat & Docs
+
+- add docs for support use with [`antigen`](https://github.com/zsh-users/antigen)
+- no need setopt in .zshrc anymore for manually install like antigen
+
+
+<br />
+
+
 ## v2.2.1
 
 ### Fix

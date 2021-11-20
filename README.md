@@ -169,7 +169,6 @@ Then, add these zsh setting code in your `~/.zshrc` and load theme file:
 ```zsh
 # ~/.zshrc
 
-setopt prompt_subst
 source ~/.config/jovial.zsh-theme
 ```
 
@@ -178,6 +177,21 @@ Finally, don't forget to change the default login shell to `zsh`, maybe you can 
 ```zsh
 sudo chsh -s `command -v zsh` $USER
 ```
+
+
+### use with [antigen](https://github.com/zsh-users/antigen)
+
+```zsh
+# ~/.zshrc
+
+antigen bundle zthxxx/jovial
+antigen theme zthxxx/jovial
+
+...
+
+antigen apply
+```
+
 
 ### upgrade
 
