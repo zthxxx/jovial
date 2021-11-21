@@ -19,7 +19,7 @@
   <img src="./docs/jovial.png" alt="jovial" width="720">
 </p>
 
-That's for people **who don't want much ado about nothing in zsh, and just look for a handy theme**.
+That's for people **who don't want make trouble out of nothing in zsh, and just look for a handy theme**.
 
 So we make everything easy to use, even if you're new to zsh.
 
