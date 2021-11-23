@@ -106,6 +106,12 @@ It will detect to show your development programming language and version in curr
 </p>
 
 
+### show execute elapsed
+
+<p align="center">
+  <img src="./docs/jovial-exec-elapsed.png" alt="jovial-exec-elapsed" width="600">
+</p>
+
 
 ## Plugins Integration
 
