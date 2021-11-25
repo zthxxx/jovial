@@ -80,7 +80,7 @@ The description of each parts:
 Each parts of prompt is **"responsive"** with terminal windows width, so you can safely use it in narrow terminal.
 
 <!-- ./docs/jovial-responsive-desigin.mp4 -->
-<div><video controls muted autoplay loop src="https://user-images.githubusercontent.com/15135943/143185697-e1c612bb-d4ac-43a1-8c20-ae2a6c53e28a.mp4"></video></div>
+<div><video controls muted autoplay loop src="https://user-images.githubusercontent.com/15135943/148246834-08ecbbfc-6d0e-4c25-96b5-3638b32a4a28.mp4"></video></div>
 
 
 
