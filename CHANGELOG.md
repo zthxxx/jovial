@@ -5,6 +5,15 @@
 
 <br />
 
+## v2.3.1
+
+### Chore
+
+- will no longer override var `TERM=xterm-256color` except in default `screen` command. [#23](https://github.com/zthxxx/jovial/issues/23)
+
+
+<br />
+
 
 ## v2.3.0
 

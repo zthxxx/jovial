@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.3'
+export JOVIAL_PLUGIN_VERSION='1.1.4'
 
 #
 # ########## Aliases ##########
@@ -206,6 +206,8 @@ fi
 function sheet:shortcuts {
     # show bash/zsh shell commonly shortcuts
     echo '
+    shortcuts for xterm:
+
       ctrl+A          ctrl+E    ─┐
       ┌─────────┬──────────┐     │
       │  alt+B  │ alt+F    │     ├─► Moving
@@ -217,6 +219,8 @@ function sheet:shortcuts {
                                  ├─► Erasing
       ◄───────── ──────────►     │
         ctrl+U     ctrl+K       ─┘
+
+        ctrl+/ ──► Undo
     '
 }
 
