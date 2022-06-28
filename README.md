@@ -162,6 +162,15 @@ Here are what the install command and script do:
 
 <br />
 
+### install with Fig
+
+[Fig](https://fig.io) adds apps, shortcuts, and autocomplete to your existing terminal.
+
+Install `jovial` theme in just one click.
+
+<a href="https://fig.io/plugins/other/jovial_zthxxx" target="_blank"><img src="https://fig.io/badges/install-with-fig.svg" /></a>
+
+
 ### manually install without oh-my-zsh
 
 First, you need download the [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme) file manually. For example, use `curl` will like:
