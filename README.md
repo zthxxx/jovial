@@ -140,7 +140,7 @@ curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bas
 
 > **Tips**: you may want to use some **http proxy**, just export proxy variables before run install command,
 >
-> 　　like: `export all_proxy=http://127.0.0.1:1086`  
+> 　　like: `export all_proxy=http://127.0.0.1:1086`
 >
 > 　　(it's equal to `export http_proxy=http://127.0.0.1:1086 http_proxys=http://127.0.0.1:1086`)
 
@@ -224,7 +224,7 @@ Changelogs you can see in [CHANGELOG.md](./CHANGELOG.md), and current version yo
 
 All the elements / symbols / colors can be easily customized by override theme variables in `~/.zshrc`
 
-Thses variables designed for customization: 
+Thses variables designed for customization:
 - [`JOVIAL_SYMBOL`](#symbols)
 - [`JOVIAL_PALETTE`](#colors)
 - [`JOVIAL_PROMPT_ORDER`](#order-of-parts)
@@ -267,7 +267,7 @@ JOVIAL_SYMBOL[arrow.git-dirty]='->'
 
 ### colors
 
-Override keys in `JOVIAL_PALETTE` likes `JOVIAL_SYMBOL` above,
+Override keys in `JOVIAL_PALETTE` like `JOVIAL_SYMBOL` above,
 
 All the default symbols defined list that:
 
@@ -293,7 +293,7 @@ JOVIAL_PALETTE=(
 
     # virtual env activate prompt for python
     venv '%F{159}'
- 
+
     # current time when prompt render, pin at end-of-line
     time '%F{254}'
 
@@ -320,13 +320,13 @@ JOVIAL_PALETTE=(
 
 **🧐 Feeling mess with those variables and numbers?**
 
-Well, `%B` is set font to **bold** style, 
+Well, `%B` is set font to **bold** style,
 
 and `%F{xxx}` / `%K{xxx}` is color sheet of **font** / **background**.
 
 Such as `%F{015}` is set font color to "white", and  `%F{123}` is set font color close to "cyan"
 
-Quickref: 
+Quickref:
 
 ```text
 %F{xxx}    => foreground color (text color)
