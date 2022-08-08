@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.4'
+export JOVIAL_PLUGIN_VERSION='1.1.5'
 
 #
 # ########## Aliases ##########
@@ -23,7 +23,7 @@ alias deact='source deactivate'
 # node for es module - enable import esm in node REPL
 #   use `\node` for pure node
 # (need nodejs and `npm i -g esm` )
-alias node='NODE_PATH=`npm root -g` \node -r esm'
+# alias node='NODE_PATH=`npm root -g` \node -r esm'
 alias tsnode='ts-node -T -O "{ \"module\": \"commonjs\" }"'
 
 # app shortcut macOS

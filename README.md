@@ -26,7 +26,7 @@ So we make everything easy to use, even if you're new to zsh.
 First, **quick install** is convenient with only a simple one-line command:
 
 ```bash
-curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s ${USER:=`whoami`}
 ```
 
 > for more install details see the **[Install section](#install)**; (manually install or without oh-my-zsh is okay)
@@ -132,7 +132,7 @@ It will detect to show your development programming language and version in curr
 Just run the simple one-line install command:
 
 ```bash
-curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s $USER
+curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s ${USER:=`whoami`}
 ```
 
 > **Note**: The install script is designed to be **"Idempotent"**, so you can safely execute it multiple times.
@@ -199,12 +199,15 @@ sudo chsh -s `command -v zsh` $USER
 ```zsh
 # ~/.zshrc
 
-antigen bundle zthxxx/jovial
 antigen theme zthxxx/jovial
-
-...
+antigen bundle zthxxx/jovial
+antigen bundle zthxxx/zsh-history-enquirer
 
 antigen apply
+
+# also manually install other plugins, like:
+## sudo apt install -y autojump terminal-notifier source-highlight
+
 ```
 
 
