@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.5'
+export JOVIAL_PLUGIN_VERSION='1.1.6'
 
 #
 # ########## Aliases ##########
@@ -43,7 +43,7 @@ alias glt1='glti -n 1'
 # git log message raw
 alias glraw='git log --format=%B -n 1'
 # git log commit time raw
-alias gltraw='glt1 | grep -oE "(?:AuthorDate)(.*)" | cut -c 13-'
+alias gltraw='glt1 | grep -oE "^AuthorDate:(.*)$" | cut -c 13-'
 
 # https://stackoverflow.com/questions/89332/how-to-recover-a-dropped-stash-in-git/
 alias git-find-lost="git log --oneline  \$(git fsck --no-reflogs | awk '/dangling commit/ {print \$3}')"
