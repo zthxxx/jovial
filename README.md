@@ -394,9 +394,13 @@ Defaults are:
 ```zsh
 JOVIAL_AFFIXES=(
     host.prefix            '${JOVIAL_PALETTE[normal]}['
+    # hostname/username use `Prompt-Expansion` syntax in default
+    # but you can override it with simple constant string
+    hostname               '${(%):-%m}'
     host.suffix            '${JOVIAL_PALETTE[normal]}] ${JOVIAL_PALETTE[conj.]}as'
 
     user.prefix            ' '
+    username               '${(%):-%n}'
     user.suffix            ' ${JOVIAL_PALETTE[conj.]}in'
 
     path.prefix            ' '
@@ -421,6 +425,23 @@ JOVIAL_AFFIXES=(
     current-time.suffix    ' '
 )
 ```
+
+Note that `JOVIAL_AFFIXES` variable will be initialized once with `shell variable expansion` at first load as zsh prompt,
+
+so keep **Single Quotes** which you want override value in your `.zshrc` file,
+
+```
+# ~/.zshrc
+JOVIAL_AFFIXES[user.suffix]=' ${JOVIAL_PALETTE[conj.]}in'
+```
+
+and you can use **Double Quotes** in your terminal to see effect immediately for adjust theme.
+
+```
+# in terminal
+$ JOVIAL_AFFIXES[user.suffix]=" ${JOVIAL_PALETTE[conj.]}in"
+```
+
 
 ### execute elapsed
 

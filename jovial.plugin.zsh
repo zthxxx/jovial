@@ -84,6 +84,7 @@ function gcmt {
         return
     fi
 
+    # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
     GIT_AUTHOR_DATE="$2" GIT_COMMITTER_DATE="$2" gcmsg "$1"
 }
 

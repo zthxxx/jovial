@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.3.1'
+export JOVIAL_VERSION='2.4.0'
 
 
 # Development code style:
@@ -141,9 +141,14 @@ typeset -gi JOVIAL_EXEC_THRESHOLD_SECONDS=4
 # prefixes and suffixes of jovial prompt part
 typeset -gA JOVIAL_AFFIXES=(
     host.prefix            '${JOVIAL_PALETTE[normal]}['
+    # hostname/username use `Prompt-Expansion` syntax in default
+    #   https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html
+    # but you can override it with simple constant string
+    hostname               '${(%):-%m}'
     host.suffix            '${JOVIAL_PALETTE[normal]}] ${JOVIAL_PALETTE[conj.]}as'
 
     user.prefix            ' '
+    username               '${(%):-%n}'
     user.suffix            ' ${JOVIAL_PALETTE[conj.]}in'
 
     path.prefix            ' '
@@ -458,7 +463,7 @@ typeset -gA jovial_affix_lengths=()
 
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html
 @jov.set-host-name() {
-    jovial_parts[host]="${(%):-%m}"
+    jovial_parts[host]="${JOVIAL_AFFIXES[hostname]}"
     jovial_part_lengths[host]=$((
         ${#jovial_parts[host]}
         + ${jovial_affix_lengths[host]}
@@ -468,7 +473,7 @@ typeset -gA jovial_affix_lengths=()
 }
 
 @jov.set-user-name() {
-    jovial_parts[user]="${(%):-%n}"
+    jovial_parts[user]="${JOVIAL_AFFIXES[username]}"
 
     jovial_part_lengths[user]=$((
         ${#jovial_parts[user]}
