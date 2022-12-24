@@ -213,6 +213,21 @@ antigen apply
 
 ### upgrade
 
+
+#### use antigen
+
+With used antigen, it's simple for update `jovial` theme by use `antigen update`:
+
+```bash
+antigen update zthxxx/jovial
+```
+
+But note that it's ONLY update the `jovial` theme, without any other plugins,
+
+to update other plugins, you need to use `antigen update` command on other plugin name again.
+
+#### use install script
+
 Due to the install script is designed to be **"Idempotent"**, if you want to upgrade the jovial theme, run the install command again.
 
 If you want to upgrade manually without the install command, just download and override `jovial.zsh-theme` file again.
