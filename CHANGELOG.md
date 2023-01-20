@@ -5,6 +5,34 @@
 
 <br />
 
+## v2.5.0
+
+### Feat
+
+- support the ability to override the prompt for `path` part in `.zshrc`.
+
+example:
+```zsh
+JOVIAL_AFFIXES[path]='%1~'
+```
+
+<br />
+
+## v2.4.0
+
+### Feat
+
+- support the ability to override the prompt parts for `hostname` and `username` in `.zshrc`.
+
+example:
+```zsh
+JOVIAL_AFFIXES[hostname]='MacbookPro'
+JOVIAL_AFFIXES[username]='zthxxx'
+```
+
+
+<br />
+
 ## v2.3.1
 
 ### Chore

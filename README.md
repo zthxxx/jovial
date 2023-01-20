@@ -419,6 +419,7 @@ JOVIAL_AFFIXES=(
     user.suffix            ' ${JOVIAL_PALETTE[conj.]}in'
 
     path.prefix            ' '
+    path                   '%~'
     path.suffix            ''
 
     dev-env.prefix         ' '
@@ -441,7 +442,7 @@ JOVIAL_AFFIXES=(
 )
 ```
 
-Note that `JOVIAL_AFFIXES` variable will be initialized once with `shell variable expansion` at first load as zsh prompt,
+Note that all `JOVIAL_AFFIXES` variable values wrapped in `${...}` will be subject to `shell Prompt-Expansion` once at first load as `zsh prompt`,
 
 so keep **Single Quotes** which you want override value in your `.zshrc` file,
 
