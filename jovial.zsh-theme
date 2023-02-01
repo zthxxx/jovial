@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.1'
+export JOVIAL_VERSION='2.5.2'
 
 
 # Development code style:
@@ -653,6 +653,8 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "requirements.txt"; then
         if @jov.iscommand python; then
             local python_prompt="%F{123}`\python --version 2>&1`"
+        elif @jov.iscommand python3; then
+            local python_prompt="%F{123}`\python3 --version 2>&1`"
         else
             python_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local python_prompt="Python${JOVIAL_PALETTE[normal]}]"

@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.7'
+export JOVIAL_PLUGIN_VERSION='1.1.8'
 
 #
 # ########## Aliases ##########
@@ -59,13 +59,13 @@ alias psxg="psx | grep"
 # git fetch and checkout to target branch
 function gfco {
     local branch="$1"
-    gfo --no-tags --update-head-ok +${branch}:${branch} && gco ${branch}
+    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} && gco ${branch}
 }
 
 # git fetch and rebase to target branch
 function gfbi {
     local branch="$1"
-    gfo --no-tags +${branch}:${branch} && grbi ${branch}
+    git fetch ${GIT_REMOTE:-origin} --no-tags +${branch}:${branch} && grbi ${branch}
 }
 
 # git delete and checkout -b to target branch
