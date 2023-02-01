@@ -3,16 +3,34 @@
 > Note: you can run `echo ${JOVIAL_VERSION}` in terminal to see what version you used now.
 
 
+
 <br />
 
-## v2.5.0
+## v2.5.1
+
+### Fix
+
+- migrate `path` part in `JOVIAL_AFFIXES` config named to `current-dir`,
+  
+  to fix the bug that causes responsive style error due to `path` part.
+
+example in `.zshrc`:
+```diff
+- JOVIAL_AFFIXES[path]='%1~'
++ JOVIAL_AFFIXES[current-dir]='%1~'
+```
+
+<br />
+
+## v2.5.0 [_@deprecated_]
 
 ### Feat
 
 - support the ability to override the prompt for `path` part in `.zshrc`.
 
-example:
+example in `.zshrc`:
 ```zsh
+# @deprecated use `JOVIAL_AFFIXES[current-dir]` in v2.5.1
 JOVIAL_AFFIXES[path]='%1~'
 ```
 

@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.0'
+export JOVIAL_VERSION='2.5.1'
 
 
 # Development code style:
@@ -153,7 +153,7 @@ typeset -gA JOVIAL_AFFIXES=(
     user.suffix            ' ${JOVIAL_PALETTE[conj.]}in'
 
     path.prefix            ' '
-    path                   '%~'
+    current-dir            '%~'
     path.suffix            ''
 
     dev-env.prefix         ' '
@@ -491,7 +491,7 @@ typeset -gA jovial_affix_lengths=()
 }
 
 @jov.set-current-dir() {
-    jovial_parts[path]="${JOVIAL_AFFIXES[path]}"
+    jovial_parts[path]="${(%):-${JOVIAL_AFFIXES[current-dir]}}"
 
     jovial_part_lengths[path]=$((
         ${#jovial_parts[path]}

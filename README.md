@@ -419,7 +419,7 @@ JOVIAL_AFFIXES=(
     user.suffix            ' ${JOVIAL_PALETTE[conj.]}in'
 
     path.prefix            ' '
-    path                   '%~'
+    current-dir            '%~'
     path.suffix            ''
 
     dev-env.prefix         ' '
