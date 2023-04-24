@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.2'
+export JOVIAL_VERSION='2.5.3'
 
 
 # Development code style:
@@ -736,7 +736,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 @jov.judge-git-dirty() {
     local git_status
     local -a flags
-    flags=('--porcelain' '--ignore-submodules')
+    flags=('--porcelain')
     if [[ ${DISABLE_UNTRACKED_FILES_DIRTY} == true ]]; then
         flags+='--untracked-files=no'
     fi

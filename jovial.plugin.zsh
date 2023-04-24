@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.8'
+export JOVIAL_PLUGIN_VERSION='1.1.9'
 
 #
 # ########## Aliases ##########
@@ -27,8 +27,8 @@ alias deact='source deactivate'
 alias tsnode='ts-node -T -O "{ \"module\": \"commonjs\" }"'
 
 # app shortcut macOS
+# https://support.typora.io/Use-Typora-From-Shell-or-cmd/
 alias typora='open -a typora'
-alias stree='/Applications/SourceTree.app/Contents/Resources/stree'
 
 # lazygit - https://github.com/jesseduffield/lazygit
 alias lg='lazygit'
@@ -56,28 +56,37 @@ alias psxg="psx | grep"
 # ########## Utils ##########
 #
 
-# git fetch and checkout to target branch
 function gfco {
+    : 'git fetch and checkout to target branch'
+
     local branch="$1"
-    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} && gco ${branch}
+    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} && gco ${branch} --recurse-submodules
 }
 
-# git fetch and rebase to target branch
+
 function gfbi {
+    : 'git fetch and rebase to target branch'
+
     local branch="$1"
     git fetch ${GIT_REMOTE:-origin} --no-tags +${branch}:${branch} && grbi ${branch}
 }
 
-# git delete and checkout -b to target branch
-# ensure that overwrite current ref to target branch name
+
 function gDcb {
+    : '
+      git delete and checkout -b to target branch
+      ensure that overwrite current ref to target branch name
+    '
+
     local branch="$1"
     gbD ${branch} 2>/dev/null
     gco -b ${branch}
 }
 
-# git commit modify time
+
 function gcmt {
+    : 'git commit modify time'
+
     if [[ -z $2 ]]; then
         echo "gcmt - git commit with specified datetime"
         echo "Usage: gcmt <commit-message> <commit-time>"
@@ -88,8 +97,10 @@ function gcmt {
     GIT_AUTHOR_DATE="$2" GIT_COMMITTER_DATE="$2" gcmsg "$1"
 }
 
-# git modify commits time
+
 function gmct {
+    : 'git modify commits time'
+
     if [[ -z $2 ]]; then
         echo "gmct - git modify history commit date with specified datetime"
         echo "Usage: gmct <commit-id> <commit-time> [commit-time] [commit-time] ..."
@@ -114,9 +125,12 @@ function gmct {
 }
 
 
-# git re-commit
-# reset & commit last-commit
 function grclast {
+    : '
+      git re-commit last commit
+      (soft reset to last & commit all changes)
+    '
+
     local last_log=`glraw`
     local last_time=`gltraw`
     if [[ -n $1 ]]; then
@@ -129,10 +143,13 @@ function grclast {
 }
 
 
-# create or enable python venv
-# $ venv  # -> python3 venv
-# $ venv --py2 # -> python2 virtualenv
 function venv {
+    : '
+      create or enable python venv
+      $ venv  # -> python3 venv
+      $ venv --py2 # -> python2 virtualenv
+    '
+
     if [[ -n ${VIRTUAL_ENV} ]]; then
         deactivate
         return
@@ -151,19 +168,6 @@ function venv {
     fi
 
     [[ $? == 0 ]] && venv
-}
-
-function py2venv {
-    if [[ -n ${VIRTUAL_ENV} ]]; then
-        deactivate
-        return
-    fi
-
-    if [[ -d venv ]]; then
-        . venv/bin/activate
-    else
-        python2 -m virtualenv venv && py2venv
-    fi
 }
 
 
@@ -205,9 +209,9 @@ fi
 #
 
 function sheet:shortcuts {
-    # show bash/zsh shell commonly shortcuts
+    # show bash/zsh xterm shell default shortcuts (Emacs style)
     echo '
-    shortcuts for xterm:
+    shortcuts for xterm (Emacs style):
 
       ctrl+A          ctrl+E    ─┐
       ┌─────────┬──────────┐     │

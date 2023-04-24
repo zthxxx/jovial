@@ -3,6 +3,32 @@
 > Note: you can run `echo ${JOVIAL_VERSION}` in terminal to see what version you used now.
 
 
+<br />
+
+## `jovial.zsh-theme@v2.5.3`
+
+### Feat
+
+- git status in prompt work with submodules now
+
+### `jovial.plugin@v1.1.9`
+
+- support update submodules in git fetch and checkout function `gfco`
+- adjust comments of functions, design to show comments in `where xxx` or `which xxx`
+- remove functions `stree` (support by official), and `py2venv` (migrated to `venv --py2`)
+
+<br />
+
+## `jovial.zsh-theme@v2.5.2`
+
+### Feat
+
+- support show python3 version in prompt
+
+### `jovial.plugin@v1.1.8`
+
+- add variable `GIT_REMOTE` to support in git fetch function `gfco` and `gfbi`
+
 
 <br />
 
