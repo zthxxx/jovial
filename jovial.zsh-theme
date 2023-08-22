@@ -95,6 +95,9 @@ typeset -gA JOVIAL_PALETTE=(
 
     # virtual env activate prompt for python
     venv '%F{159}'
+
+    # workspace for terraform
+    workspace '%F{93}'
  
     # current time when prompt render, pin at end-of-line
     time '%F{254}'
@@ -164,6 +167,9 @@ typeset -gA JOVIAL_AFFIXES=(
 
     venv.prefix            ' ${JOVIAL_PALETTE[normal]}('
     venv.suffix            '${JOVIAL_PALETTE[normal]})'
+
+    workspace.prefix       ' ${JOVIAL_PALETTE[normal]}('
+    workspace.suffix       '${JOVIAL_PALETTE[normal]})'
 
     exec-elapsed.prefix    ' ${JOVIAL_PALETTE[elapsed]}~'
     exec-elapsed.suffix    ' '
@@ -408,6 +414,7 @@ typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
         current-time    ''
         typing          ''
         venv            ''
+        workspace       ''
     )
 
     jovial_part_lengths=(
@@ -460,6 +467,14 @@ typeset -gA jovial_affix_lengths=()
         jovial_parts[venv]=''
     else
         jovial_parts[venv]="${JOVIAL_AFFIXES[venv.prefix]}${JOVIAL_PALETTE[venv]}$(basename ${VIRTUAL_ENV})${JOVIAL_AFFIXES[venv.suffix]}"
+    fi
+}
+
+@jov.set-workspace-info() {
+    if @jov.rev-parse-find ".terraform"; then
+        jovial_parts[workspace]="${JOVIAL_AFFIXES[workspace.prefix]}${JOVIAL_PALETTE[workspace]}$(terraform workspace show)${JOVIAL_AFFIXES[workspace.suffix]}"
+    else
+        jovial_parts[workspace]=''
     fi
 }
 
@@ -663,11 +678,25 @@ typeset -gA jovial_affix_lengths=()
     fi
 }
 
+@jov.prompt-terraform-version()  {
+    if @jov.rev-parse-find ".terraform"; then
+        if @jov.iscommand terraform; then
+            local terraform_prompt_prefix="${JOVIAL_PALETTE[conj.]}using " 
+            local terraform_prompt="%F{93}`\terraform -version 2>&1`"
+        else
+            local terraform_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
+            local terraform_prompt="Terraform${JOVIAL_PALETTE[normal]}]"
+        fi
+        echo "${terraform_prompt_prefix}${terraform_prompt}"
+    fi
+}
+
 typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     @jov.prompt-node-version
     @jov.prompt-golang-version
     @jov.prompt-python-version
     @jov.prompt-php-version
+    @jov.prompt-terraform-version
 )
 
 @jov.dev-env-detect() {
@@ -946,6 +975,8 @@ add-zsh-hook preexec @jov.exec-timestamp
     @jov.set-current-dir
     @jov.set-typing-pointer
     @jov.set-venv-info
+    @jov.set-workspace-info
+
 }
 
 add-zsh-hook precmd @jov.prompt-prepare
@@ -964,6 +995,7 @@ add-zsh-hook precmd @jov.prompt-prepare
         current-time ''
         typing ''
         venv ''
+        workspace ''
     )
 
     local prompt_is_emtpy=true
@@ -992,6 +1024,8 @@ add-zsh-hook precmd @jov.prompt-prepare
     prompts[margin-line]="${sgr_reset}${jovial_parts[margin-line]}"
     prompts[typing]="${sgr_reset}${jovial_parts[typing]}"
     prompts[venv]="${sgr_reset}${jovial_parts[venv]}"
+    prompts[workspace]="${sgr_reset}${jovial_parts[workspace]}"
+
 
     local -a ordered_parts=()
     for key in ${JOVIAL_PROMPT_ORDER[@]}; do
@@ -1002,7 +1036,7 @@ add-zsh-hook precmd @jov.prompt-prepare
     local corner_bottom="${sgr_reset}${JOVIAL_PALETTE[normal]}${JOVIAL_SYMBOL[corner.bottom]}"
 
     echo "${corner_top}${(j..)ordered_parts}${prompts[current-time]}"
-    echo "${corner_bottom}${prompts[typing]}${prompts[venv]} ${sgr_reset}"
+    echo "${corner_bottom}${prompts[typing]}${prompts[venv]}${prompts[workspace]} ${sgr_reset}"
 }
 
 
