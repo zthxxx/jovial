@@ -456,7 +456,11 @@ typeset -gA jovial_affix_lengths=()
 }
 
 @jov.set-venv-info() {
-    if [[ -z ${VIRTUAL_ENV} ]]; then
+    if [ ! -z $CONDA_DEFAULT_ENV ]; then
+        export VIRTUAL_ENV=$CONDA_DEFAULT_ENV
+    fi
+
+    if [[ -z ${VIRTUAL_ENV} || ${VIRTUAL_ENV} == "base" ]]; then
         jovial_parts[venv]=''
     else
         jovial_parts[venv]="${JOVIAL_AFFIXES[venv.prefix]}${JOVIAL_PALETTE[venv]}$(basename ${VIRTUAL_ENV})${JOVIAL_AFFIXES[venv.suffix]}"
