@@ -349,7 +349,7 @@ Quickref:
 ```text
 %F{xxx}    => foreground color (text color)
 %K{xxx}    => background color (color-block)
-%B         => blod
+%B         => **bold**
 %U         => underline
 ```
 
@@ -363,6 +363,7 @@ it will looks like:
 <p align="center">
   <img alt="color sheet" src="https://user-images.githubusercontent.com/15135943/143198898-2cf1225c-47e4-4860-95db-2dc29ad1436e.png" width="800">
 </p>
+
 
 ### order of parts
 
