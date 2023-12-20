@@ -73,7 +73,7 @@ typeset -gA JOVIAL_SYMBOL=(
 #   
 #   %F{xxx}         => foreground color (text color)
 #   %K{xxx}         => background color (color-block)
-#   %B              => blod
+#   %B              => bold
 #   %U              => underline
 #   ${sgr_reset}    => reset all effect (provide by jovial)
 #

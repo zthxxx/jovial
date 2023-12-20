@@ -37,7 +37,7 @@ alias lg='lazygit'
 alias gcl1='gcl --depth=1'
 
 # git log time iso
-alias glti='git log --pretty=fuller --date=iso'
+alias glti='git log --pretty=fuller --date=iso --show-signature'
 alias glt1='glti -n 1'
 
 # git log message raw
@@ -68,7 +68,7 @@ function gfbi {
     : 'git fetch and rebase to target branch'
 
     local branch="$1"
-    git fetch ${GIT_REMOTE:-origin} --no-tags +${branch}:${branch} && grbi ${branch}
+    git fetch ${GIT_REMOTE:-origin} --no-tags +${branch}:${branch} && grbi --committer-date-is-author-date ${branch}
 }
 
 
@@ -200,6 +200,9 @@ function bgnotify_formatted {
 LESSPIPE=`((which src-hilite-lesspipe.sh > /dev/null && which src-hilite-lesspipe.sh) || (dpkg -L libsource-highlight-common | grep lesspipe)) 2> /dev/null`
 if [[ -n ${LESSPIPE} && -e ${LESSPIPE} ]]; then
     export LESSOPEN="| ${LESSPIPE} %s"
+    # -R: --RAW-CONTROL-CHARS
+    # -F: --quit-if-one-screen
+    # -X: --no-init
     export LESS=' -R -X -F '
 fi
 
