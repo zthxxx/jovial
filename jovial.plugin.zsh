@@ -5,7 +5,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.1.9'
+export JOVIAL_PLUGIN_VERSION='1.2.0'
 
 #
 # ########## Aliases ##########
