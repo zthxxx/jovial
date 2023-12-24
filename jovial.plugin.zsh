@@ -85,16 +85,16 @@ function gDcb {
 
 
 function gcmt {
-    : 'git commit modify time'
+    : 'git commit with modified time'
 
     if [[ -z $2 ]]; then
         echo "gcmt - git commit with specified datetime"
-        echo "Usage: gcmt <commit-message> <commit-time>"
+        echo "Usage: gcmt <commit-time> <commit-message>"
         return
     fi
 
     # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
-    GIT_AUTHOR_DATE="$2" GIT_COMMITTER_DATE="$2" gcmsg "$1"
+    GIT_AUTHOR_DATE="$1" GIT_COMMITTER_DATE="$1" gcmsg "$2"
 }
 
 
@@ -139,7 +139,7 @@ function grclast {
 
     git reset HEAD~1 \
       && gaa \
-      && gcmt "${last_log}" "${last_time}"
+      && gcmt "${last_time}" "${last_log}"
 }
 
 
