@@ -779,8 +779,8 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
             action="AM/REBASE"
         fi
 
-        local rebase_step="$(< ${rebase_merge}/next)"
-        local rebase_total="$(< ${rebase_merge}/last)"
+        local rebase_step="$(< ${rebase_apply}/next)"
+        local rebase_total="$(< ${rebase_apply}/last)"
         rebase_process="${rebase_step}/${rebase_total}"
     elif [[ -f ${jovial_rev_git_dir}/MERGE_HEAD ]]; then
         action="MERGING"
