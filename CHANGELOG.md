@@ -5,6 +5,20 @@
 
 <br />
 
+## `jovial.zsh-theme@v2.5.4`
+
+### Fix
+
+- fix git status hint for `git am` (apply a series of patches)
+
+### `jovial.plugin@v1.2.0`
+
+- feat: exchange position of args for `gcmt` function (git commit with modified time) for more **intuitively**
+- fix: keep committer date when `gfbi`, show signature when `glti`
+
+
+<br />
+
 ## `jovial.zsh-theme@v2.5.3`
 
 ### Feat

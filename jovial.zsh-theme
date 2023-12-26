@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.3'
+export JOVIAL_VERSION='2.5.4'
 
 
 # Development code style:
