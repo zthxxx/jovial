@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.4'
+export JOVIAL_VERSION='2.5.5'
 
 
 # Development code style:
@@ -30,11 +30,11 @@ setopt prompt_subst
 # https://github.com/python/cpython/blob/3.10/Lib/venv/scripts/common/activate#L56
 export VIRTUAL_ENV_DISABLE_PROMPT=true
 
-# the default `TERM`` in `screen` command is 'linux' which will cause colorless in terminal,
-# so set it with a compatible colorful value,
-# otherwise shouldn't override TERM because it maybe a specific user setting.
-if [[ ${TERM} == 'linux' ]]; then
-  export TERM=xterm-256color
+# the default `TERM`` in `screen` command is 'linux', which will cause colorless in terminal, same with 'xterm',
+# so that set it to a compatible colorful value.
+# otherwise shouldn't override `TERM` if it's a specific user setting.
+if [[ ${TERM} == 'linux' || ${TERM} == 'xterm' ]]; then
+    export TERM=xterm-256color
 fi
 
 # `\e[00m` is SGR (Select Graphic Rendition) parameters

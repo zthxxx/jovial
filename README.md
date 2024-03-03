@@ -162,6 +162,75 @@ Here are what the install command and script do:
 
 <br />
 
+
+### install with [Antigen](https://github.com/zsh-users/antigen)
+
+[Antigen](https://github.com/zsh-users/antigen) is a _**theme/plugin manager for zsh**_ that uses simple **declarative configuration**.
+
+With Antigen, installing Jovial **without sudo permission** is easy. 
+
+Just download antigen and **copy** the example below into your **`~/.zshrc`**,
+reload zsh, and Antigen will automatically download everything only during initialization.
+
+Download antigen:
+
+```bash
+mkdir -p ~/.antigen && curl -SL https://github.com/zsh-users/antigen/raw/develop/bin/antigen.zsh -o ~/.antigen/antigen.zsh
+```
+
+Example for **`~/.zshrc`** with antigen:
+
+> You can manually copy this below into your `~/.zshrc` file, or using command to download and append:
+>
+> `curl -SL https://github.com/zthxxx/jovial/raw/master/antigen.zshrc >> ~/.zshrc`
+
+
+```zsh
+# ~/.zshrc
+
+# [Antigen](https://github.com/zsh-users/antigen), 
+# a theme/plugin manager for zsh that uses simple declarative configuration.
+
+# Load Antigen
+source ~/.antigen/antigen.zsh
+
+# Basic recommended for antigen
+antigen use oh-my-zsh
+antigen bundle git
+antigen bundle autojump
+antigen bundle colored-man-pages
+antigen bundle zsh-users/zsh-completions
+antigen bundle zsh-users/zsh-autosuggestions
+antigen bundle zsh-users/zsh-syntax-highlighting
+
+# Load the Jovial theme and plugins
+antigen theme zthxxx/jovial
+antigen bundle zthxxx/jovial
+antigen bundle zthxxx/zsh-history-enquirer
+
+
+# Any other plugins needs set before `antigen apply`
+
+# After all, tell Antigen that you're done, then antigen will start
+antigen apply
+
+```
+
+
+Then reload zsh to load antigen with Jovial theme:
+
+```bash
+exec zsh -il
+```
+
+
+Note that you also need to manually install other plugin bin files like:
+
+```bash
+sudo apt install -y autojump terminal-notifier source-highlight
+```
+
+
 ### install with Fig
 
 [Fig](https://fig.io) adds apps, shortcuts, and autocomplete to your existing terminal.
@@ -192,24 +261,6 @@ Finally, don't forget to change the default login shell to `zsh`, maybe you can 
 ```zsh
 sudo chsh -s `command -v zsh` $USER
 ```
-
-
-### use with [antigen](https://github.com/zsh-users/antigen)
-
-```zsh
-# ~/.zshrc
-
-antigen theme zthxxx/jovial
-antigen bundle zthxxx/jovial
-antigen bundle zthxxx/zsh-history-enquirer
-
-antigen apply
-
-# also manually install other plugins, like:
-## sudo apt install -y autojump terminal-notifier source-highlight
-
-```
-
 
 ### upgrade
 

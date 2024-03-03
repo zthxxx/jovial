@@ -5,6 +5,15 @@
 
 <br />
 
+## `jovial.zsh-theme@v2.5.5`
+
+### Fix
+
+- override to `TERM=xterm-256color` when original is 'TERM=xterm' for default colorful compatibility
+
+
+<br />
+
 ## `jovial.zsh-theme@v2.5.4`
 
 ### Fix
