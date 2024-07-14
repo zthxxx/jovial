@@ -6,10 +6,15 @@
 # use sudo to make this script has access, and use '-E' for preserve most env variables;
 # use '-s $USER' to pass "real target user" to this install script
 
-COLOR_RED=`tput setaf 9`
-COLOR_GREEN=`tput setaf 10`
-COLOR_YELLOW=`tput setaf 11`
-SGR_RESET=`tput sgr 0`
+# ANSI color codes
+## COLOR_RED=`tput setaf 9`
+## COLOR_GREEN=`tput setaf 10`
+## COLOR_YELLOW=`tput setaf 11`
+## SGR_RESET=`tput sgr 0`
+COLOR_RED='\033[31m\033[01m'
+COLOR_GREEN='\033[32m\033[01m'
+COLOR_YELLOW='\033[33m\033[01m'
+SGR_RESET='\033[0m'
 
 # bash strict mode (https://gist.github.com/mohanpedala/1e2ff5661761d3abd0385e8223e16425)
 set -xo pipefail
@@ -25,7 +30,7 @@ fi
 
 # setup oh-my-zsh env variables
 if [[ -z "${ZSH}" ]]; then
-    # If ZSH is not defined, use the current script's directory.
+    # If ZSH is not defined, use the current user's default oh-my-zsh directory.
     ZSH="${S_HOME}/.oh-my-zsh"
 fi
 
@@ -54,7 +59,13 @@ is-command() { command -v $@ &> /dev/null; }
 
 # it's same as `realpath <file>`, but `realpath` is GNU only and not builtin
 prel-realpath() {
-  perl -MCwd -e 'print Cwd::realpath($ARGV[0]),qq<\n>' $1
+  if is-command realpath; then
+    realpath $1
+  elif is-command readlink; then
+    readlink -f $1
+  else
+    perl -MCwd -e 'print Cwd::realpath($ARGV[0]),qq<\n>' $1
+  fi
 }
 
 install-via-manager() {
@@ -75,6 +86,9 @@ install-via-manager() {
 
     elif is-command pacman; then
         pacman -S --noconfirm --needed ${package}
+
+    elif is-command opkg; then
+        opkg install ${package}
     fi
 }
 
