@@ -12,6 +12,11 @@
 - override to `TERM=xterm-256color` when original is 'TERM=xterm' for default colorful compatibility
 
 
+### `jovial.plugin@v1.2.1`
+
+- fix: resolve **Locale** issue where the host lacks `en_US.UTF-8` but use another UTF-8 locale. `jovial.plugin` will no longer change the locale in such cases.
+
+
 <br />
 
 ## `jovial.zsh-theme@v2.5.4`

@@ -1,11 +1,32 @@
+
 #
-# Locale
-# utf-8 to display emoji
+# ########## Version ##########
 #
 
-export LC_CTYPE=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-export JOVIAL_PLUGIN_VERSION='1.2.0'
+export JOVIAL_PLUGIN_VERSION='1.2.1'
+
+
+#
+# ########## Locale ##########
+#
+# make sure utf-8 to display emoji and kaomoji (arrow of prompt by default `(๑˃̵ᴗ˂̵)و`)
+#
+# Check LC_ALL, LC_CTYPE, and LANG in order. 
+# If none contains "UTF-8", set LC_ALL to en_US.UTF-8
+#
+
+if [[ -n ${LC_ALL} ]]; then
+    if [[ "${LC_ALL}" != *"UTF-8" ]]; then
+        export LC_ALL=en_US.UTF-8
+    fi
+elif [[ -n ${LC_CTYPE} ]]; then
+    if [[ "${LC_CTYPE}" != *"UTF-8" ]]; then
+        export LC_CTYPE=en_US.UTF-8
+    fi
+elif [[ "${LANG}" != *"UTF-8" ]]; then
+    export LANG=en_US.UTF-8
+fi
+
 
 #
 # ########## Aliases ##########
