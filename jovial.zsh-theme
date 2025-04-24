@@ -45,7 +45,6 @@ fi
 # "%{ %}" is escape values in Prompt-Expansion (vcs_info style) (for used in `print -P`)
 typeset -g sgr_reset="%{\e[00m%}"
 
-
 # jovial theme element symbol mapping
 #
 # (the syntax `typeset -A xxx` is means to declare a `associative-array` in zsh, it's like `dictionary`)
@@ -172,6 +171,8 @@ typeset -gA JOVIAL_AFFIXES=(
     exit-code.suffix       ' '
 
     current-time.prefix    ' '
+    # datetime format provide by [`strftime(3)`](https://www.man7.org/linux/man-pages/man3/strftime.3.html)
+    current-time.dynamic   '%H:%M:%S'
     current-time.suffix    ' '
 )
 
@@ -423,9 +424,15 @@ typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
 # store calculated lengths of `JOVIAL_AFFIXES` part
 typeset -gA jovial_affix_lengths=()
 
+# for expanding `JOVIAL_AFFIXES` values after .zshrc config overrides
 @jov.init-affix() {
     local key result
     for key in ${(k)JOVIAL_AFFIXES}; do
+        # if a key ends in .dynamic then it's a dynamic value and should not be pre-expanded
+        if [[ ${key} =~ '\.dynamic$' ]]; then
+            continue
+        fi
+
         eval "JOVIAL_AFFIXES[${key}]"=\""${JOVIAL_AFFIXES[${key}]}"\"
         # remove `.prefix`, `.suffix`
         # `xxx.prefix`` -> `xxx`
@@ -584,11 +591,17 @@ typeset -gA jovial_affix_lengths=()
 
 @jov.set-date-time() {
     # trimming suffix trailing whitespace
-    # donot print trailing whitespace for better interaction while terminal width in narrowing
+    # do not print trailing whitespace for better interaction while terminal width in narrowing
     local suffix="${(MS)JOVIAL_AFFIXES[current-time.suffix]##*[[:graph:]]}"
-    local current_time="${JOVIAL_AFFIXES[current-time.prefix]}${JOVIAL_PALETTE[time]}${(%):-%D{%H:%M:%S\}}${suffix}"
-    # 8 is fixed lenght of datatime format `hh:mm:ss`
-    jovial_part_lengths[current-time]=$(( 8 + ${jovial_affix_lengths[current-time]} ))
+
+    # expand datetime format by zsh `%D{string}` [Prompt-Expansion](https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#13_2_4_Date_and_time)
+    # `{string}` is formatted by [`strftime(3)`](https://www.man7.org/linux/man-pages/man3/strftime.3.html)
+    local current_time="${(%):-%D{${JOVIAL_AFFIXES[current-time.dynamic]}\}}"
+
+    jovial_part_lengths[current-time]=$(( ${#current_time} + ${jovial_affix_lengths[current-time]} ))
+
+    # format the current time and align it to the right
+    current_time="${JOVIAL_AFFIXES[current-time.prefix]}${JOVIAL_PALETTE[time]}${current_time}${suffix}"
     @jov.align-right "${current_time}" ${jovial_part_lengths[current-time]} 'jovial_parts[current-time]'
 }
 

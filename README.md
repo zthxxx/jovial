@@ -403,7 +403,6 @@ It will look like this:
   <img alt="color sheet" src="https://user-images.githubusercontent.com/15135943/143198898-2cf1225c-47e4-4860-95db-2dc29ad1436e.png" width="800">
 </p>
 
-
 ### Order of Parts
 
 Prompt parts display order can be configured with `JOVIAL_PROMPT_ORDER`. Items are displayed from left to right in the Jovial theme at the first line.
@@ -442,7 +441,7 @@ If you want to disable some parts, just remove them from the priority list.
 
 ### Affixes
 
-Prefixes and suffixes of the Jovial prompt parts can be overridden in the same way as above.
+Affixes of the Jovial prompt parts can be overridden in the same way as above.
 
 Defaults are:
 
@@ -478,26 +477,43 @@ JOVIAL_AFFIXES=(
     exit-code.suffix       ' '
 
     current-time.prefix    ' '
+    # datetime format provide by [`strftime(3)`](https://www.man7.org/linux/man-pages/man3/strftime.3.html)
+    current-time.dynamic   '%H:%M:%S'
     current-time.suffix    ' '
 )
 ```
 
-Note that all `JOVIAL_AFFIXES` variable values wrapped in `${...}` will be subject to `shell Prompt-Expansion` once at first load as `zsh prompt`.
+Note that all `JOVIAL_AFFIXES` variable values wrapped in `${...}` will be subject to `shell Prompt-Expansion` once at first load as `zsh prompt`. **The exception to this is current-time.dynamic, which is expanded on every prompt re-draw.**
 
 So keep **Single Quotes** for the values you want to override in your `.zshrc` file:
 
-```
+```zsh
 # ~/.zshrc
 JOVIAL_AFFIXES[user.suffix]=' ${JOVIAL_PALETTE[conj.]}in'
 ```
 
 And you can use **Double Quotes** in your terminal to see the effect immediately for adjusting the theme.
 
-```
+```zsh
 # in terminal
 $ JOVIAL_AFFIXES[user.suffix]=" ${JOVIAL_PALETTE[conj.]}in"
 ```
 
+To set the time formatter string, you can set:
+
+```zsh
+# ~/.zshrc
+
+# 24 hour format (default)
+JOVIAL_AFFIXES[current-time.dynamic]='%H:%M:%S'
+
+# 12 hour format
+JOVIAL_AFFIXES[current-time.dynamic]='%I:%M:%S %p'
+```
+
+<p align="center">
+  <img src="./docs/jovial-time-formatting.png" alt="jovial-time-formatting" width="600">
+</p>
 
 ### Execute Elapsed
 
