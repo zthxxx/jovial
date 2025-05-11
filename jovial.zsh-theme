@@ -392,6 +392,7 @@ typeset -gA jovial_parts=() jovial_part_lengths=()
 typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
 
 @jov.reset-prompt-parts() {
+    local key=''
     for key in ${(k)jovial_parts}; do
         jovial_previous_parts[${key}]="${jovial_parts[${key}]}"
         jovial_previous_lengths[${key}]="${jovial_part_lengths[${key}]}"
@@ -523,6 +524,39 @@ typeset -gA jovial_affix_lengths=()
     ))
 
     jovial_parts[path]="${JOVIAL_AFFIXES[path.prefix]}${JOVIAL_PALETTE[path]}${jovial_parts[path]}${JOVIAL_AFFIXES[path.suffix]}"
+}
+
+
+# if path is too long, truncate path to fit terminal width
+# only run if `jovial_part_lengths[path]` exceeds terminal width after 
+#
+# - `jovial_part_lengths[path]` set by `@jov.set-current-dir` on per chpwd hook
+# - `@jov.update-path-truncate max_length` called each prompt render
+@jov.update-path-truncate() {
+    local -i max_length="${1}"
+
+    # after truncated, the path length should not exceed `max_length`
+    jovial_part_lengths[path-truncated]=${max_length} 
+
+    # 3 is for display `...`
+    local -i truncate_length=$(( max_length - ${jovial_affix_lengths[path]} - 3 ))
+
+    if (( truncate_length <= 0 )); then
+        # if truncate length is less than or equal to 0, then no need to truncate
+        jovial_parts[path-truncated]=""
+        jovial_part_lengths[path-truncated]=0
+        return
+    fi
+
+    local path_untruncated="${(%):-${JOVIAL_AFFIXES[current-dir]}}"
+    local -i path_length=${#path_untruncated}
+    local -i slice_start=$(( path_length - truncate_length))
+    # ${name:offset}
+    # ${name:offset:length}
+    # https://zsh.sourceforge.io/Doc/Release/Expansion.html#Parameter-Expansion
+    local path_truncated="...${path_untruncated:${slice_start}}"
+
+    jovial_parts[path-truncated]="${JOVIAL_AFFIXES[path.prefix]}${JOVIAL_PALETTE[path]}${path_truncated}${JOVIAL_AFFIXES[path.suffix]}"
 }
 
 
@@ -701,6 +735,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 )
 
 @jov.dev-env-detect() {
+    local segment_func=''
     for segment_func in ${JOVIAL_DEV_ENV_DETECT_FUNCS[@]}; do
         local segment=`${segment_func}`
         if [[ -n ${segment} ]]; then 
@@ -983,7 +1018,6 @@ add-zsh-hook precmd @jov.prompt-prepare
 
 
 @jovial-prompt() {
-    local -i total_length=${#JOVIAL_SYMBOL[corner.top]}
     local -A prompts=(
         margin-line ''
         host ''
@@ -996,21 +1030,38 @@ add-zsh-hook precmd @jov.prompt-prepare
         venv ''
     )
 
-    local prompt_is_emtpy=true
-    local key
 
+    # prepare length accumulator of the left part prompt 
+    # keep padding 1 space from left path to end or right part
+    local -i total_length=$(( 1 + ${#JOVIAL_SYMBOL[corner.top]} ))
+
+    local key=''
     for key in ${JOVIAL_PROMPT_PRIORITY[@]}; do
         local -i part_length=${jovial_part_lengths[${key}]}
+        local prompt_part="${jovial_parts[${key}]}"
 
-        # keep padding right 1 space
-        if (( total_length + part_length + 1 > COLUMNS )) && [[ ${prompt_is_emtpy} == false ]] ; then
+        if [[ ${key} == 'path' ]] ; then
+            # if path size is exceed, truncate path to fit terminal width
+            if (( total_length + part_length > COLUMNS )) ; then
+                local remaining_length=$(( COLUMNS - total_length ))
+                @jov.update-path-truncate "${remaining_length}"
+
+                prompt_part="${jovial_parts[path-truncated]}"
+                part_length=${jovial_part_lengths[path-truncated]}
+
+                if (( part_length <= 0 )); then
+                    # if path is empty after truncate, skip this part
+                    continue
+                fi
+            fi
+        elif (( total_length + part_length > COLUMNS )) && [[ ${prompt_is_emtpy} == false ]] ; then
             break
         fi
         
         prompt_is_emtpy=false
 
         total_length+=${part_length}
-        prompts[${key}]="${sgr_reset}${jovial_parts[${key}]}"
+        prompts[${key}]="${sgr_reset}${prompt_part}"
     done
 
     # always auto detect rest spaces to float current time

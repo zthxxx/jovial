@@ -87,12 +87,19 @@ Note that all git states will be **updated asynchronously**, so this theme is **
 
 ### Development Environment Detection
 
-It will detect and show your development programming language and version in the current working directory, such as:
+It will detect and show your development programming language and version in the current working directory, 
+
+support Python, Conda, NodeJs, Golang, PHP out-of-box, such as:
 
 <p align="center">
   <img src="./docs/jovial-develop-env-detect.png" alt="jovial-develop-env-detect" width="740">
 </p>
 
+#### venv environment for Python:
+
+Support detecting the `venv`, `virtualenv`, `conda` environment activated by default.
+
+For `conda` (miniconda), you need set `conda config --set changeps1 false` to avoid conda auto change the theme's prompt.
 
 ### Show Execution Elapsed Time
 
