@@ -6,3 +6,6 @@
 .temp/
 
 *.antigen-compat
+
+*.zwc
+*._zinit

@@ -1,6 +1,6 @@
 # the example `~/.zshrc` for jovial + antigen
 # 
-#    curl -SL https://github.com/zthxxx/jovial/raw/master/antigen.zshrc >> ~/.zshrc
+#    curl -SL https://github.com/zthxxx/jovial/raw/master/examples/antigen.zshrc >> ~/.zshrc
 #
 
 

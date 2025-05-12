@@ -170,7 +170,7 @@ Example for **`~/.zshrc`** with Antigen:
 
 > You can manually copy this below into your `~/.zshrc` file, or use the command to download and append:
 >
-> `curl -SL https://github.com/zthxxx/jovial/raw/master/antigen.zshrc >> ~/.zshrc`
+> `curl -SL https://github.com/zthxxx/jovial/raw/master/examples/antigen.zshrc >> ~/.zshrc`
 
 
 ```zsh

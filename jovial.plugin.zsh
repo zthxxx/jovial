@@ -81,7 +81,7 @@ function gfco {
     : 'git fetch and checkout to target branch'
 
     local branch="$1"
-    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} && gco ${branch} --recurse-submodules
+    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} && git switch ${branch} && git submodule update --init --recursive
 }
 
 
@@ -115,7 +115,7 @@ function gcmt {
     fi
 
     # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
-    GIT_AUTHOR_DATE="$1" GIT_COMMITTER_DATE="$1" gcmsg "$2"
+    GIT_AUTHOR_DATE="$1" GIT_COMMITTER_DATE="$1" git commit --message "$2"
 }
 
 
@@ -159,7 +159,7 @@ function grclast {
     fi
 
     git reset HEAD~1 \
-      && gaa \
+      && git add --all \
       && gcmt "${last_time}" "${last_log}"
 }
 
@@ -167,7 +167,7 @@ function grclast {
 function venv {
     : '
       create or enable python venv
-      $ venv  # -> python3 venv
+      $ venv  # -> uv or python3 venv
       $ venv --py2 # -> python2 virtualenv
     '
 
@@ -176,13 +176,22 @@ function venv {
         return
     fi
 
+    if [[ -d .venv ]]; then
+        # .venv for uv
+        . .venv/bin/activate
+        return
+    fi
+
     if [[ -d venv ]]; then
         . venv/bin/activate
         return
     fi
 
+
     # if not exist venv dir, create a new one before enable it
-    if [[ $1 == --py2 ]]; then
+    if command -v uv &> /dev/null; then
+        uv venv
+    elif [[ $1 == --py2 ]]; then
         python2 -m virtualenv venv
     else
         python3 -m venv venv
