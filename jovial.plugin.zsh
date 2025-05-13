@@ -81,7 +81,9 @@ function gfco {
     : 'git fetch and checkout to target branch'
 
     local branch="$1"
-    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} && git switch ${branch} && git submodule update --init --recursive
+    git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} \
+      && git switch ${branch} \
+      && git submodule update --init --recursive
 }
 
 
@@ -89,7 +91,8 @@ function gfbi {
     : 'git fetch and rebase to target branch'
 
     local branch="$1"
-    git fetch ${GIT_REMOTE:-origin} --no-tags +${branch}:${branch} && grbi --committer-date-is-author-date ${branch}
+    git fetch ${GIT_REMOTE:-origin} --no-tags +${branch}:${branch} \
+        && git rebase --interactive --committer-date-is-author-date ${branch}
 }
 
 
@@ -100,17 +103,16 @@ function gDcb {
     '
 
     local branch="$1"
-    gbD ${branch} 2>/dev/null
-    gco -b ${branch}
+    git switch -C ${branch}
 }
 
 
-function gcmt {
-    : 'git commit with modified time'
+function gcwt {
+    : 'git commit with specificed datetime'
 
     if [[ -z $2 ]]; then
-        echo "gcmt - git commit with specified datetime"
-        echo "Usage: gcmt <commit-time> <commit-message>"
+        echo "gcwt - commit with specificed datetime"
+        echo "Usage: gcwt <commit-time> <commit-message>"
         return
     fi
 
@@ -118,9 +120,14 @@ function gcmt {
     GIT_AUTHOR_DATE="$1" GIT_COMMITTER_DATE="$1" git commit --message "$2"
 }
 
+function gcmt {
+    : 'git commit with specified datetime, alias to gcwt'
+    echo '[Deprecated] `gcmt` renamed to `gcwt`'
+    gcwt $@
+}
 
 function gmct {
-    : 'git modify commits time'
+    : 'git modify commits datetime'
 
     if [[ -z $2 ]]; then
         echo "gmct - git modify history commit date with specified datetime"
@@ -145,6 +152,20 @@ function gmct {
     done
 }
 
+function gmwt {
+    : 'git merge with specificed datetime'
+
+    if [[ -z $2 ]]; then
+        echo "gmwt - git merge with specificed datetime"
+        echo "Usage: gmwt <commit-time> <branch>"
+        return
+    fi
+
+    local commit_time="$1"
+    local branch="$2"
+    git merge --no-ff "${branch}" \
+      && GIT_COMMITTER_DATE="${commit_time}" git commit --amend --no-edit --date="${commit_time}"
+}
 
 function grclast {
     : '
@@ -158,9 +179,11 @@ function grclast {
         last_time="$1"
     fi
 
+
+    # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
     git reset HEAD~1 \
       && git add --all \
-      && gcmt "${last_time}" "${last_log}"
+      && GIT_AUTHOR_DATE="${last_time}" GIT_COMMITTER_DATE="${last_time}" git commit -n --message "${last_log}"
 }
 
 
