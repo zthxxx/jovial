@@ -463,10 +463,27 @@ typeset -gA jovial_affix_lengths=()
 }
 
 @jov.set-venv-info() {
-    if [[ -z ${VIRTUAL_ENV} ]]; then
+    : 'for python venv or virtualenv or miniconda'
+
+    local venv_name=""
+
+    if [[ -n ${CONDA_DEFAULT_ENV} && ${CONDA_DEFAULT_ENV} != "base"  ]]; then
+        # for miniconda
+        # need set `conda config --set changeps1 false` to avoid conda auto set prompt
+        # `${...:t}` means basename of the path
+        venv_name="${CONDA_DEFAULT_ENV:t}"
+
+    elif [[ -n ${VIRTUAL_ENV} && ${VIRTUAL_ENV} != "base" ]]; then
+        # for python venv or virtualenv
+        # need set VIRTUAL_ENV_DISABLE_PROMPT to avoid python venv auto set prompt
+        # `${...:t}` means basename of the path
+        venv_name="${VIRTUAL_ENV:t}"
+    fi
+
+    if [[ -z ${venv_name} ]]; then
         jovial_parts[venv]=''
     else
-        jovial_parts[venv]="${JOVIAL_AFFIXES[venv.prefix]}${JOVIAL_PALETTE[venv]}$(basename ${VIRTUAL_ENV})${JOVIAL_AFFIXES[venv.suffix]}"
+        jovial_parts[venv]="${JOVIAL_AFFIXES[venv.prefix]}${JOVIAL_PALETTE[venv]}${venv_name}${JOVIAL_AFFIXES[venv.suffix]}"
     fi
 }
 
