@@ -76,9 +76,11 @@ local zinit_omz_plugins=(
 
 # https://zdharma-continuum.github.io/zinit
 # https://zdharma-continuum.github.io/zinit/wiki/For-Syntax/
-zinit light-mode depth=1 wait lucid as=null for \
+zinit light-mode depth=1 as=null for \
     multisrc="lib/{${(j:,:)zinit_omz_libs}}.zsh" \
-        ohmyzsh/ohmyzsh \
+        ohmyzsh/ohmyzsh
+
+zinit light-mode depth=1 wait lucid as=null for \
     multisrc="plugins/{${(j:,:)zinit_omz_plugins}}/*.plugin.zsh" \
         ohmyzsh/ohmyzsh
 
