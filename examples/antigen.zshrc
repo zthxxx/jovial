@@ -21,7 +21,7 @@ source ~/.antigen/antigen.zsh
 # Basic recommended for antigen
 antigen use oh-my-zsh
 antigen bundle git
-antigen bundle autojump
+antigen bundle zoxide
 antigen bundle colored-man-pages
 antigen bundle zsh-users/zsh-completions
 antigen bundle zsh-users/zsh-autosuggestions

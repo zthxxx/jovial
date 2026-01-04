@@ -149,7 +149,7 @@ install.zsh-plugins() {
         install.packages git
     fi
 
-    install.packages autojump terminal-notifier source-highlight
+    install.packages zoxide terminal-notifier source-highlight
 
     if [[ ! -d ${plugin_dir}/zsh-autosuggestions ]]; then
         log.info "[jovial] install plugin zsh-autosuggestions"
@@ -167,7 +167,7 @@ install.zsh-plugins() {
     log.info "[jovial] setup oh-my-zsh plugins in ~/.zshrc"
     local plugins=(
         git
-        autojump
+        zoxide
         urltools
         bgnotify
         zsh-autosuggestions

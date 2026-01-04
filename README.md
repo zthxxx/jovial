@@ -114,7 +114,7 @@ For `conda` (miniconda), you need set `conda config --set changeps1 false` to av
 
 - **[jovial](https://github.com/zthxxx/jovial/blob/master/jovial.plugin.zsh)**: Jovial plugin defines some utility functions and aliases. You can see them in [jovial.plugin.zsh](https://github.com/zthxxx/jovial/blob/master/jovial.plugin.zsh)
 - **[git](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git)**: Short aliases for commonly used commands
-- **[autojump](https://github.com/wting/autojump)**: Allows you to use `j <keyword>` to jump to the full path folder
+- **[zoxide](https://github.com/ajeetdsouza/zoxide)**: It remembers which directories you use most frequently, so you can "jump" to them in just a few keystrokes.
 - **[bgnotify](https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/bgnotify)**: Background notifications for long-running commands
 - **[zsh-history-enquirer](https://github.com/zthxxx/zsh-history-enquirer)**: Widget for history searching, enhances `Ctrl+R`
 - **[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)**: Shell auto-completion
@@ -158,6 +158,28 @@ Here is what the install command and script do:
 <br />
 
 
+### Install with [Zinit](https://github.com/zdharma-continuum/zinit)
+
+[Zinit](https://github.com/zdharma-continuum/zinit) is a _**fast plugin manager**_ for zsh with simple **declarative configuration**.
+
+Install Jovial and its plugins with **just a single line** in your `.zshrc`:
+
+```zsh
+zinit light-mode depth=1 multisrc='*.plugin.zsh' for zthxxx/jovial
+```
+
+See the full out-of-the-box Zinit config here:
+
+https://github.com/zthxxx/jovial/blob/master/examples/zinit.zshrc
+ 
+
+Use this example `.zshrc` as a starter:
+
+```bash
+curl -SL https://github.com/zthxxx/jovial/raw/master/examples/zinit.zshrc -o ~/.zshrc
+```
+
+
 ### Install with [Antigen](https://github.com/zsh-users/antigen)
 
 [Antigen](https://github.com/zsh-users/antigen) is a _**theme/plugin manager for zsh**_ that uses simple **declarative configuration**.
@@ -192,7 +214,7 @@ source ~/.antigen/antigen.zsh
 # Basic recommended for Antigen
 antigen use oh-my-zsh
 antigen bundle git
-antigen bundle autojump
+antigen bundle zoxide
 antigen bundle colored-man-pages
 antigen bundle zsh-users/zsh-completions
 antigen bundle zsh-users/zsh-autosuggestions
@@ -222,7 +244,7 @@ exec zsh -il
 Note that you also need to manually install other plugin bin files like:
 
 ```bash
-sudo apt install -y autojump terminal-notifier source-highlight
+sudo apt install -y zoxide terminal-notifier source-highlight
 ```
 
 

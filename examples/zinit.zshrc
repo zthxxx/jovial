@@ -65,7 +65,7 @@ local zinit_omz_libs=(
 # https://github.com/ohmyzsh/ohmyzsh/blob/master/plugins/
 local zinit_omz_plugins=(
   git
-  autojump
+  zoxide
   macos
   extract
   colored-man-pages
@@ -102,3 +102,6 @@ zinit light-mode depth=1 wait lucid for \
 #                  Custom Config                  #
 # ----------------------------------------------- #
 
+# use https://github.com/ajeetdsouza/zoxide instead of autojump `j <keyword>`
+# https://github.com/ohmyzsh/ohmyzsh/blob/master/plugins/zoxide/zoxide.plugin.zsh
+export ZOXIDE_CMD_OVERRIDE='j'
