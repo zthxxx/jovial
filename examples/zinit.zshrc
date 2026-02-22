@@ -58,6 +58,7 @@ local zinit_omz_libs=(
   functions
   directories
   completion
+  async_prompt
   git
 )
 
