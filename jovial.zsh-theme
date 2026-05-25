@@ -85,14 +85,29 @@ typeset -gA JOVIAL_SYMBOL=(
 # use `sheet:color` plugin function to see color table
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Visual-effects
 # format quickref:
-#   
+#
 #   %F{xxx}         => foreground color (text color)
 #   %K{xxx}         => background color (color-block)
 #   %B              => bold
 #   %U              => underline
 #   ${sgr_reset}    => reset all effect (provide by jovial)
 #
-typeset -gA JOVIAL_PALETTE=(
+# Light/dark theme variants:
+#   - JOVIAL_PALETTE_DARK   : default palette tuned for dark terminal backgrounds
+#   - JOVIAL_PALETTE_LIGHT  : default palette tuned for light terminal backgrounds
+#   - JOVIAL_PALETTE        : effective palette read by the renderer; populated
+#                             at source time from the active variant. Kept as a
+#                             public variable for back-compat with users who
+#                             customize individual keys in their `.zshrc`.
+#
+# Resolution at source time:
+#   1. detect the active variant (see `@jov.detect-theme-variant`)
+#   2. copy that variant's entries into JOVIAL_PALETTE, but only for keys it
+#      defines. Any key already present in JOVIAL_PALETTE (e.g. legacy user
+#      customizations from older versions) and not overridden by the variant
+#      is left untouched as a fallback.
+
+typeset -gA JOVIAL_PALETTE_DARK=(
     # hostname
     host '%F{157}'
 
@@ -110,7 +125,7 @@ typeset -gA JOVIAL_PALETTE=(
 
     # virtual env activate prompt for python
     venv '%F{159}'
- 
+
     # current time when prompt render, pin at end-of-line
     time '%F{254}'
 
@@ -132,9 +147,241 @@ typeset -gA JOVIAL_PALETTE=(
 
     success '%F{040}'
     error '%F{203}'
+
+    # per-language dev-env tags shown in the prompt
+    dev-env.node   '%F{120}'
+    dev-env.go     '%F{086}'
+    dev-env.php    '%F{105}'
+    dev-env.python '%F{123}'
 )
 
-# parts dispaly order from left to right of jovial theme at the first line 
+# Light variant: darker, higher-contrast hues against a near-white background.
+# Each entry mirrors a key in JOVIAL_PALETTE_DARK; keep them in sync when
+# adding new prompt segments.
+typeset -gA JOVIAL_PALETTE_LIGHT=(
+    host '%F{29}'
+
+    user '%F{238}'
+
+    root '%B%F{124}'
+
+    # path uses goldenrod/brown instead of yellow — yellow has near-zero
+    # contrast on white backgrounds
+    path '%B%F{130}%}'
+
+    git '%F{31}'
+
+    venv '%F{31}'
+
+    time '%F{244}'
+
+    elapsed '%F{166}'
+
+    exit.mark '%F{244}'
+    exit.code '%B%F{124}'
+
+    # mid-gray reads acceptably on both light and dark backgrounds
+    conj. '%F{102}'
+
+    typing '%F{238}'
+
+    normal '%F{238}'
+
+    success '%F{028}'
+    error '%F{124}'
+
+    dev-env.node   '%F{022}'
+    dev-env.go     '%F{024}'
+    dev-env.php    '%F{061}'
+    dev-env.python '%F{030}'
+)
+
+# Effective palette consumed by the renderer. Declared empty so legacy users
+# who customize keys via `JOVIAL_PALETTE[xxx]=...` in their rc files keep that
+# customization on upgrade. Populated by `@jov.apply-palette-variant` below.
+typeset -gA JOVIAL_PALETTE=()
+
+# Cached active variant ('light' | 'dark'). Persists across re-sources of the
+# theme within the same shell so the OSC 11 query runs at most once per tab.
+# Declared without an `=` so a re-source preserves the value from the first run.
+typeset -g JOVIAL_THEME_MODE_DETECTED
+
+
+# Probe terminal background via OSC 11 control sequence (`ESC ] 11 ; ? ST`).
+# On success sets REPLY to "light" or "dark" and returns 0; returns non-zero
+# on failure (no usable tty, timeout, or an unparseable reply).
+#
+# Performance: this runs on the shell-startup hot path, so it leans on zsh
+# builtins (`print`, `read`, arithmetic) and avoids per-byte and command-
+# substitution forks. The only subprocesses are two `stty` calls (see below),
+# which run once regardless of reply length.
+#
+# Implementation notes:
+#   - I/O goes through a dedicated /dev/tty descriptor so the probe is
+#     unaffected by stdin/stdout redirection, and so it fails cleanly (and
+#     silently) on a process with no controlling terminal — opening /dev/tty
+#     returns ENXIO there (cron, CI runners, `zsh -c '...'`).
+#   - The terminal is put into raw, no-echo mode (`stty -echo -icanon`) for the
+#     whole probe and restored afterwards. This genuinely needs `stty`: the
+#     terminal echoes the OSC 11 reply onto the line as it arrives, and zsh's
+#     `read -s`/`-k` only govern echo on the shell's own stdin tty — not on
+#     this separately opened /dev/tty — so without it the reply leaks into the
+#     prompt (observed in VSCode/Ghostty/kitty; iTerm2 happened to mask it).
+#   - Reply payload is `rgb:RRRR/GGGG/BBBB` (per-channel hex digit count
+#     varies across terminals; xterm and most modern ones use 4).
+#   - Channels are normalized to a common 0..65535 range, then converted to
+#     Rec.709 relative luma with integer math (no floating point needed).
+@jov.osc11-detect() {
+    # Open the controlling terminal once, read-write, on an auto-allocated fd.
+    # The `{ ... } 2>/dev/null` swallows the "device not configured" message and
+    # turns a failed open into a non-zero return when there is no usable tty.
+    local -i fd
+    { exec {fd}<>/dev/tty } 2>/dev/null || return 1
+
+    # Suppress echo + canonical buffering for the whole probe, so the terminal
+    # does not echo its reply onto the prompt line. `min 0 time 1` gives each
+    # read a 100ms driver-level ceiling. Restore is a plain `stty echo icanon`
+    # (the interactive default) rather than a saved-blob `$(stty -g)`, to avoid
+    # a command-substitution fork.
+    { stty -echo -icanon min 0 time 1 <&${fd} } 2>/dev/null || { exec {fd}>&-; return 1 }
+
+    # ST (ESC \) terminator is more portable than BEL across terminals.
+    print -nu ${fd} '\e]11;?\e\\'
+
+    local response='' char
+    # Hard cap on byte count so a malformed reply cannot stall the loop.
+    local -i max_bytes=64
+    while (( ${#response} < max_bytes )); do
+        # -k 1: one raw keystroke; -t: per-byte timeout backing up the driver
+        # ceiling so an unresponsive terminal cannot stall startup; -u: the tty.
+        read -rk 1 -t 0.1 -u ${fd} char 2>/dev/null || break
+        response+=${char}
+        # OSC sequences are terminated by ST (ESC \) or, on some terminals, BEL.
+        [[ ${response} == *$'\e\\' || ${response} == *$'\a' ]] && break
+    done
+
+    # Restore the terminal and release the descriptor.
+    { stty echo icanon <&${fd} } 2>/dev/null
+    exec {fd}>&-
+
+    # Match the rgb payload anywhere within the reply (some terminals prepend
+    # extra padding bytes around the OSC envelope).
+    if [[ ! ${response} =~ 'rgb:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+)' ]]; then
+        return 1
+    fi
+
+    local r="${match[1]}" g="${match[2]}" b="${match[3]}"
+
+    # Normalize each channel to 0..65535 regardless of digit count, so the
+    # luma comparison is uniform across terminals.
+    local -i scale=$(( 16 ** ${#r} - 1 ))
+    (( scale == 0 )) && return 1
+    local -i r16=$(( 16#${r} * 65535 / scale ))
+    local -i g16=$(( 16#${g} * 65535 / scale ))
+    local -i b16=$(( 16#${b} * 65535 / scale ))
+
+    # Rec.709 luma coefficients scaled by 10000 to stay in integer math.
+    local -i luma=$(( (2126 * r16 + 7152 * g16 + 722 * b16) / 10000 ))
+
+    # 32768 is the midpoint of 0..65535. Anything brighter is treated as light.
+    if (( luma > 32768 )); then
+        REPLY=light
+    else
+        REPLY=dark
+    fi
+    return 0
+}
+
+
+# Decide which palette variant to use; sets REPLY to "light" or "dark".
+# Returning through REPLY (instead of stdout + `$(...)`) keeps the startup path
+# fork-free. Sources are tried in order of decreasing speed:
+#   1. ${JOVIAL_THEME_MODE} explicit user override (no terminal I/O at all)
+#   2. ${COLORFGBG} env var set by xterm/rxvt and optionally by iTerm2
+#   3. OSC 11 query against the terminal — skipped inside multiplexers since
+#      passthrough is fragile and would only inflate worst-case startup time
+#   4. fall back to 'dark' (matches the historical default)
+@jov.detect-theme-variant() {
+    # 1. explicit override — fastest path, used by CI and users who want to
+    #    pin a theme regardless of terminal state.
+    case ${JOVIAL_THEME_MODE:l} in
+        light|dark)
+            REPLY=${JOVIAL_THEME_MODE:l}
+            return
+            ;;
+    esac
+
+    # 2. COLORFGBG: "fg;bg" or "fg;default;bg" with bg as ANSI index 0..15.
+    #    By xterm/rxvt convention indices {7, 9..15} are light, all others dark.
+    if [[ -n ${COLORFGBG} ]]; then
+        local bg_index="${COLORFGBG##*;}"
+        if [[ ${bg_index} == <-> ]]; then
+            if (( bg_index == 7 || (bg_index >= 9 && bg_index <= 15) )); then
+                REPLY=light
+            else
+                REPLY=dark
+            fi
+            return
+        fi
+    fi
+
+    # 3. OSC 11 — only outside multiplexers. tmux passthrough requires
+    #    `allow-passthrough` and even then the response path is unreliable;
+    #    relying on it would push the worst-case wait into the hundreds of ms.
+    #    On success @jov.osc11-detect has already set REPLY.
+    if [[ -z ${TMUX} && ${TERM} != screen* && ${TERM} != linux ]]; then
+        @jov.osc11-detect && return
+    fi
+
+    # 4. safe default
+    REPLY=dark
+}
+
+
+# Merge a palette variant into JOVIAL_PALETTE.
+# Only writes keys defined in the variant — any pre-existing key in
+# JOVIAL_PALETTE (e.g. a legacy user customization) is left untouched for
+# back-compat, except where the active variant defines a value for it.
+@jov.apply-palette-variant() {
+    local variant="$1"
+    local key val
+
+    case ${variant} in
+        light)
+            for key val in ${(kv)JOVIAL_PALETTE_LIGHT}; do
+                [[ -n ${val} ]] && JOVIAL_PALETTE[${key}]="${val}"
+            done
+            ;;
+        *)
+            for key val in ${(kv)JOVIAL_PALETTE_DARK}; do
+                [[ -n ${val} ]] && JOVIAL_PALETTE[${key}]="${val}"
+            done
+            ;;
+    esac
+}
+
+
+# Public refresh hook: re-detect and re-apply.
+# Useful after a user toggles their terminal between light/dark at runtime
+# and wants to pick up the new theme without restarting the shell.
+@jov.refresh-palette() {
+    @jov.detect-theme-variant
+    JOVIAL_THEME_MODE_DETECTED=${REPLY}
+    @jov.apply-palette-variant "${JOVIAL_THEME_MODE_DETECTED}"
+}
+
+
+# Resolve once at source time. On re-source within the same shell, reuse the
+# cached detection result and only re-apply the variant — the OSC 11 query
+# is the only meaningfully slow step and we never repeat it for free.
+if [[ -z ${JOVIAL_THEME_MODE_DETECTED} ]]; then
+    @jov.refresh-palette
+else
+    @jov.apply-palette-variant "${JOVIAL_THEME_MODE_DETECTED}"
+fi
+
+
+# parts dispaly order from left to right of jovial theme at the first line
 typeset -ga JOVIAL_PROMPT_ORDER=( host user path dev-env git-info )
 
 # prompt parts priority from high to low, for `responsive design`.
@@ -678,7 +925,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "package.json"; then
         if @jov.iscommand node; then
             local node_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local node_prompt="%F{120}node `\node -v`"
+            local node_prompt="${JOVIAL_PALETTE[dev-env.node]}node `\node -v`"
         else
             local node_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local node_prompt="Nodejs${JOVIAL_PALETTE[normal]}]"
@@ -698,7 +945,7 @@ typeset -gA jovial_affix_lengths=()
             else
                 return 1
             fi
-            local go_prompt="%F{086}Golang ${go_version}"
+            local go_prompt="${JOVIAL_PALETTE[dev-env.go]}Golang ${go_version}"
         else
             local go_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local go_prompt="Golang${JOVIAL_PALETTE[normal]}]"
@@ -712,7 +959,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "composer.json"; then
         if @jov.iscommand php; then
             local php_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local php_prompt="%F{105}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local php_prompt="${JOVIAL_PALETTE[dev-env.php]}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local php_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local php_prompt="php${JOVIAL_PALETTE[normal]}]"
@@ -725,16 +972,16 @@ typeset -gA jovial_affix_lengths=()
     local python_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
 
     if [[ -n ${VIRTUAL_ENV} ]] && @jov.rev-parse-find "venv"; then
-        local python_prompt="%F{123}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
+        local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
         echo "${python_prompt_prefix}${python_prompt}"
         return 0
     fi
 
     if @jov.rev-parse-find "requirements.txt"; then
         if @jov.iscommand python; then
-            local python_prompt="%F{123}`\python --version 2>&1`"
+            local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`\python --version 2>&1`"
         elif @jov.iscommand python3; then
-            local python_prompt="%F{123}`\python3 --version 2>&1`"
+            local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`\python3 --version 2>&1`"
         else
             python_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local python_prompt="Python${JOVIAL_PALETTE[normal]}]"

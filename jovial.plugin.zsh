@@ -83,7 +83,7 @@ function gfco {
     local branch="$1"
     git fetch ${GIT_REMOTE:-origin} --no-tags --update-head-ok +${branch}:${branch} \
       && git switch ${branch} \
-      && git submodule update --init --recursive --depth=1 --jobs=4
+      && git submodule update --init --recursive --filter=blob:none --jobs=4
 }
 
 

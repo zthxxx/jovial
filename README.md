@@ -313,6 +313,7 @@ All the elements / symbols / colors can be easily customized by overriding theme
 These variables are designed for customization:
 - [`JOVIAL_SYMBOL`](#symbols)
 - [`JOVIAL_PALETTE`](#colors)
+- [`JOVIAL_THEME_MODE`](#light--dark-mode)
 - [`JOVIAL_PROMPT_ORDER`](#order-of-parts)
 - [`JOVIAL_PROMPT_PRIORITY`](#priority-of-parts)
 - [`JOVIAL_AFFIXES`](#affixes)
@@ -353,15 +354,21 @@ JOVIAL_SYMBOL[arrow.git-dirty]='->'
 
 ### Colors
 
-Override keys in `JOVIAL_PALETTE` like `JOVIAL_SYMBOL` above.
+Jovial ships two palettes — `JOVIAL_PALETTE_DARK` and `JOVIAL_PALETTE_LIGHT` — and
+auto-selects one based on your terminal background (see [Light / Dark mode](#light--dark-mode)).
 
-All the default colors are defined as:
+Override keys like `JOVIAL_SYMBOL` above. Assigning `JOVIAL_PALETTE[key]` overrides
+that color for **both** variants (and keeps older per-key configs working on upgrade);
+assign into `JOVIAL_PALETTE_DARK[key]` / `JOVIAL_PALETTE_LIGHT[key]` to override just
+one variant.
+
+All the default colors (the dark variant) are defined as:
 
 ```zsh
 # jovial theme colors mapping
 # use `sheet:color` plugin function to see the color table
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Visual-effects
-JOVIAL_PALETTE=(
+JOVIAL_PALETTE_DARK=(
     # hostname
     host '%F{157}'
 
@@ -401,8 +408,19 @@ JOVIAL_PALETTE=(
 
     success '%F{040}'
     error '%F{203}'
+
+    # per-language dev-env tags shown in the prompt
+    dev-env.node   '%F{120}'
+    dev-env.go     '%F{086}'
+    dev-env.php    '%F{105}'
+    dev-env.python '%F{123}'
 )
 ```
+
+> The matching light-background defaults live in `JOVIAL_PALETTE_LIGHT`; see
+> [jovial.zsh-theme](https://github.com/zthxxx/jovial/blob/master/jovial.zsh-theme).
+> You can preview both palettes side by side in a browser with
+> [`dev/preview/palette-preview.zsh`](./dev/preview).
 
 **🧐 Feeling overwhelmed with those variables and numbers?**
 
@@ -431,6 +449,32 @@ It will look like this:
 <p align="center">
   <img alt="color sheet" src="https://user-images.githubusercontent.com/15135943/143198898-2cf1225c-47e4-4860-95db-2dc29ad1436e.png" width="800">
 </p>
+
+### Light / Dark mode
+
+Jovial detects whether your terminal background is light or dark and selects the
+matching palette (`JOVIAL_PALETTE_LIGHT` or `JOVIAL_PALETTE_DARK`) when the shell
+starts. Detection runs at most once per shell (the result is cached), trying in order:
+
+1. the `JOVIAL_THEME_MODE` override, if set to `light` or `dark`;
+2. the `COLORFGBG` environment variable, exported by some terminals;
+3. an [OSC 11](https://en.wikipedia.org/wiki/ANSI_escape_code#OSC_(Operating_System_Command)_sequences) background-color query to the terminal — supported by iTerm2, Ghostty, kitty, WezTerm, modern xterm, etc., and skipped inside `tmux` / `screen`;
+4. otherwise falling back to `dark`.
+
+To pin a mode and skip auto-detection, set `JOVIAL_THEME_MODE` **before** the theme
+is loaded (for oh-my-zsh, that means before `source $ZSH/oh-my-zsh.sh`):
+
+```zsh
+# ~/.zshrc
+JOVIAL_THEME_MODE=light   # or: dark
+```
+
+If you flip your terminal between light and dark while a shell is already running,
+re-apply the matching palette without restarting:
+
+```zsh
+@jov.refresh-palette
+```
 
 ### Order of Parts
 
