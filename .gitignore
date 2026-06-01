@@ -9,3 +9,6 @@
 
 *.zwc
 *._zinit
+
+venv/
+node_modules/

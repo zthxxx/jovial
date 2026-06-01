@@ -20,17 +20,40 @@ dev/e2e/render.sh          # render both light and dark
 dev/e2e/render.sh light    # render a single mode
 ```
 
-Outputs land in `dev/e2e/output/` (git-ignored):
+Outputs land in `dev/e2e/output/` (git-ignored), rendered at **2x resolution**:
 
 - `light.gif` / `dark.gif` — the animated session
 - `light.png` / `dark.png` — the final frame, for a quick still comparison
 
+## Editing the demo without rebuilding
+
+The Docker image installs **only** the toolchain (zsh, vhs, git, node, go,
+python). The zsh config and example projects live under `cases/` and are
+bind-mounted at run time, so editing them takes effect on the **next render with
+no rebuild**:
+
+```
+cases/
+  .zshrc                       # the preview shell config (sources the live theme)
+  projects/                    # example projects the dev-env detector reports on
+    node-demo/package.json
+    golang-demo/go.mod
+    python-demo/requirements.txt
+  setup.zsh                    # runtime prep: copy projects, git init, make venv
+```
+
+Add a project, tweak `.zshrc`, or change the demo flow in the `*.tape` files,
+then re-run `render.sh` — only the bind-mounted files change, the image is reused.
+`setup.zsh` holds the runtime-only steps (git repos, python venv) that can't be
+committed as plain files; the tapes run it once before driving the demo.
+
 ## How the mode is forced
 
 The theme mode comes from the environment, so one image renders both palettes:
-each tape launches the shell as `JOVIAL_THEME_MODE=light zsh` (or `dark`), which
-makes jovial trust the preset and skip terminal background detection. This keeps
-the preview deterministic regardless of whether xterm.js answers OSC 11 queries.
+each tape launches the shell as `ZDOTDIR=…/cases JOVIAL_THEME_MODE=light zsh` (or
+`dark`), which makes jovial trust the preset and skip terminal background
+detection. This keeps the preview deterministic regardless of whether xterm.js
+answers OSC 11 queries.
 
 ## OSC 11 detection correctness test
 
@@ -58,8 +81,9 @@ zsh dev/e2e/colorfgbg-test.zsh
 
 ## Files
 
-- `Dockerfile` — zsh + runtimes + demo projects; sources the live-mounted theme
-- `light.tape` / `dark.tape` — vhs scripts (background color + typed demo)
+- `Dockerfile` — toolchain only (zsh + vhs + runtimes); no config/example baked in
+- `cases/` — bind-mounted zsh config, example projects, and runtime `setup.zsh`
+- `light.tape` / `dark.tape` — vhs scripts (background color + typed demo, 2x res)
 - `render.sh` — build the image, render, and extract the still PNG
 - `osc-pty-test.py` — PTY-based correctness test for OSC 11 background detection
 - `colorfgbg-test.zsh` — unit test for the `COLORFGBG` fast path

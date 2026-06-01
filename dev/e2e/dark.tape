@@ -1,23 +1,28 @@
 # vhs tape: render jovial under a DARK terminal background.
-# usage: handled by render.sh (runs inside the preview container).
+# The demo workspace + zsh config come from the mounted dev/e2e/cases/ dir
+# (prepared at runtime by cases/setup.zsh), so edits need no image rebuild.
 #
 # vhs ref: https://github.com/charmbracelet/vhs
 
 Output "/work/dev/e2e/output/dark.gif"
 
 Set Shell "bash"
-Set FontSize 20
-Set Width 1180
-Set Height 820
-Set Padding 26
+# 2x resolution: font + canvas + padding all doubled, so the layout is unchanged
+# but every render is twice the pixels (crisper screenshots / recordings).
+Set FontSize 40
+Set Width 2360
+Set Height 1640
+Set Padding 52
 # dark terminal background; 256-color codes use xterm's fixed palette
 Set Theme { "name": "jovial-dark", "background": "#1E1E1E", "foreground": "#D6D6D6", "cursor": "#D6D6D6", "selection": "#3A3A3A", "black": "#1E1E1E", "white": "#D6D6D6", "brightBlack": "#6A6A6A", "brightWhite": "#FFFFFF" }
 
-# launch the themed shell with the mode forced, so the preview is deterministic
 Hide
 Type "clear"  Enter
-Type "JOVIAL_THEME_MODE=dark zsh"  Enter
-Sleep 1.5s
+# prepare the demo workspace (copy example projects, git init, venv) then launch
+# the themed shell -- chained with `&&` so the shell can't start before setup
+# finishes (config from the mounted cases/.zshrc, mode forced for determinism)
+Type "zsh /work/dev/e2e/cases/setup.zsh && ZDOTDIR=/work/dev/e2e/cases JOVIAL_THEME_MODE=dark zsh"  Enter
+Sleep 3s
 Type "clear"  Enter
 Sleep 500ms
 Show
@@ -39,4 +44,3 @@ Sleep 1.5s
 # a failing command -> exit-code + elapsed pin colors on the next prompt
 Type "false"  Sleep 300ms  Enter
 Sleep 1s
-
