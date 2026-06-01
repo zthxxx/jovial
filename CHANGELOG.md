@@ -13,6 +13,7 @@
   - new `JOVIAL_PALETTE_DARK` and `JOVIAL_PALETTE_LIGHT` palettes; the legacy `JOVIAL_PALETTE` is kept as a backward-compatible override slot and is migrated into both palettes.
   - set `JOVIAL_THEME_MODE=light|dark` to force a mode and skip detection entirely; tune the detect timeout with `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.1`s).
   - the reply is captured with a single `sysread` (one `read(2)`), resolving a responding terminal in ~6ms; a per-byte `read` loop took ~300ms.
+  - prefer the `COLORFGBG` env var when the terminal exports it (iTerm2, rxvt, Konsole): a zero-cost hint that skips the OSC query entirely — important for iTerm2, which is slow (>500ms) to answer OSC 11.
   - dev-env version tag colors moved into palette keys: `dev-env.node`, `dev-env.golang`, `dev-env.python`, `dev-env.php`.
   - added a Docker + [vhs](https://github.com/charmbracelet/vhs) visual preview harness under `dev/e2e/`.
 

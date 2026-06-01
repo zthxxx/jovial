@@ -49,9 +49,17 @@ python3 dev/e2e/osc-pty-test.py jovial.zsh-theme light-bel   # one scenario
 Scenarios cover light/dark backgrounds, both reply terminators (ST `ESC \` and
 BEL), and a silent terminal (must fall back without hanging or leaking).
 
+`colorfgbg-test.zsh` covers the zero-cost `COLORFGBG` fast path (the hint iTerm2 /
+rxvt / Konsole export, which skips the OSC query). No tty needed:
+
+```sh
+zsh dev/e2e/colorfgbg-test.zsh
+```
+
 ## Files
 
 - `Dockerfile` — zsh + runtimes + demo projects; sources the live-mounted theme
 - `light.tape` / `dark.tape` — vhs scripts (background color + typed demo)
 - `render.sh` — build the image, render, and extract the still PNG
 - `osc-pty-test.py` — PTY-based correctness test for OSC 11 background detection
+- `colorfgbg-test.zsh` — unit test for the `COLORFGBG` fast path

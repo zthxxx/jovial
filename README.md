@@ -360,12 +360,16 @@ background and one for a light background — and picks the right one automatica
 On the **first** prompt render, jovial resolves the active theme mode like this:
 
 1. If `JOVIAL_THEME_MODE` is already set (env var or in `~/.zshrc`), it is trusted
-   as-is and **no** terminal query is performed.
-2. Otherwise, in an interactive terminal, jovial asks the terminal for its
-   background color (an [OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
+   as-is and **no** detection is performed.
+2. Else, if the terminal exports `COLORFGBG` (e.g. iTerm2, rxvt, Konsole), its
+   background index decides the mode instantly — a zero-cost hint, no terminal
+   round-trip. This is preferred for terminals (like iTerm2) that are slow to
+   answer the OSC query below.
+3. Else, in an interactive terminal, jovial asks the terminal for its background
+   color (an [OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
    query), computes the perceived luminance, and resolves `light` or `dark`.
-3. If the terminal can't be queried (or the shell isn't interactive), it falls
-   back to `dark`.
+4. If none of the above resolve (terminal can't be queried, or the shell isn't
+   interactive), it falls back to `dark`.
 
 ```zsh
 # ~/.zshrc — force a mode and skip detection entirely (zero startup cost)

@@ -365,13 +365,43 @@ typeset -gA JOVIAL_AFFIXES=(
     fi
 }
 
+# @jov.theme-mode-from-colorfgbg()
+# resolve the mode from the `COLORFGBG` env var when present (exported by iTerm2,
+# rxvt, Konsole, ...). it encodes "fg;bg" or "fg;<extra>;bg" ANSI color indices,
+# so the background is the last `;`-separated field.
+#
+# this is a zero-cost hint -- no tty round-trip at all -- and lets terminals that
+# export it skip the OSC 11 query entirely (notably iTerm2, which is slow to
+# answer OSC 11).
+#
+# returns 0 and sets `JOVIAL_THEME_MODE` on success, or 1 if it can't decide.
+@jov.theme-mode-from-colorfgbg() {
+    # background color index is the last field
+    local bg="${COLORFGBG##*;}"
+
+    # only decide for a numeric ANSI index 0-15; anything else (empty, 'default')
+    # is inconclusive -> let the caller fall back to querying the terminal
+    [[ ${bg} == <0-15> ]] || return 1
+
+    # ANSI base indices 0-6 and 8 are dark tones; 7 and 9-15 are light tones
+    # (matches the long-standing vim `COLORFGBG` background heuristic)
+    if (( bg == 7 || bg >= 9 )); then
+        JOVIAL_THEME_MODE='light'
+    else
+        JOVIAL_THEME_MODE='dark'
+    fi
+}
+
 # @jov.theme-detect()
 # the "theme-detect" step: resolve `JOVIAL_THEME_MODE` for this session.
-# fast-paths first -- an explicit user setting, or a non-interactive shell, both
-# skip the terminal query entirely.
+# fast-paths first -- an explicit user setting, a `COLORFGBG` hint, or a
+# non-interactive shell -- each skips the terminal query entirely.
 @jov.theme-detect() {
-    # user preset the mode -> trust it, no terminal query
+    # user preset the mode -> trust it, no detection at all
     [[ -n ${JOVIAL_THEME_MODE} ]] && return
+
+    # cheap, no-I/O hint first; resolves instantly when the terminal exports it
+    @jov.theme-mode-from-colorfgbg && return
 
     # no prompt is rendered without an interactive tty, so detection is pointless;
     # the tty checks also avoid consuming bytes when stdin is not a real terminal
