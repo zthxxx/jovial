@@ -328,6 +328,7 @@ typeset -gA JOVIAL_AFFIXES=(
         stty raw -echo <&${tty_fd} 2>/dev/null
 
         # request the background color (OSC 11, ST terminated)
+        # like `printf '\e]11;?\e\\' >&${tty_fd}` but reduce redirect once overhead
         print -n -u ${tty_fd} '\e]11;?\e\\'
 
         # one raw read captures the whole reply at once; `sysread` returns as soon
