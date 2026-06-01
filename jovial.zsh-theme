@@ -21,6 +21,9 @@ autoload -Uz add-zsh-hook
 zmodload zsh/datetime
 zmodload zsh/zpty
 zmodload zsh/zle
+# https://zsh.sourceforge.io/Doc/Release/Zsh-Modules.html#The-zsh_002fsystem-Module
+# provides `sysread` for a single raw read(2), used by terminal background detection
+zmodload zsh/system
 
 # expand and execute the PROMPT variable 
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html
@@ -212,9 +215,10 @@ typeset -gA JOVIAL_PALETTE=()
 typeset -g JOVIAL_THEME_MODE="${JOVIAL_THEME_MODE}"
 
 # max seconds to wait for the terminal's OSC 11 background-color reply during
-# auto-detection. it is paid at most once (on the first prompt) and only when
-# `JOVIAL_THEME_MODE` is not preset; silent terminals just fall back to dark.
-typeset -gF JOVIAL_THEME_DETECT_TIMEOUT=0.3
+# auto-detection. a responding terminal returns in a few ms regardless of this
+# value, so it only caps the wait for terminals that never answer (then jovial
+# falls back to dark). paid at most once, and only when the mode is not preset.
+typeset -gF JOVIAL_THEME_DETECT_TIMEOUT=0.1
 
 # parts dispaly order from left to right of jovial theme at the first line
 typeset -ga JOVIAL_PROMPT_ORDER=( host user path dev-env git-info )
@@ -290,9 +294,14 @@ typeset -gA JOVIAL_AFFIXES=(
 #
 # the controlling tty MUST be switched to raw + no-echo before the query, so the
 # reply is delivered to us immediately, is not echoed to the screen, and never
-# leaks into the line editor as pre-typed input. that requires `stty`, the only
-# place jovial shells out -- it runs at most once per shell (and never when the
-# mode is preset), so the per-prompt render path stays subprocess-free.
+# leaks into the line editor as pre-typed input. that requires `stty` (~a few ms,
+# the only place jovial shells out -- once per shell, never when the mode is
+# preset), so the per-prompt render path stays subprocess-free.
+#
+# the reply itself is captured with a single `sysread` (one raw read(2)) instead
+# of a char-by-char `read` loop: the latter costs one syscall + timeout setup per
+# byte (~300ms for a 25-byte reply), while `sysread` returns the whole reply at
+# once in a few ms.
 #
 # reply format (xterm OSC 11):  ESC ] 11 ; rgb:RRRR/GGGG/BBBB <terminator>
 # each channel is 1-4 hex digits; <terminator> is BEL (\a) or ST (ESC \).
@@ -300,7 +309,7 @@ typeset -gA JOVIAL_AFFIXES=(
 #   https://invisible-island.net/xterm/ctlseqs/ctlseqs.html  (OSC 10/11)
 #   https://en.wikipedia.org/wiki/ANSI_escape_code#OSC_(Operating_System_Command)_sequences
 @jov.query-terminal-background() {
-    local tty_fd tty_state
+    local tty_fd tty_state reply='' chunk=''
 
     # open one read/write fd onto the controlling terminal
     exec {tty_fd}<>/dev/tty 2>/dev/null || return 1
@@ -313,20 +322,24 @@ typeset -gA JOVIAL_AFFIXES=(
         return 1
     fi
 
-    local reply='' char=''
     {
-        # raw + no-echo: deliver bytes one at a time, no canonical line buffering,
-        # no echo of the reply onto the screen
+        # raw + no-echo: no canonical line buffering (so the reply, which has no
+        # newline, is delivered at once), no echo of the reply onto the screen
         stty raw -echo <&${tty_fd} 2>/dev/null
 
         # request the background color (OSC 11, ST terminated)
         print -n -u ${tty_fd} '\e]11;?\e\\'
 
-        # read the reply char-by-char until a terminator (BEL, or the `\` ending
-        # ST); if the terminal stays silent, the per-char timeout bails the loop
-        while read -rs -k 1 -t ${JOVIAL_THEME_DETECT_TIMEOUT} -u ${tty_fd} char; do
-            reply+="${char}"
-            [[ ${char} == $'\a' || ${char} == '\\' ]] && break
+        # one raw read captures the whole reply at once; `sysread` returns as soon
+        # as any bytes arrive, or after the timeout if the terminal stays silent
+        sysread -t ${JOVIAL_THEME_DETECT_TIMEOUT} -i ${tty_fd} reply 2>/dev/null
+
+        # only if the reply arrived split across reads (rare), coalesce until the
+        # `rgb:.../.../...` payload is present -- bounded, each read returns at once
+        local -i guard=0
+        while [[ -n ${reply} && ${reply} != *rgb:*/*/* ]] && (( guard++ < 8 )); do
+            sysread -t 0.05 -i ${tty_fd} chunk 2>/dev/null || break
+            reply+="${chunk}"
         done
     } always {
         # restore the tty mode and close the fd no matter what -- even on an

@@ -374,13 +374,14 @@ JOVIAL_THEME_MODE=light    # or: dark
 
 Notes:
 
-- The detection is **performance-first**: it costs at most **one** terminal
-  round-trip, paid only once on the first prompt (and never when the mode is
-  preset). It briefly switches the tty to raw/no-echo via `stty` — the only place
-  jovial shells out, and only at startup — so the reply is captured cleanly and
-  never echoed to the screen or leaked into the command line. The per-prompt
-  render path stays subprocess-free. Terminals that don't answer fall back to
-  dark after `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.3`s).
+- The detection is **performance-first**: a responding terminal is resolved in
+  **~6 ms** (one round-trip, captured with a single `sysread`/`read(2)` rather
+  than a per-byte loop). It is paid only once on the first prompt, and never when
+  the mode is preset. It briefly switches the tty to raw/no-echo via `stty` — the
+  only place jovial shells out, and only at startup — so the reply is captured
+  cleanly and never echoed to the screen or leaked into the command line. The
+  per-prompt render path stays subprocess-free. Terminals that don't answer fall
+  back to dark after `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.1`s).
 - Because it asks the **terminal emulator** (not the OS), it works the same when
   running over **SSH** or **inside a Docker container** — the query reaches the
   real terminal at the far end of the pty.

@@ -11,7 +11,8 @@
 
 - **automatic light / dark theme** based on the terminal background color. On the first prompt, jovial queries the terminal background (OSC 11) and switches between two palettes, falling back to dark when it can't be detected. Detection is performance-first (one terminal round-trip, paid once at startup; briefly toggles the tty to raw/no-echo via `stty` so the reply never leaks into the command line) and works over **SSH** and inside **Docker** (tested with iTerm2 / VSCode / Ghostty / Kitty).
   - new `JOVIAL_PALETTE_DARK` and `JOVIAL_PALETTE_LIGHT` palettes; the legacy `JOVIAL_PALETTE` is kept as a backward-compatible override slot and is migrated into both palettes.
-  - set `JOVIAL_THEME_MODE=light|dark` to force a mode and skip detection entirely; tune the detect timeout with `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.3`s).
+  - set `JOVIAL_THEME_MODE=light|dark` to force a mode and skip detection entirely; tune the detect timeout with `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.1`s).
+  - the reply is captured with a single `sysread` (one `read(2)`), resolving a responding terminal in ~6ms; a per-byte `read` loop took ~300ms.
   - dev-env version tag colors moved into palette keys: `dev-env.node`, `dev-env.golang`, `dev-env.python`, `dev-env.php`.
   - added a Docker + [vhs](https://github.com/charmbracelet/vhs) visual preview harness under `dev/e2e/`.
 
