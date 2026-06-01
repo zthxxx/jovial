@@ -9,10 +9,13 @@ Output "/work/dev/e2e/output/dark.gif"
 Set Shell "bash"
 # 2x resolution: font + canvas + padding all doubled, so the layout is unchanged
 # but every render is twice the pixels (crisper screenshots / recordings).
+Set FontFamily "Hack Nerd Font Mono"
 Set FontSize 40
 Set Width 2360
 Set Height 1640
 Set Padding 52
+# fast typing (~0.2s for a `cd <path>` command) so input doesn't slow the demo
+Set TypingSpeed 8ms
 # dark terminal background; 256-color codes use xterm's fixed palette
 Set Theme { "name": "jovial-dark", "background": "#1E1E1E", "foreground": "#D6D6D6", "cursor": "#D6D6D6", "selection": "#3A3A3A", "black": "#1E1E1E", "white": "#D6D6D6", "brightBlack": "#6A6A6A", "brightWhite": "#FFFFFF" }
 
@@ -28,19 +31,21 @@ Sleep 500ms
 Show
 
 # node project (clean git) -> host / user / path / git-clean / dev-env.node
-Type "cd ~/Project/node-demo"  Sleep 400ms  Enter
+Type "cd ~/Project/node-demo"  Enter
 Sleep 1.2s
 
 # golang project, made dirty -> git-dirty colors + dev-env.golang
-Type "cd ~/Project/golang-demo"  Sleep 400ms  Enter
+Type "cd ~/Project/golang-demo"  Enter
 Sleep 1s
-Type "echo '// touch' >> go.mod"  Sleep 300ms  Enter
+Type "echo '// touch' >> go.mod"  Enter
 Sleep 1.2s
 
 # python project with venv active -> venv segment + dev-env.python
-Type "cd ~/Project/python-demo && source venv/bin/activate"  Sleep 400ms  Enter
+Type "cd ~/Project/python-demo && source venv/bin/activate"  Enter
 Sleep 1.5s
 
 # a failing command -> exit-code + elapsed pin colors on the next prompt
-Type "false"  Sleep 300ms  Enter
-Sleep 1s
+Type "false"  Enter
+
+# hold on the final frame for 3s after the whole demo completes
+Sleep 3s

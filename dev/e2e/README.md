@@ -34,13 +34,18 @@ no rebuild**:
 
 ```
 cases/
-  .zshrc                       # the preview shell config (sources the live theme)
+  .zshrc                       # preview shell config: zinit + jovial only, no
+                               # other plugins (based on examples/zinit.zshrc),
+                               # loading the live-mounted theme from /work
   projects/                    # example projects the dev-env detector reports on
     node-demo/package.json
     golang-demo/go.mod
     python-demo/requirements.txt
   setup.zsh                    # runtime prep: copy projects, git init, make venv
 ```
+
+`zinit` itself is pre-installed in the image (see the Dockerfile), so a render
+never clones it at run time.
 
 Add a project, tweak `.zshrc`, or change the demo flow in the `*.tape` files,
 then re-run `render.sh` — only the bind-mounted files change, the image is reused.
@@ -81,8 +86,9 @@ zsh dev/e2e/colorfgbg-test.zsh
 
 ## Files
 
-- `Dockerfile` — toolchain only (zsh + vhs + runtimes); no config/example baked in
-- `cases/` — bind-mounted zsh config, example projects, and runtime `setup.zsh`
+- `Dockerfile` — toolchain only (zsh + vhs + runtimes + zinit + Hack Nerd Font);
+  no config/example baked in
+- `cases/` — bind-mounted zsh config (zinit + jovial), example projects, `setup.zsh`
 - `light.tape` / `dark.tape` — vhs scripts (background color + typed demo, 2x res)
 - `render.sh` — build the image, render, and extract the still PNG
 - `osc-pty-test.py` — PTY-based correctness test for OSC 11 background detection
