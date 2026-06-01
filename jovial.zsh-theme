@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.5'
+export JOVIAL_VERSION='2.6.0'
 
 
 # Development code style:
@@ -92,7 +92,14 @@ typeset -gA JOVIAL_SYMBOL=(
 #   %U              => underline
 #   ${sgr_reset}    => reset all effect (provide by jovial)
 #
-typeset -gA JOVIAL_PALETTE=(
+# jovial provides two palettes, one tuned for a dark terminal background and one
+# for a light background. on the first prompt render, jovial resolves the active
+# theme mode (see `JOVIAL_THEME_MODE` and `@jov.theme-detect`) and redirects
+# `JOVIAL_PALETTE` to the matching palette, so every downstream color read stays
+# unchanged. the per-key meaning of each color is documented on the dark palette.
+#
+# colors for a dark terminal background
+typeset -gA JOVIAL_PALETTE_DARK=(
     # hostname
     host '%F{157}'
 
@@ -110,7 +117,7 @@ typeset -gA JOVIAL_PALETTE=(
 
     # virtual env activate prompt for python
     venv '%F{159}'
- 
+
     # current time when prompt render, pin at end-of-line
     time '%F{254}'
 
@@ -132,9 +139,84 @@ typeset -gA JOVIAL_PALETTE=(
 
     success '%F{040}'
     error '%F{203}'
+
+    # development environment version tags (used by `@jov.prompt-*-version`)
+    dev-env.node '%F{120}'
+    dev-env.golang '%F{086}'
+    dev-env.python '%F{123}'
+    dev-env.php '%F{105}'
 )
 
-# parts dispaly order from left to right of jovial theme at the first line 
+# colors for a light terminal background
+# darker, more saturated tones so text keeps enough contrast on a bright background
+typeset -gA JOVIAL_PALETTE_LIGHT=(
+    # hostname
+    host '%F{34}'
+
+    # common user name
+    user '%F{102}'
+
+    # only root user
+    root '%B%F{160}'
+
+    # current work dir path
+    path '%B%F{214}'
+
+    # git status info (dirty or clean / rebase / merge / cherry-pick)
+    git '%F{75}'
+
+    # virtual env activate prompt for python
+    venv '%F{30}'
+
+    # current time when prompt render, pin at end-of-line
+    time '%F{102}'
+
+    # elapsed time of last command executed
+    elapsed '%F{130}'
+
+    # exit code of last command
+    exit.mark '%F{102}'
+    exit.code '%B%F{160}'
+
+    # 'conj.': short for 'conjunction', like as, at, in, on, using
+    conj. '%F{102}'
+
+    # shell typing area pointer
+    typing '%F{102}'
+
+    # for other common case text color
+    normal '%F{102}'
+
+    success '%F{28}'
+    error '%F{160}'
+
+    # development environment version tags (used by `@jov.prompt-*-version`)
+    dev-env.node '%F{35}'
+    dev-env.golang '%F{30}'
+    dev-env.python '%F{25}'
+    dev-env.php '%F{56}'
+)
+
+# backward-compatible override slot (the pre-v2.6 single palette).
+# kept empty by default; any key you set here is migrated into BOTH palettes
+# above during `@jov.apply-theme-mode`, then this becomes the active palette.
+# after theme resolution it holds a full copy of the resolved mode's colors.
+typeset -gA JOVIAL_PALETTE=()
+
+# the active theme mode, one of: 'light' | 'dark'
+#
+# - preset it yourself (as an env var, or in `~/.zshrc`) to force a palette and
+#   skip terminal background detection entirely (zero extra startup cost)
+# - leave it empty to let jovial auto-detect from the terminal background color,
+#   falling back to 'dark' when the terminal can't be queried
+typeset -g JOVIAL_THEME_MODE="${JOVIAL_THEME_MODE}"
+
+# max seconds to wait for the terminal's OSC 11 background-color reply during
+# auto-detection. it is paid at most once (on the first prompt) and only when
+# `JOVIAL_THEME_MODE` is not preset; silent terminals just fall back to dark.
+typeset -gF JOVIAL_THEME_DETECT_TIMEOUT=0.3
+
+# parts dispaly order from left to right of jovial theme at the first line
 typeset -ga JOVIAL_PROMPT_ORDER=( host user path dev-env git-info )
 
 # prompt parts priority from high to low, for `responsive design`.
@@ -192,6 +274,124 @@ typeset -gA JOVIAL_AFFIXES=(
     current-time.suffix    ' '
 )
 
+
+
+#
+# ########## Terminal Background / Theme Mode Detection ##########
+#
+
+# @jov.query-terminal-background()
+# query the terminal background color via OSC 11 and, on success, set the global
+# `JOVIAL_THEME_MODE` to 'light' or 'dark' based on the perceived luminance.
+#
+# this works on local, SSH and inside-container (docker) sessions alike: the OSC
+# escape is interpreted by the real terminal emulator at the far end of the pty,
+# and its reply travels back the same channel.
+#
+# the controlling tty MUST be switched to raw + no-echo before the query, so the
+# reply is delivered to us immediately, is not echoed to the screen, and never
+# leaks into the line editor as pre-typed input. that requires `stty`, the only
+# place jovial shells out -- it runs at most once per shell (and never when the
+# mode is preset), so the per-prompt render path stays subprocess-free.
+#
+# reply format (xterm OSC 11):  ESC ] 11 ; rgb:RRRR/GGGG/BBBB <terminator>
+# each channel is 1-4 hex digits; <terminator> is BEL (\a) or ST (ESC \).
+# refs:
+#   https://invisible-island.net/xterm/ctlseqs/ctlseqs.html  (OSC 10/11)
+#   https://en.wikipedia.org/wiki/ANSI_escape_code#OSC_(Operating_System_Command)_sequences
+@jov.query-terminal-background() {
+    local tty_fd tty_state
+
+    # open one read/write fd onto the controlling terminal
+    exec {tty_fd}<>/dev/tty 2>/dev/null || return 1
+
+    # snapshot the current tty mode so it can be restored verbatim afterwards;
+    # bail out (leaving the tty untouched) if it can't be read
+    tty_state="$(stty -g <&${tty_fd} 2>/dev/null)"
+    if [[ -z ${tty_state} ]]; then
+        exec {tty_fd}>&-
+        return 1
+    fi
+
+    local reply='' char=''
+    {
+        # raw + no-echo: deliver bytes one at a time, no canonical line buffering,
+        # no echo of the reply onto the screen
+        stty raw -echo <&${tty_fd} 2>/dev/null
+
+        # request the background color (OSC 11, ST terminated)
+        print -n -u ${tty_fd} '\e]11;?\e\\'
+
+        # read the reply char-by-char until a terminator (BEL, or the `\` ending
+        # ST); if the terminal stays silent, the per-char timeout bails the loop
+        while read -rs -k 1 -t ${JOVIAL_THEME_DETECT_TIMEOUT} -u ${tty_fd} char; do
+            reply+="${char}"
+            [[ ${char} == $'\a' || ${char} == '\\' ]] && break
+        done
+    } always {
+        # restore the tty mode and close the fd no matter what -- even on an
+        # interrupt mid-query -- so the shell is never left in raw mode
+        stty "${tty_state}" <&${tty_fd} 2>/dev/null
+        exec {tty_fd}>&-
+    }
+
+    # parse the `rgb:` / `rgba:` hex channels, taking the high byte of each
+    [[ ${reply} =~ 'rgba?:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+)' ]] || return 1
+
+    local -i r=$(( 16#${match[1][1,2]} ))
+    local -i g=$(( 16#${match[2][1,2]} ))
+    local -i b=$(( 16#${match[3][1,2]} ))
+
+    # perceived luminance (ITU-R BT.601), range 0-255; >= 128 means a light background
+    local -i luminance=$(( (r * 299 + g * 587 + b * 114) / 1000 ))
+
+    if (( luminance >= 128 )); then
+        JOVIAL_THEME_MODE='light'
+    else
+        JOVIAL_THEME_MODE='dark'
+    fi
+}
+
+# @jov.theme-detect()
+# the "theme-detect" step: resolve `JOVIAL_THEME_MODE` for this session.
+# fast-paths first -- an explicit user setting, or a non-interactive shell, both
+# skip the terminal query entirely.
+@jov.theme-detect() {
+    # user preset the mode -> trust it, no terminal query
+    [[ -n ${JOVIAL_THEME_MODE} ]] && return
+
+    # no prompt is rendered without an interactive tty, so detection is pointless;
+    # the tty checks also avoid consuming bytes when stdin is not a real terminal
+    [[ -o interactive && -t 0 && -t 1 ]] || return
+
+    @jov.query-terminal-background
+}
+
+# @jov.apply-theme-mode()
+# the "after-theme-detect" step: finalize the mode and redirect `JOVIAL_PALETTE`
+# to the matching palette so all downstream color reads work unchanged.
+@jov.apply-theme-mode() {
+    # default to dark when detection was skipped or inconclusive
+    [[ ${JOVIAL_THEME_MODE} == 'light' || ${JOVIAL_THEME_MODE} == 'dark' ]] || JOVIAL_THEME_MODE='dark'
+
+    # compatibility (pre-v2.6): a non-empty `JOVIAL_PALETTE` means the user
+    # customized colors the old single-palette way; migrate those overrides into
+    # both palettes so they keep taking effect regardless of the resolved mode.
+    if (( ${#JOVIAL_PALETTE} )); then
+        local key=''
+        for key in ${(k)JOVIAL_PALETTE}; do
+            JOVIAL_PALETTE_DARK[${key}]="${JOVIAL_PALETTE[${key}]}"
+            JOVIAL_PALETTE_LIGHT[${key}]="${JOVIAL_PALETTE[${key}]}"
+        done
+    fi
+
+    # redirect the active palette to the resolved mode
+    if [[ ${JOVIAL_THEME_MODE} == 'light' ]]; then
+        JOVIAL_PALETTE=( "${(@kv)JOVIAL_PALETTE_LIGHT}" )
+    else
+        JOVIAL_PALETTE=( "${(@kv)JOVIAL_PALETTE_DARK}" )
+    fi
+}
 
 
 @jov.iscommand() { [[ -e ${commands[$1]} ]] }
@@ -678,7 +878,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "package.json"; then
         if @jov.iscommand node; then
             local node_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local node_prompt="%F{120}node `\node -v`"
+            local node_prompt="${JOVIAL_PALETTE[dev-env.node]}node `\node -v`"
         else
             local node_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local node_prompt="Nodejs${JOVIAL_PALETTE[normal]}]"
@@ -698,7 +898,7 @@ typeset -gA jovial_affix_lengths=()
             else
                 return 1
             fi
-            local go_prompt="%F{086}Golang ${go_version}"
+            local go_prompt="${JOVIAL_PALETTE[dev-env.golang]}Golang ${go_version}"
         else
             local go_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local go_prompt="Golang${JOVIAL_PALETTE[normal]}]"
@@ -712,7 +912,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "composer.json"; then
         if @jov.iscommand php; then
             local php_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local php_prompt="%F{105}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local php_prompt="${JOVIAL_PALETTE[dev-env.php]}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local php_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local php_prompt="php${JOVIAL_PALETTE[normal]}]"
@@ -725,16 +925,16 @@ typeset -gA jovial_affix_lengths=()
     local python_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
 
     if [[ -n ${VIRTUAL_ENV} ]] && @jov.rev-parse-find "venv"; then
-        local python_prompt="%F{123}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
+        local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
         echo "${python_prompt_prefix}${python_prompt}"
         return 0
     fi
 
     if @jov.rev-parse-find "requirements.txt"; then
         if @jov.iscommand python; then
-            local python_prompt="%F{123}`\python --version 2>&1`"
+            local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`\python --version 2>&1`"
         elif @jov.iscommand python3; then
-            local python_prompt="%F{123}`\python3 --version 2>&1`"
+            local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`\python3 --version 2>&1`"
         else
             python_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local python_prompt="Python${JOVIAL_PALETTE[normal]}]"
@@ -1009,8 +1209,14 @@ add-zsh-hook preexec @jov.exec-timestamp
     @jov.reset-prompt-parts
 
     if (( jovial_prompt_run_count == 1 )); then
+        # resolve light/dark theme mode and redirect `JOVIAL_PALETTE` before any
+        # color or affix is expanded. done here (not at source time) so that user
+        # `~/.zshrc` overrides are already in place when migrated/redirected.
+        @jov.theme-detect
+        @jov.apply-theme-mode
+
         @jov.init-affix
-        
+
         local -i dev_env_fd
         exec {dev_env_fd}<> <(@jov.dev-env-detect)
         @jov.sync-git-check

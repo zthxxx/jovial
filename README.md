@@ -311,8 +311,9 @@ Changelogs can be found in [CHANGELOG.md](./CHANGELOG.md), and the current versi
 All the elements / symbols / colors can be easily customized by overriding theme variables in `~/.zshrc`
 
 These variables are designed for customization:
+- [`JOVIAL_THEME_MODE`](#automatic-light--dark-detection)
 - [`JOVIAL_SYMBOL`](#symbols)
-- [`JOVIAL_PALETTE`](#colors)
+- [`JOVIAL_PALETTE` / `JOVIAL_PALETTE_DARK` / `JOVIAL_PALETTE_LIGHT`](#colors)
 - [`JOVIAL_PROMPT_ORDER`](#order-of-parts)
 - [`JOVIAL_PROMPT_PRIORITY`](#priority-of-parts)
 - [`JOVIAL_AFFIXES`](#affixes)
@@ -351,17 +352,70 @@ JOVIAL_SYMBOL[arrow.git-dirty]='->'
 ```
 
 
+### Automatic Light / Dark Detection
+
+Since **v2.6**, jovial ships **two palettes** — one tuned for a dark terminal
+background and one for a light background — and picks the right one automatically.
+
+On the **first** prompt render, jovial resolves the active theme mode like this:
+
+1. If `JOVIAL_THEME_MODE` is already set (env var or in `~/.zshrc`), it is trusted
+   as-is and **no** terminal query is performed.
+2. Otherwise, in an interactive terminal, jovial asks the terminal for its
+   background color (an [OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
+   query), computes the perceived luminance, and resolves `light` or `dark`.
+3. If the terminal can't be queried (or the shell isn't interactive), it falls
+   back to `dark`.
+
+```zsh
+# ~/.zshrc — force a mode and skip detection entirely (zero startup cost)
+JOVIAL_THEME_MODE=light    # or: dark
+```
+
+Notes:
+
+- The detection is **performance-first**: it costs at most **one** terminal
+  round-trip, paid only once on the first prompt (and never when the mode is
+  preset). It briefly switches the tty to raw/no-echo via `stty` — the only place
+  jovial shells out, and only at startup — so the reply is captured cleanly and
+  never echoed to the screen or leaked into the command line. The per-prompt
+  render path stays subprocess-free. Terminals that don't answer fall back to
+  dark after `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.3`s).
+- Because it asks the **terminal emulator** (not the OS), it works the same when
+  running over **SSH** or **inside a Docker container** — the query reaches the
+  real terminal at the far end of the pty.
+- Tested with **iTerm2**, **VSCode terminal (xterm.js)**, **Ghostty**, and
+  **Kitty**. (Under `tmux`/`screen`, passthrough may block the query; jovial then
+  falls back to dark — just set `JOVIAL_THEME_MODE` explicitly.)
+
 ### Colors
 
-Override keys in `JOVIAL_PALETTE` like `JOVIAL_SYMBOL` above.
+Colors live in two palettes, `JOVIAL_PALETTE_DARK` and `JOVIAL_PALETTE_LIGHT`,
+which share the same keys. After the mode is resolved, jovial copies the matching
+one into `JOVIAL_PALETTE`, so anything that reads `JOVIAL_PALETTE[...]` keeps
+working unchanged.
 
-All the default colors are defined as:
+Override a single key in whichever palette you want to tweak — same style as
+`JOVIAL_SYMBOL` above:
+
+```zsh
+# ~/.zshrc
+JOVIAL_PALETTE_DARK[path]='%B%F{220}'
+JOVIAL_PALETTE_LIGHT[path]='%B%F{208}'
+```
+
+> **Backward compatibility:** the legacy single `JOVIAL_PALETTE` still works. Any
+> key you set on it (the pre-v2.6 way) is migrated into **both** palettes on the
+> first prompt, so it keeps taking effect regardless of the detected mode. See
+> [Migration](#from-v25-to-v26).
+
+The default dark palette is defined as:
 
 ```zsh
 # jovial theme colors mapping
 # use `sheet:color` plugin function to see the color table
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html#Visual-effects
-JOVIAL_PALETTE=(
+JOVIAL_PALETTE_DARK=(
     # hostname
     host '%F{157}'
 
@@ -401,6 +455,40 @@ JOVIAL_PALETTE=(
 
     success '%F{040}'
     error '%F{203}'
+
+    # development environment version tags
+    dev-env.node '%F{120}'
+    dev-env.golang '%F{086}'
+    dev-env.python '%F{123}'
+    dev-env.php '%F{105}'
+)
+```
+
+And the default light palette (darker, more saturated tones for contrast on a
+bright background):
+
+```zsh
+JOVIAL_PALETTE_LIGHT=(
+    host '%F{34}'
+    user '%F{102}'
+    root '%B%F{160}'
+    path '%B%F{214}'
+    git '%F{75}'
+    venv '%F{30}'
+    time '%F{102}'
+    elapsed '%F{130}'
+    exit.mark '%F{102}'
+    exit.code '%B%F{160}'
+    conj. '%F{102}'
+    typing '%F{102}'
+    normal '%F{102}'
+    success '%F{28}'
+    error '%F{160}'
+
+    dev-env.node '%F{35}'
+    dev-env.golang '%F{30}'
+    dev-env.python '%F{25}'
+    dev-env.php '%F{56}'
 )
 ```
 
@@ -640,6 +728,21 @@ Some customized variables and functions have been renamed:
 - Function `_jov_type_tip_pointer` => `@jov.typing-pointer`
 - Arrows can now be replaced with variables `JOVIAL_SYMBOL[arrow.git-clean]` and `JOVIAL_SYMBOL[arrow.git-dirty]`
 - Some keys in `JOVIAL_PROMPT_PRIORITY` have been renamed: `git_info` => `git-info`, `dev_env` => `dev-env`
+
+### From v2.5 to v2.6
+
+v2.6 adds [automatic light / dark detection](#automatic-light--dark-detection)
+and splits the colors into two palettes. **Nothing breaks** — existing configs
+keep working:
+
+- The legacy `JOVIAL_PALETTE[...]` overrides are still honored: each key you set
+  is migrated into **both** `JOVIAL_PALETTE_DARK` and `JOVIAL_PALETTE_LIGHT` on
+  the first prompt, so your colors apply regardless of the detected mode.
+- To opt into per-mode colors, set keys on `JOVIAL_PALETTE_DARK` /
+  `JOVIAL_PALETTE_LIGHT` instead.
+- To disable detection, set `JOVIAL_THEME_MODE=dark` (or `light`) in `~/.zshrc`.
+- The dev-env version tag colors moved from hardcoded values into palette keys:
+  `dev-env.node`, `dev-env.golang`, `dev-env.python`, `dev-env.php`.
 
 <br />
 
