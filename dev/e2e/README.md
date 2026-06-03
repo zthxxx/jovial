@@ -37,6 +37,8 @@ cases/
   .zshrc                       # preview shell config: zinit + jovial only, no
                                # other plugins (based on examples/zinit.zshrc),
                                # loading the live-mounted theme from /work
+  gitconfig                    # git identity used for the demo commits (mounted
+                               # via GIT_CONFIG_GLOBAL, not generated at runtime)
   projects/                    # example projects the dev-env detector reports on
     node-demo/package.json
     golang-demo/go.mod

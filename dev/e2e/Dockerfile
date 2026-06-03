@@ -32,4 +32,8 @@ ENV XDG_DATA_HOME=/root/.local/share
 RUN git clone --filter=tree:0 \
         https://github.com/zdharma-continuum/zinit "${XDG_DATA_HOME}/zinit/zinit.git"
 
+# use the bind-mounted, committed git config (identity + defaultBranch) instead of
+# generating one at runtime; the path is always present via the /work repo mount.
+ENV GIT_CONFIG_GLOBAL=/work/dev/e2e/cases/gitconfig
+
 WORKDIR /work

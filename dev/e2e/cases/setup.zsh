@@ -23,10 +23,8 @@ cp -R "${cases_dir}/projects/." "${workspace}/"
 unset GIT_DIR GIT_WORK_TREE
 cd "${workspace}"
 
-# git identity so demo commits / status work
-git config --global user.email demo@jovial.theme
-git config --global user.name jovial
-git config --global init.defaultBranch main
+# git identity comes from the mounted cases/gitconfig via GIT_CONFIG_GLOBAL
+# (set in the Dockerfile), so it isn't generated here.
 
 # node-demo + golang-demo: clean git repos (exercise the git "clean" state)
 local proj
