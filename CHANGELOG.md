@@ -32,9 +32,11 @@
   parts finished in time render synchronously on the first prompt, the rest
   joins via async rerender, so a slow `git status` or a mute terminal can
   delay the first prompt by at most the budget, never stacked
-- added tests & preview harness under `dev/e2e/`:
-  a docker compose isolated test suite (`check.sh`), and
-  [vhs](https://github.com/charmbracelet/vhs) visual previews (`render.sh`)
+- added a [Taskfile](https://taskfile.dev)-driven test & preview stack under
+  `dev/` (unit / integration / e2e / preview, see `dev/README.md`), with the
+  same `task` entry points running locally, in the isolated docker e2e
+  container, and on GitHub CI (which uploads the
+  [vhs](https://github.com/charmbracelet/vhs) previews as artifacts)
 
 
 <br />

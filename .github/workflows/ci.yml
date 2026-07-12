@@ -1,0 +1,114 @@
+# CI for jovial: lint / unit / integration / e2e / preview rendering.
+#
+# Every job goes through go-task (Taskfile.yaml), so the entry points are
+# ISOMORPHIC between a local shell, the docker e2e container, and CI --
+# whatever runs here can be reproduced locally with the same `task <name>`.
+#
+# Authorization for third-party pull requests:
+#   `pull_request` runs from forks get a read-only GITHUB_TOKEN, and GitHub
+#   holds them for manual approval before any job starts -- make sure
+#   Settings -> Actions -> General -> "Fork pull request workflows" is set to
+#   "Require approval for all outside collaborators".
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# per-job `if`: same-repo pull requests are already covered by the `push` run
+# of the same ref; only fork PRs (which have no push run here) go through the
+# `pull_request` event
+jobs:
+  lint:
+    name: lint (zsh -n)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install zsh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+      - run: task lint
+
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install zsh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+      - run: task test:unit
+
+  integration:
+    name: integration tests (PTY)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: >-
+      github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install zsh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+      - run: task test:pty
+      - run: task test:integration
+
+  e2e:
+    name: e2e (docker isolated suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: >-
+      github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: task e2e
+
+  preview:
+    name: preview rendering (vhs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >-
+      github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      # renders light.tape + dark.tape (palette previews) and detect.tape,
+      # which doubles as a real OSC 11 end-to-end assertion through xterm.js
+      - run: task preview
+      # publish the rendered GIF/PNG previews so reviewers can eyeball the
+      # prompt styles right from the CI run page
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vhs-previews
+          path: |
+            dev/preview/output/*.gif
+            dev/preview/output/*.png
+          if-no-files-found: error
+          retention-days: 30
