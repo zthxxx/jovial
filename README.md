@@ -124,6 +124,8 @@ For `conda` (miniconda), you need set `conda config --set changeps1 false` to av
 
 ## Install
 
+> **Requirements**: zsh **`5.3+`** (released 2016) — relies on the builtin `add-zle-hook-widget`
+
 Just run the simple one-line install command:
 
 ```bash
@@ -357,7 +359,7 @@ JOVIAL_SYMBOL[arrow.git-dirty]='->'
 Since **v2.6**, jovial ships **two palettes** — one tuned for a dark terminal
 background and one for a light background — and picks the right one automatically.
 
-On the **first** prompt render, jovial resolves the active theme mode like this:
+Jovial resolves the active theme mode from the fastest source available:
 
 1. If `JOVIAL_THEME_MODE` is already set (env var or in `~/.zshrc`), it is trusted
    as-is and **no** detection is performed.
@@ -365,27 +367,47 @@ On the **first** prompt render, jovial resolves the active theme mode like this:
    background index decides the mode instantly — a zero-cost hint, no terminal
    round-trip. This is preferred for terminals (like iTerm2) that are slow to
    answer the OSC query below.
-3. Else, in an interactive terminal, jovial asks the terminal for its background
-   color (an [OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
-   query), computes the perceived luminance, and resolves `light` or `dark`.
-4. If none of the above resolve (terminal can't be queried, or the shell isn't
+3. Else, the terminal is asked for its actual background color (an
+   [OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html) query):
+   the query is **sent when the theme file is sourced** and its reply is
+   **collected at the first prompt**, so the round-trip overlaps the rest of
+   your `~/.zshrc` instead of delaying the first prompt. The perceived luminance
+   of the reply resolves `light` or `dark`.
+4. If none of the above resolve (terminal never answers, shell isn't
    interactive), it falls back to `dark`.
 
+In a **non-interactive** shell (scripts, pipelines, no tty) only the two env
+checks above ever run — no query, no waiting, no subprocess.
+
 ```zsh
-# ~/.zshrc — force a mode and skip detection entirely (zero startup cost)
+# ~/.zshrc — force a mode and skip detection entirely
 JOVIAL_THEME_MODE=light    # or: dark
+
+# optional: the "first paint budget" in seconds (see below)
+JOVIAL_THEME_DETECT_TIMEOUT=0.3
 ```
 
 Notes:
 
-- The detection is **performance-first**: a responding terminal is resolved in
-  **~6 ms** (one round-trip, captured with a single `sysread`/`read(2)` rather
-  than a per-byte loop). It is paid only once on the first prompt, and never when
-  the mode is preset. It briefly switches the tty to raw/no-echo via `stty` — the
-  only place jovial shells out, and only at startup — so the reply is captured
-  cleanly and never echoed to the screen or leaked into the command line. The
-  per-prompt render path stays subprocess-free. Terminals that don't answer fall
-  back to dark after `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.1`s).
+- `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.3`s) is the **first paint budget**
+  — a hard cap on how long the first prompt may wait. Everything slow — the
+  background reply, the git status check, and the dev-env probe — races **in
+  parallel** inside this one shared window: whatever finishes in time joins
+  the first render synchronously; whatever doesn't keeps running and
+  **rerenders the prompt** the moment it completes. So a slow `git status` in
+  a huge repo or a mute terminal can delay the first prompt by at most the
+  budget — never longer, and never stacked. A responsive terminal spends
+  (almost) none of it, since its reply already arrived while `~/.zshrc` was
+  loading.
+- A reply that arrives only **after** the budget is still handled: a
+  line-editor guard quietly swallows it (no `11;rgb:...` garbage on your
+  command line) and switches the palette on the spot.
+- The detection is careful with the tty: the reply is captured with `sysread`
+  (raw `read(2)`), the tty briefly switches to `-icanon -echo` via `stty`
+  (^C still works: ISIG stays on) — the only place jovial shells out, and only
+  at startup — so the reply is never echoed to the screen; keystrokes typed
+  before the first prompt are carefully separated from the reply and
+  **replayed**, not eaten. The per-prompt render path stays subprocess-free.
 - Because it asks the **terminal emulator** (not the OS), it works the same when
   running over **SSH** or **inside a Docker container** — the query reaches the
   real terminal at the far end of the pty.
@@ -431,7 +453,7 @@ JOVIAL_PALETTE_DARK=(
     root '%B%F{203}'
 
     # current work dir path
-    path '%B%F{228}%}'
+    path '%B%F{227}%}'
 
     # git status info (dirty or clean / rebase / merge / cherry-pick)
     git '%F{159}'
@@ -475,12 +497,12 @@ bright background):
 ```zsh
 JOVIAL_PALETTE_LIGHT=(
     host '%F{34}'
-    user '%F{102}'
+    user '%F{241}'
     root '%B%F{160}'
     path '%B%F{214}'
     git '%F{75}'
     venv '%F{30}'
-    time '%F{102}'
+    time '%F{242}'
     elapsed '%F{130}'
     exit.mark '%F{102}'
     exit.code '%B%F{160}'

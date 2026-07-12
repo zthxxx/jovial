@@ -7,15 +7,34 @@
 
 ## `jovial.zsh-theme@v2.6.0`
 
+> **Breaking**: minimum supported zsh is now **5.3** —
+> relies on `add-zle-hook-widget` (zsh 5.3+)
+
 ### Feat
 
-- **automatic light / dark theme** based on the terminal background color. On the first prompt, jovial queries the terminal background (OSC 11) and switches between two palettes, falling back to dark when it can't be detected. Detection is performance-first (one terminal round-trip, paid once at startup; briefly toggles the tty to raw/no-echo via `stty` so the reply never leaks into the command line) and works over **SSH** and inside **Docker** (tested with iTerm2 / VSCode / Ghostty / Kitty).
-  - new `JOVIAL_PALETTE_DARK` and `JOVIAL_PALETTE_LIGHT` palettes; the legacy `JOVIAL_PALETTE` is kept as a backward-compatible override slot and is migrated into both palettes.
-  - set `JOVIAL_THEME_MODE=light|dark` to force a mode and skip detection entirely; tune the detect timeout with `JOVIAL_THEME_DETECT_TIMEOUT` (default `0.1`s).
-  - the reply is captured with a single `sysread` (one `read(2)`), resolving a responding terminal in ~6ms; a per-byte `read` loop took ~300ms.
-  - prefer the `COLORFGBG` env var when the terminal exports it (iTerm2, rxvt, Konsole): a zero-cost hint that skips the OSC query entirely — important for iTerm2, which is slow (>500ms) to answer OSC 11.
-  - dev-env version tag colors moved into palette keys: `dev-env.node`, `dev-env.golang`, `dev-env.python`, `dev-env.php`.
-  - added a Docker + [vhs](https://github.com/charmbracelet/vhs) visual preview harness under `dev/e2e/`.
+- **automatic light / dark theme** by detecting the terminal background color
+  ([OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)),
+  falling back to dark; works over **SSH** and inside **Docker**
+  - new `JOVIAL_PALETTE_DARK` / `JOVIAL_PALETTE_LIGHT` palettes; the legacy
+    `JOVIAL_PALETTE` still works as an override slot, migrated into both
+  - preset `JOVIAL_THEME_MODE=light|dark` to skip detection entirely;
+    the `COLORFGBG` env hint is preferred whenever the terminal exports it;
+    non-interactive / tty-less shells only ever do env checks
+  - detection is fast and safe: the query is sent at theme source time and
+    collected at first prompt, so its round-trip overlaps `~/.zshrc`;
+    typed-ahead input survives; a reply arriving late is swallowed by a zle
+    guard and the palette self-corrects on the spot
+  - dev-env version tag colors moved into palette keys:
+    `dev-env.node` / `dev-env.golang` / `dev-env.python` / `dev-env.php`
+- **first paint budget** (`JOVIAL_THEME_DETECT_TIMEOUT`, default `0.3`s),
+  a hard cap on how long the first prompt may wait: the background reply,
+  git check and dev-env probe race **in parallel** within one shared window —
+  parts finished in time render synchronously on the first prompt, the rest
+  joins via async rerender, so a slow `git status` or a mute terminal can
+  delay the first prompt by at most the budget, never stacked
+- added tests & preview harness under `dev/e2e/`:
+  a docker compose isolated test suite (`check.sh`), and
+  [vhs](https://github.com/charmbracelet/vhs) visual previews (`render.sh`)
 
 
 <br />

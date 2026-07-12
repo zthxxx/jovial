@@ -62,36 +62,72 @@ each tape launches the shell as `ZDOTDIR=…/cases JOVIAL_THEME_MODE=light zsh` 
 detection. This keeps the preview deterministic regardless of whether xterm.js
 answers OSC 11 queries.
 
-## OSC 11 detection correctness test
+## Detection correctness suite (isolated, three layers)
 
-`osc-pty-test.py` is a fast, deterministic regression test for
-`@jov.query-terminal-background` (no Docker needed — just Python 3 + zsh). It
-spins up a real PTY, runs the function on the slave, and has the master act like
-a terminal emulator answering the OSC 11 query. For each scenario it asserts the
-resolved `JOVIAL_THEME_MODE` **and** that zero reply bytes leak into the shell
-input (the bug class where the prompt gets a pre-typed `11;rgb:...` line):
+Everything below runs together, fully isolated from the host environment, via
+docker compose (repo mounted **read-only**, `network_mode: none`):
 
 ```sh
-python3 dev/e2e/osc-pty-test.py             # run the whole matrix
-python3 dev/e2e/osc-pty-test.py jovial.zsh-theme light-bel   # one scenario
+dev/e2e/check.sh          # == docker compose -f dev/e2e/compose.yaml run --build --rm check
 ```
 
-Scenarios cover light/dark backgrounds, both reply terminators (ST `ESC \` and
-BEL), and a silent terminal (must fall back without hanging or leaking).
+or individually on any machine with zsh + python3 (no docker needed):
 
-`colorfgbg-test.zsh` covers the zero-cost `COLORFGBG` fast path (the hint iTerm2 /
-rxvt / Konsole export, which skips the OSC query). No tty needed:
+**Layer 1 — unit tests, no tty.** `theme-unit-test.zsh` exercises every
+detection helper in isolation: OSC 11 reply parsing (incl. single-hex-digit
+channel scaling), reply-vs-typeahead splitting, the
+`JOVIAL_THEME_DETECT_TIMEOUT` env preset, non-interactive shells doing env
+checks only, the palette-migration once-guard, and `init-affix` idempotency.
+`colorfgbg-test.zsh` covers the zero-cost `COLORFGBG` fast path.
 
 ```sh
+zsh dev/e2e/theme-unit-test.zsh
 zsh dev/e2e/colorfgbg-test.zsh
 ```
 
+**Layer 2 — real PTY.** `osc-pty-test.py` drives the synchronous query
+primitive (`@jov.query-terminal-background`) on a PTY whose master answers like
+a terminal emulator: light/dark, both reply terminators (ST / BEL), an
+OSC-11-less terminal (DA1 sentinel, no wait), a silent terminal (bounded by the
+env-preset timeout), and laggy links — asserting the mode, zero input leak, and
+the timing invariants. `session-test.py` goes one level up and drives **full
+interactive sessions** (`zsh -i` + the theme loaded from ZDOTDIR), one scenario
+per behavior around the core contract -- *the first paint budget is a hard
+cap, and everything slow races in parallel inside it*: stderr stays visible,
+typeahead is replayed, a slower-than-budget reply is swallowed + self-corrects
+the palette, the query round-trip overlaps `~/.zshrc`, the budget env preset
+is honored, ^C during the wait leaves a working shell, a mute terminal costs
+exactly one budget, a fast git check renders synchronously on the first paint
+while a slow one joins via rerender, a mute terminal + a slow git together
+still cost ONE budget (waits share the deadline, they never stack), the
+dev-env segment carries palette colors on the very first paint (workers bake
+palette tokens, resolved at compose time), a non-interactive shell does env
+checks only, and COLORFGBG / preset send no query at all.
+
+```sh
+python3 dev/e2e/osc-pty-test.py jovial.zsh-theme                  # whole matrix
+python3 dev/e2e/session-test.py jovial.zsh-theme late-reply-guard # one scenario
+```
+
+**Layer 3 — real terminal emulator.** `detect.tape` (rendered by `render.sh`)
+launches the themed shell in ttyd's xterm.js **without** a preset mode on a
+light background: its `Wait+Screen` assertions only pass when the real OSC 11
+round-trip resolved `mode=light` (dark is the fallback), stderr still prints,
+and input typed before the first prompt was replayed.
+
 ## Files
 
-- `Dockerfile` — toolchain only (zsh + vhs + runtimes + zinit + Hack Nerd Font);
-  no config/example baked in
+- `Dockerfile` — preview toolchain (zsh + vhs + runtimes + zinit + Hack Nerd
+  Font); no config/example baked in
+- `Dockerfile.check` / `compose.yaml` / `check.sh` / `run-checks.zsh` — the
+  isolated correctness suite (slim zsh + python3 image, read-only repo mount,
+  no network)
 - `cases/` — bind-mounted zsh config (zinit + jovial), example projects, `setup.zsh`
 - `light.tape` / `dark.tape` — vhs scripts (background color + typed demo, 2x res)
-- `render.sh` — build the image, render, and extract the still PNG
-- `osc-pty-test.py` — PTY-based correctness test for OSC 11 background detection
+- `detect.tape` — vhs script asserting real OSC 11 detection + stderr canary +
+  typeahead replay
+- `render.sh` — build the image, render the tapes, and extract the still PNGs
+- `theme-unit-test.zsh` — unit tests for the detection helpers
+- `osc-pty-test.py` — PTY-based correctness test for the query primitive
+- `session-test.py` — interactive-session scenarios, one per detection behavior
 - `colorfgbg-test.zsh` — unit test for the `COLORFGBG` fast path

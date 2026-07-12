@@ -1,0 +1,20 @@
+# Isolated verification for the theme-mode detection stack.
+#
+#   docker compose -f dev/e2e/compose.yaml run --build --rm check
+#   (or just: dev/e2e/check.sh)
+#
+# Isolation properties:
+#   - the repo is mounted READ-ONLY: tests can't touch the working tree
+#   - `network_mode: none`: nothing can leave the container at run time
+#   - fresh container HOME / tmp: no interference from the host zsh setup,
+#     and no interference *with* the host (cache files land in tmpfs dirs)
+services:
+  check:
+    build:
+      context: .
+      dockerfile: Dockerfile.check
+    network_mode: none
+    volumes:
+      - ../..:/repo:ro
+    working_dir: /repo
+    command: zsh /repo/dev/e2e/run-checks.zsh
