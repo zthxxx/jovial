@@ -11,7 +11,7 @@
 #   - @jov.apply-theme-mode            (palette migration runs at most once)
 #   - @jov.init-affix                  (idempotent re-expansion from templates)
 #
-# Usage: zsh dev/e2e/theme-unit-test.zsh
+# Usage: zsh dev/unit/theme-unit-test.zsh
 
 local self_dir="${0:A:h}"
 local theme_file="${self_dir}/../../jovial.zsh-theme"

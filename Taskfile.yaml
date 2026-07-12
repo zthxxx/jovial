@@ -42,23 +42,23 @@ tasks:
   test:unit:
     desc: 'unit tests: detection helpers + COLORFGBG fast path (no tty needed)'
     cmds:
-      - zsh dev/e2e/theme-unit-test.zsh
-      - zsh dev/e2e/colorfgbg-test.zsh
+      - zsh dev/unit/theme-unit-test.zsh
+      - zsh dev/unit/colorfgbg-test.zsh
 
   test:pty:
     desc: 'PTY matrix of the synchronous OSC 11 query primitive (function level)'
     cmds:
-      - python3 dev/e2e/osc-pty-test.py jovial.zsh-theme
+      - python3 dev/integration/osc-pty-test.py jovial.zsh-theme
 
   test:integration:
     desc: 'integration: full interactive-session scenarios on a real PTY, one per behavior'
     cmds:
-      - python3 dev/e2e/session-test.py jovial.zsh-theme
+      - python3 dev/integration/session-test.py jovial.zsh-theme
 
   e2e:
-    desc: 'whole test suite isolated in docker compose (repo mounted read-only, no network)'
+    desc: 'run `task test` isolated in docker compose (repo mounted read-only, no network)'
     cmds:
-      - dev/e2e/check.sh
+      - docker compose -f dev/e2e/compose.yaml run --build --rm check
 
   bench:
     desc: 'local benchmark: time 10 prompt renders of the working-tree theme'
@@ -68,22 +68,22 @@ tasks:
   preview:
     desc: record the style previews for all tapes (light / dark / detect) via docker + vhs
     cmds:
-      - dev/e2e/render.sh
+      - dev/preview/render.sh
 
   preview:light:
-    desc: record the LIGHT palette preview (dev/e2e/output/light.{gif,png})
+    desc: record the LIGHT palette preview (dev/preview/output/light.{gif,png})
     cmds:
-      - dev/e2e/render.sh light
+      - dev/preview/render.sh light
 
   preview:dark:
-    desc: record the DARK palette preview (dev/e2e/output/dark.{gif,png})
+    desc: record the DARK palette preview (dev/preview/output/dark.{gif,png})
     cmds:
-      - dev/e2e/render.sh dark
+      - dev/preview/render.sh dark
 
   preview:detect:
     desc: record + assert the real OSC 11 auto-detection e2e tape (xterm.js)
     cmds:
-      - dev/e2e/render.sh detect
+      - dev/preview/render.sh detect
 
   dev:link:
     desc: symlink the working-tree theme/plugin into the host zinit / oh-my-zsh install

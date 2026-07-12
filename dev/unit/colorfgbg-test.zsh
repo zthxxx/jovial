@@ -4,7 +4,7 @@
 # lets terminals exporting it (iTerm2, rxvt, Konsole) skip the OSC 11 query.
 # No tty needed. Exits non-zero on any failure.
 #
-# Usage: zsh dev/e2e/colorfgbg-test.zsh
+# Usage: zsh dev/unit/colorfgbg-test.zsh
 
 local self_dir="${0:A:h}"
 local theme_file="${self_dir}/../../jovial.zsh-theme"

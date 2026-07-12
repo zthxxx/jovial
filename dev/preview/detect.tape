@@ -16,7 +16,7 @@
 #
 # vhs ref: https://github.com/charmbracelet/vhs
 
-Output "/work/dev/e2e/output/detect.gif"
+Output "/work/dev/preview/output/detect.gif"
 
 Set Shell "bash"
 Set FontFamily "Hack Nerd Font Mono"
@@ -33,7 +33,7 @@ Hide
 Type "clear"  Enter
 # launch the themed shell with NO preset mode -- detection has to do the work;
 # COLORFGBG is cleared so the OSC 11 query path (not the env hint) is exercised
-Type "zsh /work/dev/e2e/cases/setup.zsh && ZDOTDIR=/work/dev/e2e/cases COLORFGBG= zsh"  Enter
+Type "zsh /work/dev/cases/setup.zsh && ZDOTDIR=/work/dev/cases COLORFGBG= zsh"  Enter
 # input typed BEFORE the first prompt: must be replayed, not eaten by detection
 Type "echo typed-ahead-$((6*7))"  Enter
 Wait /╰─/
