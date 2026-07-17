@@ -1,0 +1,23 @@
+# Isolated E2E run of the whole local test pipeline.
+#
+#   task e2e
+#   (== docker compose -f dev/e2e/compose.yaml run --build --rm check)
+#
+# The container runs the same `task test` entry as the local shell and CI
+# (lint + unit + integration), keeping all entry points isomorphic.
+#
+# Isolation properties:
+#   - the repo is mounted READ-ONLY: tests can't touch the working tree
+#   - `network_mode: none`: nothing can leave the container at run time
+#   - fresh container HOME / tmp: no interference from the host zsh setup,
+#     and no interference *with* the host
+services:
+  check:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: none
+    volumes:
+      - ../..:/repo:ro
+    working_dir: /repo
+    command: task test

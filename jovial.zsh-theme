@@ -2,7 +2,7 @@
 # https://github.com/zthxxx/jovial
 
 
-export JOVIAL_VERSION='2.5.5'
+export JOVIAL_VERSION='2.6.0'
 
 
 # Development code style:
@@ -21,6 +21,12 @@ autoload -Uz add-zsh-hook
 zmodload zsh/datetime
 zmodload zsh/zpty
 zmodload zsh/zle
+# https://zsh.sourceforge.io/Doc/Release/Zsh-Modules.html#The-zsh_002fsystem-Module
+# provides `sysread` for a single raw read(2), used by terminal background detection
+zmodload zsh/system
+# provides `zselect` to race multiple file descriptors under one deadline,
+# used by the first-paint budget window (see `@jov.first-paint-window`)
+zmodload zsh/zselect
 
 # expand and execute the PROMPT variable 
 # https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html
@@ -92,7 +98,14 @@ typeset -gA JOVIAL_SYMBOL=(
 #   %U              => underline
 #   ${sgr_reset}    => reset all effect (provide by jovial)
 #
-typeset -gA JOVIAL_PALETTE=(
+# jovial provides two palettes, one tuned for a dark terminal background and one
+# for a light background. on the first prompt render, jovial resolves the active
+# theme mode (see `JOVIAL_THEME_MODE` and `@jov.theme-detect`) and redirects
+# `JOVIAL_PALETTE` to the matching palette, so every downstream color read stays
+# unchanged. the per-key meaning of each color is documented on the dark palette.
+#
+# colors for a dark terminal background
+typeset -gA JOVIAL_PALETTE_DARK=(
     # hostname
     host '%F{157}'
 
@@ -103,14 +116,14 @@ typeset -gA JOVIAL_PALETTE=(
     root '%B%F{203}'
 
     # current work dir path
-    path '%B%F{228}%}'
+    path '%B%F{227}%}'
 
     # git status info (dirty or clean / rebase / merge / cherry-pick)
     git '%F{159}'
 
     # virtual env activate prompt for python
     venv '%F{159}'
- 
+
     # current time when prompt render, pin at end-of-line
     time '%F{254}'
 
@@ -132,9 +145,91 @@ typeset -gA JOVIAL_PALETTE=(
 
     success '%F{040}'
     error '%F{203}'
+
+    # development environment version tags (used by `@jov.prompt-*-version`)
+    dev-env.node '%F{120}'
+    dev-env.golang '%F{086}'
+    dev-env.python '%F{123}'
+    dev-env.php '%F{105}'
 )
 
-# parts dispaly order from left to right of jovial theme at the first line 
+# colors for a light terminal background
+# darker, more saturated tones so text keeps enough contrast on a bright background
+typeset -gA JOVIAL_PALETTE_LIGHT=(
+    # hostname
+    host '%F{34}'
+
+    # common user name
+    user '%F{241}'
+
+    # only root user
+    root '%B%F{160}'
+
+    # current work dir path
+    path '%B%F{214}'
+
+    # git status info (dirty or clean / rebase / merge / cherry-pick)
+    git '%F{75}'
+
+    # virtual env activate prompt for python
+    venv '%F{30}'
+
+    # current time when prompt render, pin at end-of-line
+    time '%F{242}'
+
+    # elapsed time of last command executed
+    elapsed '%F{130}'
+
+    # exit code of last command
+    exit.mark '%F{102}'
+    exit.code '%B%F{160}'
+
+    # 'conj.': short for 'conjunction', like as, at, in, on, using
+    conj. '%F{102}'
+
+    # shell typing area pointer
+    typing '%F{102}'
+
+    # for other common case text color
+    normal '%F{102}'
+
+    success '%F{28}'
+    error '%F{160}'
+
+    # development environment version tags (used by `@jov.prompt-*-version`)
+    dev-env.node '%F{35}'
+    dev-env.golang '%F{30}'
+    dev-env.python '%F{25}'
+    dev-env.php '%F{56}'
+)
+
+# backward-compatible override slot (the pre-v2.6 single palette).
+# kept empty by default; any key you set here is migrated into BOTH palettes
+# above during `@jov.apply-theme-mode`, then this becomes the active palette.
+# after theme resolution it holds a full copy of the resolved mode's colors.
+typeset -gA JOVIAL_PALETTE=()
+
+# the active theme mode, one of: 'light' | 'dark'
+#
+# - preset it yourself (as an env var, or in `~/.zshrc`) to force a palette and
+#   skip terminal background detection entirely (zero extra startup cost)
+# - leave it empty to let jovial auto-detect from the terminal background color,
+#   falling back to 'dark' when the terminal can't be queried
+typeset -g JOVIAL_THEME_MODE="${JOVIAL_THEME_MODE}"
+
+# the *first paint budget*, in seconds: a hard cap on how long the first
+# prompt may wait for everything slow -- the terminal's OSC 11 + DA1 reply,
+# the git status check, and the dev-env probe, all racing in parallel inside
+# this one shared window. whatever finishes in time joins the first render
+# synchronously; whatever doesn't keeps running async and joins by rerendering
+# the prompt once all of it is done (see `@jov.infer-prompt-rerender`).
+# the OSC query is sent at theme source time, so its round-trip overlaps the
+# rest of `~/.zshrc` and rarely spends any of this budget; a terminal that
+# answers even later than this is handled by the zle reply guard.
+# honors a value preset in the environment or before sourcing the theme.
+typeset -gF JOVIAL_THEME_DETECT_TIMEOUT="${JOVIAL_THEME_DETECT_TIMEOUT:-0.3}"
+
+# parts dispaly order from left to right of jovial theme at the first line
 typeset -ga JOVIAL_PROMPT_ORDER=( host user path dev-env git-info )
 
 # prompt parts priority from high to low, for `responsive design`.
@@ -192,6 +287,458 @@ typeset -gA JOVIAL_AFFIXES=(
     current-time.suffix    ' '
 )
 
+
+
+#
+# ########## Terminal Background / Theme Mode Detection ##########
+#
+# resolving the light/dark theme mode, cheapest source first:
+#
+#   1. `JOVIAL_THEME_MODE` preset       -- trusted as-is, zero cost
+#   2. `COLORFGBG` env hint             -- zero cost, no tty round-trip
+#   3. OSC 11 terminal query            -- one tty round-trip, overlapped:
+#      the query is *sent* at theme source time (see the call at the bottom of
+#      this file) and its reply *harvested* at first precmd, so the terminal
+#      answers while the rest of `~/.zshrc` is still loading and the first
+#      prompt (almost) never waits on it.
+#
+# in a non-interactive / tty-less shell (scripts, pipelines) only the two env
+# checks above ever run -- nothing costly, no tty access, no subprocess.
+#
+# the first prompt waits at most the *first paint budget*
+# (`JOVIAL_THEME_DETECT_TIMEOUT`) for the reply. when the terminal answers
+# later than that -- with the first prompt already on screen -- a zle
+# keybinding guard swallows the reply (which would otherwise be typed into the
+# command line as garbage like `11;rgb:1e1e/...`), then applies the fresh mode
+# and repaints on the spot.
+#
+# this works on local, SSH and inside-container (docker) sessions alike: the
+# OSC escape is interpreted by the real terminal emulator at the far end of
+# the pty, and its reply travels back the same channel.
+#
+# reply format (xterm OSC 11):  ESC ] 11 ; rgb:RRRR/GGGG/BBBB <terminator>
+# each channel is 1-4 hex digits; <terminator> is BEL (\a) or ST (ESC \).
+# the query is chased by a DA1 (Device Attributes, `ESC [ c`) whose reply
+# (`ESC [ ... c`) acts as an end-of-answers sentinel, since terminals answer
+# queries in order -- so completion is detected the instant it lands instead
+# of betting on a fixed wait, and the timeout only caps terminals that never
+# answer at all.
+# refs:
+#   https://invisible-island.net/xterm/ctlseqs/ctlseqs.html  (OSC 10/11, DA1)
+#   https://en.wikipedia.org/wiki/ANSI_escape_code#OSC_(Operating_System_Command)_sequences
+
+# in-flight query state (set by `@jov.theme-query-send`, consumed by
+# `@jov.theme-query-harvest` / `@jov.theme-query-cleanup`)
+typeset -g jovial_tty_fd='' jovial_tty_state=''
+typeset -gi jovial_theme_query_inflight=0
+
+# harvest output: the mode resolved from the reply ('light' / 'dark' / '') and
+# any user keystrokes that arrived interleaved with it (see the replay widget)
+typeset -g jovial_theme_query_result='' jovial_theme_typeahead=''
+
+# request a theme (re-)resolution at next precmd; re-sourcing the theme file
+# resets it to 1, so a re-source re-detects with fresh config
+typeset -gi jovial_theme_detect_pending=1
+
+# @jov.theme-mode-from-osc-reply( $reply_text )
+# parse an OSC 11 reply and judge the background tone; sets `REPLY` to
+# 'light' or 'dark', or returns 1 when no color payload is found
+@jov.theme-mode-from-osc-reply() {
+    [[ $1 =~ 'rgba?:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+)' ]] || return 1
+
+    # xterm scales each channel to its digit width (a 1-digit `f` means 0xff,
+    # not 0x0f), so widen single-digit channels before taking the top byte
+    local r_hex="${match[1]}" g_hex="${match[2]}" b_hex="${match[3]}"
+    (( ${#r_hex} == 1 )) && r_hex="${r_hex}${r_hex}"
+    (( ${#g_hex} == 1 )) && g_hex="${g_hex}${g_hex}"
+    (( ${#b_hex} == 1 )) && b_hex="${b_hex}${b_hex}"
+
+    local -i r=$(( 16#${r_hex[1,2]} ))
+    local -i g=$(( 16#${g_hex[1,2]} ))
+    local -i b=$(( 16#${b_hex[1,2]} ))
+
+    # perceived luminance (ITU-R BT.601), range 0-255; >= 128 means light
+    local -i luminance=$(( (r * 299 + g * 587 + b * 114) / 1000 ))
+
+    if (( luminance >= 128 )); then
+        REPLY='light'
+    else
+        REPLY='dark'
+    fi
+}
+
+# @jov.theme-split-reply( $harvested_bytes )
+# split everything the harvest read into the terminal replies (one OSC 11
+# reply, one DA1 reply) and whatever else was in the tty input queue -- which
+# can only be keystrokes the user typed ahead while `~/.zshrc` was loading.
+# sets `jovial_theme_query_result` (parsed mode or empty) and
+# `jovial_theme_typeahead` (non-reply bytes, original order preserved).
+@jov.theme-split-reply() {
+    local raw="$1"
+    jovial_theme_query_result=''
+    jovial_theme_typeahead=''
+
+    if @jov.theme-mode-from-osc-reply "${raw}"; then
+        jovial_theme_query_result="${REPLY}"
+    fi
+
+    local typeahead='' rest="${raw}" pre=''
+
+    # cut the OSC 11 reply:  ESC ] ... (BEL | ESC \)
+    pre="${rest%%$'\e]'*}"
+    if (( ${#pre} < ${#rest} )); then
+        typeahead+="${pre}"
+        rest="${rest[$(( ${#pre} + 1 )),-1]}"
+        local bel_head="${rest%%$'\a'*}" st_head="${rest%%$'\e\\'*}"
+        local -i bel_end=$(( ${#bel_head} < ${#rest} ? ${#bel_head} + 1 : 0 ))
+        local -i st_end=$((  ${#st_head}  < ${#rest} ? ${#st_head}  + 2 : 0 ))
+        local -i end=0
+        if (( bel_end && st_end )); then
+            (( end = bel_end < st_end ? bel_end : st_end ))
+        else
+            (( end = bel_end + st_end ))
+        fi
+        (( end )) || end=${#rest}    # unterminated reply: treat the tail as reply
+        rest="${rest[$(( end + 1 )),-1]}"
+    fi
+
+    # cut the DA1 reply:  ESC [ ... c
+    pre="${rest%%$'\e['*}"
+    if (( ${#pre} < ${#rest} )); then
+        typeahead+="${pre}"
+        rest="${rest[$(( ${#pre} + 3 )),-1]}"    # also drop the `ESC [` itself
+        local c_head="${rest%%c*}"
+        if (( ${#c_head} < ${#rest} )); then
+            rest="${rest[$(( ${#c_head} + 2 )),-1]}"
+        else
+            rest=''                              # unterminated: all reply
+        fi
+    fi
+
+    jovial_theme_typeahead="${typeahead}${rest}"
+}
+
+# @jov.replay-typeahead()
+# one-shot `zle-line-init` hook: push the keystrokes that the harvest had to
+# read together with the query reply back into zle, exactly as if they were
+# typed now -- so commands typed ahead of the first prompt survive detection
+@jov.replay-typeahead() {
+    if [[ -n ${jovial_theme_typeahead} ]]; then
+        zle -U "${jovial_theme_typeahead}"
+        jovial_theme_typeahead=''
+    fi
+    add-zle-hook-widget -d line-init @jov.replay-typeahead
+}
+
+# @jov.theme-osc-reply-guard()
+# zle widget bound to the OSC 11 reply prefix (`ESC ] 11 ;`): it fires only
+# when the terminal answers *after* detection already gave up, i.e. the reply
+# lands while the line editor is reading. swallow the reply (instead of
+# letting it type into the command line), then self-correct: apply the fresh
+# mode and repaint the prompt on the spot.
+@jov.theme-osc-reply-guard() {
+    local seq="${KEYS}" key=''
+    local -i guard=0
+    while (( guard++ < 128 )); do
+        read -t 0.05 -k 1 key 2>/dev/null || break
+        seq+="${key}"
+        # the whole answer ends with the DA1 reply (CSI ... c)
+        [[ ${seq} =~ $'\e\\[[?0-9;]*c' ]] && break
+    done
+
+    @jov.theme-mode-from-osc-reply "${seq}" || return 0
+    [[ ${REPLY} == "${JOVIAL_THEME_MODE}" ]] && return 0
+
+    JOVIAL_THEME_MODE="${REPLY}"
+    @jov.apply-theme-mode
+    @jov.init-affix
+    # recolor the cheap, synchronous prompt parts right away; the async parts
+    # (git-info / dev-env) catch up with the palette on the next prompt
+    @jov.set-host-name
+    @jov.set-user-name
+    @jov.set-current-dir
+    @jov.set-typing-pointer
+    @jov.set-venv-info
+    zle reset-prompt 2>/dev/null
+    return 0
+}
+
+# @jov.theme-csi-reply-guard()
+# companion guard for a late CSI-style reply arriving alone (e.g. the DA1
+# `ESC [ ? ... c` of a terminal that doesn't support OSC 11 at all): swallow
+# up to the CSI final byte so it never types into the command line
+@jov.theme-csi-reply-guard() {
+    local key=''
+    local -i guard=0
+    while (( guard++ < 64 )); do
+        read -t 0.02 -k 1 key 2>/dev/null || break
+        [[ ${key} == [a-zA-Z~] ]] && break
+    done
+}
+
+# @jov.theme-guard-bind()
+# register the late-reply guards in the common keymaps (only meaningful in
+# interactive shells where the line editor exists)
+@jov.theme-guard-bind() {
+    [[ -o zle ]] || return 0
+    zle -N @jov.theme-osc-reply-guard
+    zle -N @jov.theme-csi-reply-guard
+    local keymap=''
+    for keymap in emacs viins vicmd; do
+        bindkey -M "${keymap}" $'\e]11;' @jov.theme-osc-reply-guard 2>/dev/null
+        bindkey -M "${keymap}" $'\e[?'   @jov.theme-csi-reply-guard 2>/dev/null
+    done
+    return 0
+}
+
+# @jov.theme-query-cleanup()
+# safety net (`zshexit` hook) for a shell that dies between query send and
+# harvest: restore the tty mode so the terminal is never left in no-echo
+@jov.theme-query-cleanup() {
+    if [[ -n ${jovial_tty_fd} ]]; then
+        stty "${jovial_tty_state}" <&${jovial_tty_fd} 2>/dev/null
+        exec {jovial_tty_fd}>&-
+        jovial_tty_fd=''
+        jovial_tty_state=''
+    fi
+    add-zsh-hook -d zshexit @jov.theme-query-cleanup
+}
+
+# @jov.theme-query-send()
+# fire the OSC 11 + DA1 query at the terminal and return immediately -- the
+# reply is collected later by `@jov.theme-query-harvest`, so the round-trip
+# overlaps whatever runs in between (ideally the rest of `~/.zshrc`).
+#
+# the controlling tty is switched to `-icanon -echo` until the harvest:
+#   - `-icanon`: the reply (which has no newline) is readable immediately
+#   - `-echo`  : reply bytes are not painted onto the screen meanwhile
+# deliberately NOT `stty raw`: ISIG / OPOST stay on, so ^C keeps working and
+# output printed during the window still renders normally. `stty` (a few ms,
+# twice) is the only shell-out on this path -- never on per-prompt rendering.
+@jov.theme-query-send() {
+    (( jovial_theme_query_inflight )) && return 0
+
+    # the brace group keeps `2>/dev/null` scoped to this one open: a bare
+    # `exec {fd}<>/dev/tty 2>/dev/null` would *permanently* redirect the
+    # shell's stderr to /dev/null, since every redirection of `exec` persists
+    { exec {jovial_tty_fd}<>/dev/tty } 2>/dev/null || {
+        jovial_tty_fd=''
+        return 1
+    }
+
+    # snapshot the tty mode, to restore verbatim at harvest (or shell exit);
+    # bail out (leaving the tty untouched) if it can't be read
+    jovial_tty_state="$(stty -g <&${jovial_tty_fd} 2>/dev/null)"
+    if [[ -z ${jovial_tty_state} ]]; then
+        exec {jovial_tty_fd}>&-
+        jovial_tty_fd=''
+        return 1
+    fi
+
+    stty -icanon -echo <&${jovial_tty_fd} 2>/dev/null
+
+    # OSC 11 (ST terminated), then the DA1 sentinel (`ESC [ c`); like
+    # `printf '\e]11;?\e\\\e[c' >&${fd}` but without the redirect overhead
+    print -n -u ${jovial_tty_fd} '\e]11;?\e\\\e[c'
+
+    jovial_theme_query_inflight=1
+    add-zsh-hook zshexit @jov.theme-query-cleanup
+    @jov.theme-guard-bind
+    return 0
+}
+
+# @jov.theme-query-harvest( $deadline )
+# collect the reply of a previously sent query, then restore the tty.
+#
+#   $1 -- absolute deadline (`EPOCHREALTIME`-based) to block until while the
+#         reply is still missing; 0 (or absent) means take only what already
+#         arrived. a responding terminal returns in a single round-trip thanks
+#         to the DA1 sentinel, so the deadline only caps terminals that never
+#         answer -- it does NOT slow the common case. a reply arriving after
+#         the deadline is handled by the zle guard (`@jov.theme-osc-reply-guard`).
+#
+# the reply is read with `sysread` (raw read(2)) instead of a char-by-char
+# `read` loop: the latter costs one syscall + timeout setup per byte (~300ms
+# for a 25-byte reply), while `sysread` pulls each chunk at once in a few ms.
+@jov.theme-query-harvest() {
+    local -F deadline=${1:-0}
+
+    jovial_theme_query_result=''
+    jovial_theme_typeahead=''
+    (( jovial_theme_query_inflight )) || return 1
+    jovial_theme_query_inflight=0
+
+    local reply='' chunk=''
+    local -F remaining=0
+    local -i guard=0 grace_used=0
+
+    {
+        while (( guard++ < 64 )); do
+            remaining=$(( deadline - EPOCHREALTIME ))
+            (( remaining > 0 )) || remaining=0
+            if ! sysread -t ${remaining} -i ${jovial_tty_fd} chunk 2>/dev/null; then
+                # nothing pending right now; when a reply has *started* to
+                # arrive, grant one short grace period to let it finish rather
+                # than leaking a half-consumed reply to the line editor
+                if (( ! grace_used )) && \
+                    [[ ${reply} == *$'\e]'* || ${reply} == *$'\e['* ]]; then
+                    grace_used=1
+                    deadline=$(( EPOCHREALTIME + 0.2 ))
+                    continue
+                fi
+                break
+            fi
+            reply+="${chunk}"
+            # the DA1 reply (CSI ... c) marks the end of all answers; matched
+            # on its parameter bytes so typed-ahead arrow keys can't fake it
+            [[ ${reply} =~ $'\e\\[[?0-9;]*c' ]] && break
+        done
+    } always {
+        # restore the tty mode and close the fd no matter what -- even on an
+        # interrupt mid-read -- so the shell is never left in no-echo mode
+        stty "${jovial_tty_state}" <&${jovial_tty_fd} 2>/dev/null
+        exec {jovial_tty_fd}>&-
+        jovial_tty_fd=''
+        jovial_tty_state=''
+        add-zsh-hook -d zshexit @jov.theme-query-cleanup
+    }
+
+    @jov.theme-split-reply "${reply}"
+
+    # give back any keystrokes that were typed ahead of the reply
+    if [[ -n ${jovial_theme_typeahead} && -o zle ]]; then
+        autoload -Uz add-zle-hook-widget
+        add-zle-hook-widget line-init @jov.replay-typeahead
+    fi
+
+    [[ -n ${jovial_theme_query_result} ]]
+}
+
+# @jov.query-terminal-background()
+# synchronous query: send + blocking harvest in one call, setting the global
+# `JOVIAL_THEME_MODE` on success. kept as the self-contained primitive (and
+# for direct use / tests); the normal startup path splits send and harvest
+# apart to overlap the round-trip with `~/.zshrc` (see `@jov.theme-detect`).
+@jov.query-terminal-background() {
+    (( jovial_theme_query_inflight )) || @jov.theme-query-send || return 1
+    @jov.theme-query-harvest $(( EPOCHREALTIME + JOVIAL_THEME_DETECT_TIMEOUT )) || return 1
+    JOVIAL_THEME_MODE="${jovial_theme_query_result}"
+}
+
+# @jov.theme-mode-from-colorfgbg()
+# resolve the mode from the `COLORFGBG` env var when present (exported by
+# iTerm2, rxvt, Konsole, ...). it encodes "fg;bg" or "fg;<extra>;bg" ANSI
+# color indices, so the background is the last `;`-separated field.
+#
+# this is a zero-cost hint -- no tty round-trip at all -- and lets terminals
+# that export it skip the OSC 11 query entirely (notably iTerm2, which is
+# slow to answer OSC 11).
+#
+# returns 0 and sets `JOVIAL_THEME_MODE` on success, or 1 if it can't decide.
+@jov.theme-mode-from-colorfgbg() {
+    # background color index is the last field
+    local bg="${COLORFGBG##*;}"
+
+    # only decide for a numeric ANSI index 0-15; anything else (empty,
+    # 'default') is inconclusive -> let the caller fall back to the query
+    [[ ${bg} == <0-15> ]] || return 1
+
+    # ANSI base indices 0-6 and 8 are dark tones; 7 and 9-15 are light tones
+    # (matches the long-standing vim `COLORFGBG` background heuristic)
+    if (( bg == 7 || bg >= 9 )); then
+        JOVIAL_THEME_MODE='light'
+    else
+        JOVIAL_THEME_MODE='dark'
+    fi
+}
+
+# @jov.theme-detect( $deadline )
+# resolve `JOVIAL_THEME_MODE` for this session, cheapest source first: an
+# explicit preset, then the `COLORFGBG` env hint (both are pure env checks --
+# the ONLY thing that ever runs in a non-interactive / tty-less shell), then
+# the OSC 11 query. runs at first precmd (not at source time) so user
+# `~/.zshrc` overrides are already in place.
+#
+# the query round-trip was normally already started at source time (see
+# `@jov.theme-early-send`), so the harvest here usually returns immediately;
+# a mute terminal is capped by the given absolute deadline (the first-paint
+# budget) and a reply arriving even later than that is handled by the zle
+# reply guard -- the prompt is never blocked longer than the budget.
+@jov.theme-detect() {
+    local -F deadline=${1:-0}
+
+    # user preset the mode -> trust it, no detection at all
+    [[ -n ${JOVIAL_THEME_MODE} ]] && return 0
+
+    # cheap, no-I/O env hint; resolves instantly when the terminal exports it
+    @jov.theme-mode-from-colorfgbg && return 0
+
+    # no prompt is rendered without an interactive tty, so anything costly
+    # (tty round-trip, stty forks) is pointless there: bail out, leaving only
+    # the env checks above to have run
+    [[ -o interactive && -t 0 && -t 1 ]] || return 0
+
+    # start the query now if source time couldn't (e.g. the theme was loaded
+    # by a deferred plugin manager while the line editor was already active)
+    (( jovial_theme_query_inflight )) || @jov.theme-query-send || return 0
+
+    # harvest -- this also restores the tty and recovers typeahead
+    @jov.theme-query-harvest ${deadline}
+
+    if [[ -n ${jovial_theme_query_result} ]]; then
+        JOVIAL_THEME_MODE="${jovial_theme_query_result}"
+    fi
+    return 0
+}
+
+# @jov.theme-early-send()
+# called when the theme file is sourced (see the bottom of this file): start
+# the terminal query as early as possible so its round-trip overlaps the rest
+# of `~/.zshrc`. skipped when a fast path will resolve the mode anyway, when
+# there is no interactive tty, or when the line editor is already active
+# (theme loaded deferred -- `@jov.theme-detect` then sends at first precmd).
+@jov.theme-early-send() {
+    [[ -n ${JOVIAL_THEME_MODE} ]] && return 0
+    @jov.theme-mode-from-colorfgbg && return 0
+    [[ -o interactive && -t 0 && -t 1 ]] || return 0
+    zle 2>/dev/null && return 0
+    @jov.theme-query-send
+    return 0
+}
+
+# tracks whether the pre-v2.6 `JOVIAL_PALETTE` override slot was migrated:
+# the migration must run at most once per session, because after it
+# `JOVIAL_PALETTE` holds a full copy of the active palette, and migrating
+# that again would overwrite BOTH palettes with a single mode's colors
+typeset -gi jovial_palette_migrated=0
+
+# @jov.apply-theme-mode()
+# the "after-theme-detect" step: finalize the mode and redirect
+# `JOVIAL_PALETTE` to the matching palette so all downstream color reads work
+# unchanged. safe to call again mid-session (see the late-reply guard).
+@jov.apply-theme-mode() {
+    # default to dark when detection was skipped or inconclusive
+    [[ ${JOVIAL_THEME_MODE} == 'light' || ${JOVIAL_THEME_MODE} == 'dark' ]] || JOVIAL_THEME_MODE='dark'
+
+    # compatibility (pre-v2.6): a non-empty `JOVIAL_PALETTE` means the user
+    # customized colors the old single-palette way; migrate those overrides
+    # into both palettes so they keep taking effect regardless of the mode
+    if (( ! jovial_palette_migrated )) && (( ${#JOVIAL_PALETTE} )); then
+        local key=''
+        for key in ${(k)JOVIAL_PALETTE}; do
+            JOVIAL_PALETTE_DARK[${key}]="${JOVIAL_PALETTE[${key}]}"
+            JOVIAL_PALETTE_LIGHT[${key}]="${JOVIAL_PALETTE[${key}]}"
+        done
+    fi
+    jovial_palette_migrated=1
+
+    # redirect the active palette to the resolved mode
+    if [[ ${JOVIAL_THEME_MODE} == 'light' ]]; then
+        JOVIAL_PALETTE=( "${(@kv)JOVIAL_PALETTE_LIGHT}" )
+    else
+        JOVIAL_PALETTE=( "${(@kv)JOVIAL_PALETTE_DARK}" )
+    fi
+}
 
 
 @jov.iscommand() { [[ -e ${commands[$1]} ]] }
@@ -323,10 +870,35 @@ typeset -gA jovial_async_callbacks=()
 @jov.zpty-worker() {
     local handler=$1
 
+    # bake palette *tokens* instead of colors: this worker is a fork, and at
+    # fork time the palette may not be applied yet (theme detection races the
+    # probes on the first prompt). the callback substitutes tokens with the
+    # palette actually in effect at compose time (`@jov.detokenize-palette`),
+    # so job start order and palette readiness are fully decoupled.
+    # tokens are printable on purpose: the callback trims the output to its
+    # first..last `[[:graph:]]` char, which would strip control characters.
+    local key=''
+    for key in ${(k)JOVIAL_PALETTE_DARK} ${(k)JOVIAL_PALETTE_LIGHT} ${(k)JOVIAL_PALETTE}; do
+        JOVIAL_PALETTE[${key}]="<%jov:${key}%>"
+    done
+
     ${handler}
 
     # always print new line to avoid handler has not any output that cannot trigger callback
     echo ''
+}
+
+# @jov.detokenize-palette( $text )
+# replace the palette tokens a zpty worker baked into its output (see
+# `@jov.zpty-worker`) with the currently applied `JOVIAL_PALETTE` colors;
+# sets the substituted text into `REPLY`
+@jov.detokenize-palette() {
+    local text="$1" key=''
+    for key in ${(k)JOVIAL_PALETTE}; do
+        # the quoted pattern keeps `<`/`%` literal (not glob syntax)
+        text="${text//"<%jov:${key}%>"/${JOVIAL_PALETTE[${key}]}}"
+    done
+    REPLY="${text}"
 }
 
 # callback for zle, forward zpty output to really job callback
@@ -356,6 +928,50 @@ typeset -gA jovial_async_callbacks=()
 }
 
 
+# @jov.first-paint-window( $deadline )
+# spend what remains of the first-paint budget waiting on the still-running
+# async jobs (git check / dev-env probe): race their fds under the one shared
+# absolute deadline via `zselect`. whichever finishes in time is consumed
+# right here -- through the exact same callback path as the async flow -- so
+# it joins the first render synchronously; whatever is still running when the
+# budget runs out stays on its `zle -F` handler and rerenders the prompt once
+# all of it is done (see `@jov.infer-prompt-rerender`).
+@jov.first-paint-window() {
+    local -F deadline=${1:-0}
+
+    while (( ${#jovial_async_jobs} )); do
+        local -F remaining=$(( deadline - EPOCHREALTIME ))
+        local -i last_poll=0
+        # budget exhausted: one final zero-timeout poll still picks up jobs
+        # that finished while the deadline was being spent elsewhere (e.g. on
+        # a slow terminal reply), then stop waiting
+        local -i centisec=0
+        if (( remaining > 0 )); then
+            centisec=$(( remaining * 100 + 1 ))
+        else
+            last_poll=1
+        fi
+
+        local -a select_args=() ready=()
+        local fd=''
+        for fd in ${(v)jovial_async_jobs}; do
+            select_args+=( -r ${fd} )
+        done
+
+        # zselect timeout unit is centiseconds; non-zero status = timeout/error
+        if ! zselect -t ${centisec} -a ready ${select_args} 2>/dev/null; then
+            break
+        fi
+        # `ready` holds `-r <fd> ...`: strip the flag tokens, keep the fds
+        for fd in ${ready:#-r}; do
+            @jov.zle-callback-handler ${fd}
+        done
+
+        (( last_poll )) && break
+    done
+}
+
+
 typeset -g jovial_prompt_part_changed=false
 
 @jov.infer-prompt-rerender() {
@@ -369,8 +985,9 @@ typeset -g jovial_prompt_part_changed=false
     if [[ ${jovial_prompt_part_changed} == true ]] && (( ! ${(k)#jovial_async_jobs} )); then
         jovial_prompt_part_changed=false
 
-        # only call zle rerender while prompt prepared
-        if (( jovial_prompt_run_count > 1 )); then
+        # only call zle rerender while the line editor is actively displaying
+        # a prompt; during precmd the parts land in the upcoming render anyway
+        if zle 2>/dev/null; then
             zle reset-prompt
         fi
     fi
@@ -441,8 +1058,23 @@ typeset -gA jovial_previous_parts=() jovial_previous_lengths=()
 # store calculated lengths of `JOVIAL_AFFIXES` part
 typeset -gA jovial_affix_lengths=()
 
-# for expanding `JOVIAL_AFFIXES` values after .zshrc config overrides
+# pristine (pre-expansion) copy of `JOVIAL_AFFIXES`, captured on the first
+# `@jov.init-affix` run (i.e. after `~/.zshrc` overrides are in place): the
+# expansion below bakes palette colors into `JOVIAL_AFFIXES` in place, so any
+# re-run -- e.g. when a late terminal reply switches the palette -- must
+# re-expand from these templates, not from the already-expanded values
+typeset -gA jovial_affix_templates=()
+
+# for expanding `JOVIAL_AFFIXES` values after .zshrc config overrides;
+# safe to run repeatedly: each run re-expands from the pristine templates
 @jov.init-affix() {
+    if (( ! ${#jovial_affix_templates} )); then
+        jovial_affix_templates=( "${(@kv)JOVIAL_AFFIXES}" )
+    else
+        JOVIAL_AFFIXES=( "${(@kv)jovial_affix_templates}" )
+    fi
+    jovial_affix_lengths=()
+
     local key result
     for key in ${(k)JOVIAL_AFFIXES}; do
         # if a key ends in .dynamic then it's a dynamic value and should not be pre-expanded
@@ -678,7 +1310,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "package.json"; then
         if @jov.iscommand node; then
             local node_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local node_prompt="%F{120}node `\node -v`"
+            local node_prompt="${JOVIAL_PALETTE[dev-env.node]}node `\node -v`"
         else
             local node_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local node_prompt="Nodejs${JOVIAL_PALETTE[normal]}]"
@@ -698,7 +1330,7 @@ typeset -gA jovial_affix_lengths=()
             else
                 return 1
             fi
-            local go_prompt="%F{086}Golang ${go_version}"
+            local go_prompt="${JOVIAL_PALETTE[dev-env.golang]}Golang ${go_version}"
         else
             local go_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local go_prompt="Golang${JOVIAL_PALETTE[normal]}]"
@@ -712,7 +1344,7 @@ typeset -gA jovial_affix_lengths=()
     if @jov.rev-parse-find "composer.json"; then
         if @jov.iscommand php; then
             local php_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
-            local php_prompt="%F{105}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
+            local php_prompt="${JOVIAL_PALETTE[dev-env.php]}php `\php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "." . PHP_RELEASE_VERSION . "\n";'`"
         else
             local php_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local php_prompt="php${JOVIAL_PALETTE[normal]}]"
@@ -725,16 +1357,16 @@ typeset -gA jovial_affix_lengths=()
     local python_prompt_prefix="${JOVIAL_PALETTE[conj.]}using "
 
     if [[ -n ${VIRTUAL_ENV} ]] && @jov.rev-parse-find "venv"; then
-        local python_prompt="%F{123}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
+        local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`$(@jov.rev-parse-find venv '' true)/venv/bin/python --version 2>&1`"
         echo "${python_prompt_prefix}${python_prompt}"
         return 0
     fi
 
     if @jov.rev-parse-find "requirements.txt"; then
         if @jov.iscommand python; then
-            local python_prompt="%F{123}`\python --version 2>&1`"
+            local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`\python --version 2>&1`"
         elif @jov.iscommand python3; then
-            local python_prompt="%F{123}`\python3 --version 2>&1`"
+            local python_prompt="${JOVIAL_PALETTE[dev-env.python]}`\python3 --version 2>&1`"
         else
             python_prompt_prefix="${JOVIAL_PALETTE[normal]}[${JOVIAL_PALETTE[error]}need "
             local python_prompt="Python${JOVIAL_PALETTE[normal]}]"
@@ -762,7 +1394,11 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 @jov.set-dev-env-info() {
-    local result="$1"
+    # the segment comes from a zpty worker with palette TOKENS baked in;
+    # resolve them against the palette in effect right now (post-apply)
+    local REPLY=''
+    @jov.detokenize-palette "$1"
+    local result="${REPLY}"
     local has_changed=false
 
     if [[ -z ${result} ]]; then
@@ -793,15 +1429,6 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
     @jov.infer-prompt-rerender ${has_changed}
 }
 
-
-@jov.sync-dev-env-detect() {
-    local -i output_fd=$1
-
-    local dev_env="$(<& ${output_fd})"
-    exec {output_fd}>& -
-
-    @jov.set-dev-env-info "${dev_env}"
-}
 
 @jov.async-dev-env-detect() {
     # use cached prompt part for render, and try to update as async
@@ -961,12 +1588,6 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 }
 
 
-@jov.sync-git-check() {
-    if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
-
-    @jov.set-git-info
-}
-
 @jov.async-git-check() {
     if [[ -z ${jovial_rev_git_dir} ]]; then return; fi
 
@@ -1008,16 +1629,46 @@ add-zsh-hook preexec @jov.exec-timestamp
 
     @jov.reset-prompt-parts
 
+    # the first prompt gets one shared *first paint budget* (a hard cap on
+    # how long it may wait): the terminal background reply, the git check and
+    # the dev-env probe all race in parallel under this single absolute
+    # deadline. whatever finishes in time joins the first render
+    # synchronously; whatever doesn't keeps running async and joins via ONE
+    # `zle reset-prompt` once all of it completed (@jov.infer-prompt-rerender)
+    local -F first_paint_deadline=0
     if (( jovial_prompt_run_count == 1 )); then
+        first_paint_deadline=$(( EPOCHREALTIME + JOVIAL_THEME_DETECT_TIMEOUT ))
+    fi
+
+    # start the slow probes as parallel zpty jobs right away, so they run
+    # CONCURRENTLY with the theme-mode harvest below; their workers bake
+    # palette tokens -- not colors -- so forking before the palette is applied
+    # is safe (their callbacks colorize at compose time, always post-apply)
+    @jov.async-dev-env-detect
+    @jov.async-git-check
+
+    if (( jovial_theme_detect_pending )); then
+        # resolve light/dark theme mode and redirect `JOVIAL_PALETTE` before
+        # any color or affix is expanded. done here (not at source time) so
+        # that user `~/.zshrc` overrides are already in place when
+        # migrated/redirected; the OSC query itself was normally already sent
+        # at source time (see `@jov.theme-early-send`), so its round-trip
+        # overlapped `~/.zshrc` and rarely spends any of the budget here.
+        @jov.theme-detect ${first_paint_deadline}
+        @jov.apply-theme-mode
+
         @jov.init-affix
-        
-        local -i dev_env_fd
-        exec {dev_env_fd}<> <(@jov.dev-env-detect)
-        @jov.sync-git-check
-        @jov.sync-dev-env-detect ${dev_env_fd}
-    else
-        @jov.async-dev-env-detect
-        @jov.async-git-check
+
+        # cleared only after the whole block ran: if it was interrupted
+        # midway (e.g. ^C while waiting on a mute terminal), the next precmd
+        # retries instead of leaving the session half-initialized
+        jovial_theme_detect_pending=0
+    fi
+
+    # spend whatever remains of the budget racing the parallel probes: their
+    # callbacks compose parts with the palette and affixes just applied above
+    if (( first_paint_deadline )); then
+        @jov.first-paint-window ${first_paint_deadline}
     fi
 
     @jov.pin-execute-info ${exec_seconds} ${exit_code}
@@ -1104,3 +1755,8 @@ add-zsh-hook precmd @jov.prompt-prepare
 
 
 PROMPT='$(@jovial-prompt)'
+
+# start terminal background detection as early as possible: the OSC query
+# round-trip overlaps the rest of `~/.zshrc`, and the reply is harvested at
+# first precmd (see the Terminal Background / Theme Mode Detection section)
+@jov.theme-early-send

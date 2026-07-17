@@ -1,0 +1,96 @@
+# This is the dev/CI workflow runner definition file by https://taskfile.dev
+#
+# Usage: https://taskfile.dev/usage
+# Schema Reference: https://taskfile.dev/reference/schema
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Note:
+#   - To override variables when calling another task,
+#     you need to pass the variable with `vars` key everytime.
+#   - shell command run in [`gosh`](https://github.com/mvdan/sh) shell,
+#     interpreter with bash support
+---
+
+version: 3
+
+# https://taskfile.dev/usage/#set-and-shopt
+set: [pipefail]
+shopt: [globstar]
+
+silent: false
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - task --list-all
+
+  lint:
+    desc: syntax-check the theme and plugin files (zsh -n)
+    cmds:
+      - zsh -n jovial.zsh-theme
+      - zsh -n jovial.plugin.zsh
+
+  test:
+    desc: run every local test layer (lint + unit + pty + integration), no docker
+    cmds:
+      - task: lint
+      - task: test:unit
+      - task: test:pty
+      - task: test:integration
+
+  test:unit:
+    desc: 'unit tests: detection helpers + COLORFGBG fast path (no tty needed)'
+    cmds:
+      - zsh dev/unit/theme-unit-test.zsh
+      - zsh dev/unit/colorfgbg-test.zsh
+
+  test:pty:
+    desc: 'PTY matrix of the synchronous OSC 11 query primitive (function level)'
+    cmds:
+      - python3 dev/integration/osc-pty-test.py jovial.zsh-theme
+
+  test:integration:
+    desc: 'integration: full interactive-session scenarios on a real PTY, one per behavior'
+    cmds:
+      - python3 dev/integration/session-test.py jovial.zsh-theme
+
+  e2e:
+    desc: 'run `task test` isolated in docker compose (repo mounted read-only, no network)'
+    cmds:
+      - docker compose -f dev/e2e/compose.yaml run --build --rm check
+
+  bench:
+    desc: 'local benchmark: time 10 prompt renders of the working-tree theme'
+    cmds:
+      - zsh -il dev/benchmark.zsh
+
+  preview:
+    desc: record the style previews for all tapes (light / dark / detect) via docker + vhs
+    cmds:
+      - dev/preview/render.sh
+
+  preview:light:
+    desc: record the LIGHT palette preview (dev/preview/output/light.{gif,png})
+    cmds:
+      - dev/preview/render.sh light
+
+  preview:dark:
+    desc: record the DARK palette preview (dev/preview/output/dark.{gif,png})
+    cmds:
+      - dev/preview/render.sh dark
+
+  preview:detect:
+    desc: record + assert the real OSC 11 auto-detection e2e tape (xterm.js)
+    cmds:
+      - dev/preview/render.sh detect
+
+  dev:link:
+    desc: symlink the working-tree theme/plugin into the host zinit / oh-my-zsh install
+    cmds:
+      - zsh dev/dev-link.zsh
+
+  dev:unlink:
+    desc: remove the dev symlinks and restore the installed files
+    cmds:
+      - zsh dev/dev-unlink.zsh

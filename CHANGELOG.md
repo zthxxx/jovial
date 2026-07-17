@@ -5,6 +5,42 @@
 
 <br />
 
+## `jovial.zsh-theme@v2.6.0`
+
+> **Breaking**: minimum supported zsh is now **5.3** —
+> relies on `add-zle-hook-widget` (zsh 5.3+)
+
+### Feat
+
+- **automatic light / dark theme** by detecting the terminal background color
+  ([OSC 11](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)),
+  falling back to dark; works over **SSH** and inside **Docker**
+  - new `JOVIAL_PALETTE_DARK` / `JOVIAL_PALETTE_LIGHT` palettes; the legacy
+    `JOVIAL_PALETTE` still works as an override slot, migrated into both
+  - preset `JOVIAL_THEME_MODE=light|dark` to skip detection entirely;
+    the `COLORFGBG` env hint is preferred whenever the terminal exports it;
+    non-interactive / tty-less shells only ever do env checks
+  - detection is fast and safe: the query is sent at theme source time and
+    collected at first prompt, so its round-trip overlaps `~/.zshrc`;
+    typed-ahead input survives; a reply arriving late is swallowed by a zle
+    guard and the palette self-corrects on the spot
+  - dev-env version tag colors moved into palette keys:
+    `dev-env.node` / `dev-env.golang` / `dev-env.python` / `dev-env.php`
+- **first paint budget** (`JOVIAL_THEME_DETECT_TIMEOUT`, default `0.3`s),
+  a hard cap on how long the first prompt may wait: the background reply,
+  git check and dev-env probe race **in parallel** within one shared window —
+  parts finished in time render synchronously on the first prompt, the rest
+  joins via async rerender, so a slow `git status` or a mute terminal can
+  delay the first prompt by at most the budget, never stacked
+- added a [Taskfile](https://taskfile.dev)-driven test & preview stack under
+  `dev/` (unit / integration / e2e / preview, see `dev/README.md`), with the
+  same `task` entry points running locally, in the isolated docker e2e
+  container, and on GitHub CI (which uploads the
+  [vhs](https://github.com/charmbracelet/vhs) previews as artifacts)
+
+
+<br />
+
 ## `jovial.zsh-theme@v2.5.5`
 
 ### Fix
