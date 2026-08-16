@@ -36,6 +36,13 @@
 #                     no query bytes, no waiting
 #   colorfgbg-skip    conclusive COLORFGBG -> no query bytes sent at all
 #   preset-skip       preset JOVIAL_THEME_MODE -> no query bytes sent at all
+#   no-stty           no `stty` in PATH (busybox without the applet, e.g. an
+#                     OpenWrt router): the builtin-only collector still
+#                     resolves the mode on the first paint, no leak
+#   no-stty-late      no `stty` + reply slower than the budget: the zle guard
+#                     is armed on that path too -- swallowed, self-corrected
+#   no-stty-typeahead no `stty` + input typed before the first prompt: it is
+#                     separated from the reply and replayed, not eaten
 #
 # Command markers use `$((6*7))` so the *echoed input* (literal) can never
 # satisfy an assertion -- only real execution output ("...-42") can.
@@ -82,6 +89,17 @@ def make_slow_git(sleep_seconds):
                 f'exec {real_git} "$@"\n')
     os.chmod(shim, 0o755)
     return shim_dir
+
+
+def make_path_without_stty():
+    """a PATH made of one dir holding only what a session needs (zsh, git),
+    so `stty` -- and nothing else that could stand in for it -- is found"""
+    bin_dir = tempfile.mkdtemp(prefix='jovial-nostty-')
+    for name in ('zsh', 'git'):
+        real = shutil.which(name)
+        if real:
+            os.symlink(real, os.path.join(bin_dir, name))
+    return bin_dir
 
 
 def run_session(env=None, workdir=None, typeahead=None,
@@ -409,6 +427,59 @@ def scenario_preset_skip():
     return ok, f"query-sent={r['t_query'] is not None} mode-light={'MODE-light' in r['out']}"
 
 
+NO_STTY_PROBE = b'command -v stty >/dev/null 2>&1; echo "STTY-$((6*7))-$?"\r'
+
+
+def scenario_no_stty():
+    # `stty` unavailable (busybox without the applet, e.g. OpenWrt): the
+    # theme must not give up on detection -- the builtin `read` collector
+    # resolves the mode within the budget, and nothing leaks to the screen
+    r = run_session(tone='light',
+                    env={'PATH': make_path_without_stty()},
+                    commands=(NO_STTY_PROBE,
+                              b'echo "MODE-$JOVIAL_THEME_MODE"\r'))
+    out = r['out']
+    no_stty = 'STTY-42-1' in out
+    leaked = 'fafa' in out
+    within_budget = r['q2p'] is not None and r['q2p'] < 0.45
+    ok = no_stty and 'MODE-light' in out and not leaked and within_budget
+    return ok, (f"stty-absent={no_stty} mode-light={'MODE-light' in out} "
+                f"leaked={leaked} query->prompt={fmt(r['q2p'])}")
+
+
+def scenario_no_stty_late_reply():
+    # same as late-reply-guard, on the builtin path: the guard must be armed
+    # there too, so the late reply is swallowed and the palette self-corrects
+    r = run_session(lag=0.8, tone='light', settle=0.3,
+                    env={'PATH': make_path_without_stty()},
+                    commands=(b'echo "MODE1-$JOVIAL_THEME_MODE"\r',
+                              NO_STTY_PROBE,      # (after MODE1: keeps its timing)
+                              b'echo "MODE2-$JOVIAL_THEME_MODE"\r'))
+    out = r['out']
+    no_stty = 'STTY-42-1' in out
+    leaked = 'fafa' in out
+    ok = (no_stty and 'MODE1-dark' in out and 'MODE2-light' in out and not leaked)
+    return ok, (f"stty-absent={no_stty} fallback-first={'MODE1-dark' in out} "
+                f"self-corrected={'MODE2-light' in out} leaked={leaked}")
+
+
+def scenario_no_stty_typeahead():
+    # keystrokes typed while ~/.zshrc loads sit in the tty's canonical line
+    # buffer (no early tty switch without stty); the builtin collector reads
+    # them together with the reply -- they must be replayed, and the reply
+    # must still resolve
+    r = run_session(tone='light', typeahead=b'echo "TA-$((6*7))"\r',
+                    env={'PATH': make_path_without_stty()},
+                    commands=(NO_STTY_PROBE,
+                              b'echo "MODE-$JOVIAL_THEME_MODE"\r'))
+    out = r['out']
+    no_stty = 'STTY-42-1' in out
+    leaked = 'fafa' in out
+    ok = (no_stty and 'TA-42' in out and 'MODE-light' in out and not leaked)
+    return ok, (f"stty-absent={no_stty} typeahead-ran={'TA-42' in out} "
+                f"mode-light={'MODE-light' in out} leaked={leaked}")
+
+
 SCENARIOS = {
     'stderr-visible':    scenario_stderr_visible,
     'typeahead-replay':  scenario_typeahead_replay,
@@ -424,6 +495,9 @@ SCENARIOS = {
     'non-interactive':   scenario_non_interactive,
     'colorfgbg-skip':    scenario_colorfgbg_skip,
     'preset-skip':       scenario_preset_skip,
+    'no-stty':           scenario_no_stty,
+    'no-stty-late':      scenario_no_stty_late_reply,
+    'no-stty-typeahead': scenario_no_stty_typeahead,
 }
 
 
