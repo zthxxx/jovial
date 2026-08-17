@@ -302,6 +302,14 @@ typeset -gA JOVIAL_AFFIXES=(
 #      answers while the rest of `~/.zshrc` is still loading and the first
 #      prompt (almost) never waits on it.
 #
+# the overlapped send needs `stty` to switch the tty for the whole time the
+# reply may arrive. on a system without a usable `stty` (busybox builds
+# without the applet -- OpenWrt routers, minimal containers -- or a tty it
+# can't drive) the same query runs synchronously at first precmd instead,
+# with nothing but the `read` builtin (see `@jov.theme-query-builtin`): the
+# result is identical, the first prompt just pays one terminal round-trip
+# (still capped by the first paint budget).
+#
 # in a non-interactive / tty-less shell (scripts, pipelines) only the two env
 # checks above ever run -- nothing costly, no tty access, no subprocess.
 #
@@ -335,6 +343,10 @@ typeset -gi jovial_theme_query_inflight=0
 # harvest output: the mode resolved from the reply ('light' / 'dark' / '') and
 # any user keystrokes that arrived interleaved with it (see the replay widget)
 typeset -g jovial_theme_query_result='' jovial_theme_typeahead=''
+
+# the DA1 reply (CSI ... c) that ends the whole answer to the query; matched
+# on its parameter bytes so typed-ahead arrow keys (`ESC [ A`) can't fake it
+typeset -g jovial_theme_reply_end_regex=$'\e\\[[?0-9;]*c'
 
 # request a theme (re-)resolution at next precmd; re-sourcing the theme file
 # resets it to 1, so a re-source re-detects with fresh config
@@ -443,7 +455,7 @@ typeset -gi jovial_theme_detect_pending=1
         read -t 0.05 -k 1 key 2>/dev/null || break
         seq+="${key}"
         # the whole answer ends with the DA1 reply (CSI ... c)
-        [[ ${seq} =~ $'\e\\[[?0-9;]*c' ]] && break
+        [[ ${seq} =~ ${jovial_theme_reply_end_regex} ]] && break
     done
 
     @jov.theme-mode-from-osc-reply "${seq}" || return 0
@@ -515,8 +527,16 @@ typeset -gi jovial_theme_detect_pending=1
 # deliberately NOT `stty raw`: ISIG / OPOST stay on, so ^C keeps working and
 # output printed during the window still renders normally. `stty` (a few ms,
 # twice) is the only shell-out on this path -- never on per-prompt rendering.
+#
+# returns 1 -- with nothing sent and the tty untouched -- when the tty can't
+# be opened, or when there is no `stty` to switch it (or it can't drive this
+# tty): callers then fall back to `@jov.theme-query-builtin`.
 @jov.theme-query-send() {
     (( jovial_theme_query_inflight )) && return 0
+
+    # no external `stty` at all (busybox without the applet, e.g. OpenWrt):
+    # skip even the fork attempt, the builtin collector takes over at precmd
+    (( ${+commands[stty]} )) || return 1
 
     # the brace group keeps `2>/dev/null` scoped to this one open: a bare
     # `exec {fd}<>/dev/tty 2>/dev/null` would *permanently* redirect the
@@ -589,9 +609,8 @@ typeset -gi jovial_theme_detect_pending=1
                 break
             fi
             reply+="${chunk}"
-            # the DA1 reply (CSI ... c) marks the end of all answers; matched
-            # on its parameter bytes so typed-ahead arrow keys can't fake it
-            [[ ${reply} =~ $'\e\\[[?0-9;]*c' ]] && break
+            # the DA1 reply (CSI ... c) marks the end of all answers
+            [[ ${reply} =~ ${jovial_theme_reply_end_regex} ]] && break
         done
     } always {
         # restore the tty mode and close the fd no matter what -- even on an
@@ -603,7 +622,75 @@ typeset -gi jovial_theme_detect_pending=1
         add-zsh-hook -d zshexit @jov.theme-query-cleanup
     }
 
-    @jov.theme-split-reply "${reply}"
+    @jov.theme-reply-consume "${reply}"
+}
+
+# @jov.theme-query-builtin( $deadline )
+# fallback collector for a system without a usable `stty` (busybox built
+# without the applet -- OpenWrt routers, minimal containers -- or a tty that
+# `stty -g` can't read): the whole round-trip, send + collect, in one
+# synchronous step, using nothing but the `read` builtin.
+#
+#   $1 -- absolute deadline (`EPOCHREALTIME`-based) to wait for the reply
+#         to *start*; 0 (or absent) means take only what already arrived.
+#         same contract as `@jov.theme-query-harvest`.
+#
+# `read -s` (no echo) and `read -d` (non-canonical) switch the tty through
+# zsh's own termios calls, for exactly the duration of each `read`, which
+# also restores it by itself -- even on ^C or timeout -- so nothing external
+# is needed and the tty can never be left in a bad state.
+# the query rides as the `read` prompt string: `read` prints its prompt right
+# AFTER it turned echo off, so the reply can't possibly land while echo is
+# still on. each `read` returns at a `c` byte -- the final byte of the DA1
+# sentinel (`ESC [ ... c`) -- and the loop goes on until the whole sentinel
+# is in, since a `c` may also occur as a hex digit inside the color payload.
+#
+# without `stty` the tty can't be switched at theme source time, so the early
+# overlapped send is off the table: the first prompt pays one full terminal
+# round-trip here, capped by the deadline; a reply landing later than that is
+# handled by the zle guard, as usual.
+@jov.theme-query-builtin() {
+    local -F deadline=${1:-0}
+
+    jovial_theme_query_result=''
+    jovial_theme_typeahead=''
+
+    @jov.theme-guard-bind
+
+    local reply='' chunk=''
+    local -F remaining=0
+    local -i guard=0
+    # keep every byte verbatim: with a non-empty IFS `read` would strip the
+    # leading / trailing whitespace of each chunk (typed-ahead spaces / Enter)
+    local IFS=
+    # OSC 11 (ST terminated), then the DA1 sentinel; sent by the first `read`
+    # as its prompt (see above), the reads after it just collect the rest
+    local prompt=$'\e]11;?\e\\\e[c'
+
+    while (( guard++ < 64 )); do
+        remaining=$(( deadline - EPOCHREALTIME ))
+        (( remaining > 0 )) || remaining=0
+        chunk=''
+        # `-t` caps only the wait for the first byte of each read; once the
+        # answer started arriving, the read blocks up to its `c` -- the same
+        # grace a half-arrived reply gets in `@jov.theme-query-harvest`.
+        # (no stderr redirect here: in a non-interactive shell `read` prints
+        # its prompt -- our query -- to stderr rather than the shell's tty)
+        read -rs -d c -t ${remaining} "chunk?${prompt}" || break
+        prompt=''
+        reply+="${chunk}c"
+        [[ ${reply} =~ ${jovial_theme_reply_end_regex} ]] && break
+    done
+
+    @jov.theme-reply-consume "${reply}"
+}
+
+# @jov.theme-reply-consume( $collected_bytes )
+# common tail of both collectors: split what was read into the terminal
+# replies and the keystrokes typed ahead of them, schedule those keystrokes
+# to be replayed into the line editor, and report whether a mode came out
+@jov.theme-reply-consume() {
+    @jov.theme-split-reply "$1"
 
     # give back any keystrokes that were typed ahead of the reply
     if [[ -n ${jovial_theme_typeahead} && -o zle ]]; then
@@ -620,8 +707,12 @@ typeset -gi jovial_theme_detect_pending=1
 # for direct use / tests); the normal startup path splits send and harvest
 # apart to overlap the round-trip with `~/.zshrc` (see `@jov.theme-detect`).
 @jov.query-terminal-background() {
-    (( jovial_theme_query_inflight )) || @jov.theme-query-send || return 1
-    @jov.theme-query-harvest $(( EPOCHREALTIME + JOVIAL_THEME_DETECT_TIMEOUT )) || return 1
+    if (( jovial_theme_query_inflight )) || @jov.theme-query-send; then
+        @jov.theme-query-harvest $(( EPOCHREALTIME + JOVIAL_THEME_DETECT_TIMEOUT )) || return 1
+    else
+        # nothing could be sent ahead (no usable `stty`): builtin round-trip
+        @jov.theme-query-builtin $(( EPOCHREALTIME + JOVIAL_THEME_DETECT_TIMEOUT )) || return 1
+    fi
     JOVIAL_THEME_MODE="${jovial_theme_query_result}"
 }
 
@@ -679,11 +770,15 @@ typeset -gi jovial_theme_detect_pending=1
     [[ -o interactive && -t 0 && -t 1 ]] || return 0
 
     # start the query now if source time couldn't (e.g. the theme was loaded
-    # by a deferred plugin manager while the line editor was already active)
-    (( jovial_theme_query_inflight )) || @jov.theme-query-send || return 0
-
-    # harvest -- this also restores the tty and recovers typeahead
-    @jov.theme-query-harvest ${deadline}
+    # by a deferred plugin manager while the line editor was already active),
+    # then harvest -- this also restores the tty and recovers typeahead.
+    # without a usable `stty` nothing was (or can be) sent ahead of time: run
+    # the whole round-trip right here with the builtin-only collector instead
+    if (( jovial_theme_query_inflight )) || @jov.theme-query-send; then
+        @jov.theme-query-harvest ${deadline}
+    else
+        @jov.theme-query-builtin ${deadline}
+    fi
 
     if [[ -n ${jovial_theme_query_result} ]]; then
         JOVIAL_THEME_MODE="${jovial_theme_query_result}"

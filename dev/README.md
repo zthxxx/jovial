@@ -48,7 +48,10 @@ shells doing env checks only, the palette-migration once-guard, and
 terminal emulator: light/dark, both reply terminators (ST / BEL), an
 OSC-11-less terminal (DA1 sentinel, no wait), a silent terminal (bounded by
 the env-preset timeout), and laggy links — asserting the mode, zero input
-leak, and the timing invariants.
+leak, and the timing invariants. The whole matrix runs a second time with
+`stty` hidden from `PATH` (`nostty-*` kinds, plus payloads full of `c` hex
+digits), which forces the builtin-only `read` collector that busybox systems
+without the applet (OpenWrt) end up on.
 
 `integration/session-test.py` goes one level up and drives **full interactive
 sessions** (`zsh -i` + the theme loaded from ZDOTDIR), one scenario per
@@ -62,7 +65,9 @@ while a slow one joins via rerender, a mute terminal + a slow git together
 still cost ONE budget (waits share the deadline, they never stack), the
 dev-env segment carries palette colors on the very first paint (workers bake
 palette tokens, resolved at compose time), a non-interactive shell does env
-checks only, and COLORFGBG / preset send no query at all.
+checks only, COLORFGBG / preset send no query at all, and — with `stty`
+absent from `PATH` — the builtin collector still resolves the mode on the
+first paint, arms the late-reply guard, and replays typeahead.
 
 ```sh
 python3 dev/integration/osc-pty-test.py jovial.zsh-theme                  # whole matrix

@@ -38,6 +38,15 @@
   container, and on GitHub CI (which uploads the
   [vhs](https://github.com/charmbracelet/vhs) previews as artifacts)
 
+### Fix
+
+- theme mode detection no longer depends on an external `stty`: on a system
+  without one (busybox built without the applet — e.g. **OpenWrt** routers —
+  or a tty `stty -g` can't read) it used to silently skip the OSC 11 query
+  and always fall back to dark; now a builtin-only collector runs the same
+  query synchronously at the first prompt (`read -s -d`, no subprocess), so
+  a light terminal is detected there too — over SSH from iTerm2 included
+
 
 <br />
 

@@ -7,11 +7,17 @@
 # shell input, and that detection finishes via the DA1 sentinel (not by burning the
 # whole timeout) -- which is what makes it correct over high-latency SSH.
 #
+# The same matrix runs twice: once on the normal path (stty-driven tty switch,
+# `sysread` harvest) and once with `stty` hidden from PATH (`nostty-*` kinds),
+# which forces the builtin-only fallback collector (`read -s -d c` chain) that
+# busybox systems without the stty applet -- OpenWrt routers -- end up on.
+#
 # Usage:
 #   python3 osc-pty-test.py <theme_file>              # run the whole matrix
 #   python3 osc-pty-test.py <theme_file> <reply_kind> # run one scenario
 #     reply_kind: light-st | dark-st | light-bel | dark-bel
 #               | unsupported | silent | laggy-dark | laggy-light
+#               | nostty-<any of the above> | nostty-lightc-st | nostty-darkc-bel
 
 import os, pty, sys, select, time
 
@@ -21,6 +27,12 @@ ALL_KINDS = [
     "unsupported",   # DA1 answered but OSC 11 ignored -> falls back, fast (no wait)
     "silent",        # nothing answered -> falls back after the full deadline
     "laggy-dark", "laggy-light",  # weak-network SSH: reply delayed but still detected
+    # no `stty` in PATH -> the builtin-only collector must give the same answers
+    "nostty-light-st", "nostty-dark-st", "nostty-light-bel", "nostty-dark-bel",
+    "nostty-unsupported", "nostty-silent", "nostty-laggy-dark", "nostty-laggy-light",
+    # payloads full of `c` hex digits: the fallback reads stop at every `c`
+    # (the DA1 sentinel's final byte) and must chain on until the sentinel
+    "nostty-lightc-st", "nostty-darkc-bel",
 ]
 
 # deliberately FAR from the built-in default (0.3): the env preset must be
@@ -37,6 +49,9 @@ if len(sys.argv) <= 2:
     sys.exit(1 if rc else 0)
 
 kind = sys.argv[2]
+nostty = kind.startswith("nostty-")
+if nostty:
+    kind = kind[len("nostty-"):]
 
 ESC = b"\x1b"
 BEL = b"\x07"
@@ -46,6 +61,8 @@ DA1_REPLY = ESC + b"[?1;2c"   # a typical Device Attributes response (CSI ? 1 ; 
 COLORS = {
     "light": b"fafa/fafa/fafa",   # near-white -> light
     "dark":  b"1e1e/1f1f/2828",   # near-black -> dark
+    "lightc": b"cccc/cccc/cccc",  # light, every channel made of `c` digits
+    "darkc":  b"1c1c/2c2c/0c0c",  # dark, a `c` in every channel
 }
 
 # per-scenario terminal behavior: does it answer OSC 11 / DA1, with what tone /
@@ -72,11 +89,19 @@ def osc_reply(beh):
 # zsh script run on the slave side. time the detection, then drain any leftover
 # input in RAW mode and report how many stray bytes were pending (must be 0 = no
 # leak). RESULT_ELAPSED proves the DA1 sentinel short-circuits the wait.
+# with `nostty`, PATH is emptied around the detection call so `stty` cannot be
+# found (like a busybox without the applet), then restored for the leftover
+# check below; RESULT_STTY records what the theme saw
+hide_stty = 'saved_path=("${path[@]}"); path=(); hash -r' if nostty else ''
+show_stty = 'path=("${saved_path[@]}"); hash -r' if nostty else ''
 script = f"""
 source {theme}
+{hide_stty}
+print -r -- "RESULT_STTY=${{+commands[stty]}}"
 typeset -F start=$EPOCHREALTIME
 @jov.query-terminal-background
 typeset -F elapsed=$(( EPOCHREALTIME - start ))
+{show_stty}
 print -r -- "RESULT_MODE=${{JOVIAL_THEME_MODE}}"
 print -r -- "RESULT_ELAPSED=${{elapsed}}"
 leftover=''
@@ -141,12 +166,16 @@ def grab(key):
 mode = grab("RESULT_MODE")
 leftover = grab("RESULT_LEFTOVER")
 elapsed = grab("RESULT_ELAPSED")
+saw_stty = grab("RESULT_STTY")
 
 expect_mode = "" if kind in ("silent", "unsupported") else (
     kind.split("-")[1] if kind.startswith("laggy-") else kind.split("-")[0]
 )
+expect_mode = expect_mode.rstrip("c")     # lightc / darkc payloads resolve to light / dark
 ok_mode = (mode == expect_mode)
 ok_leak = (leftover == "0")
+# the fallback must really have been exercised: no stty visible to the theme
+ok_path = (saw_stty == ("0" if nostty else "1"))
 
 # timing invariant: only a terminal that ignores even DA1 (the "silent" case) may
 # wait out the full timeout. every other scenario -- including the laggy ones and
@@ -162,7 +191,8 @@ if kind == "silent":
 else:
     ok_time = (el is not None and el < DETECT_TIMEOUT * 0.9)
 
-status = "PASS" if (ok_mode and ok_leak and ok_time) else "FAIL"
-print(f"[{status}] kind={kind:12s} mode={mode!r} (expect {expect_mode!r}) "
-      f"leftover={leftover!r} elapsed={elapsed!r} ok_time={ok_time}")
+status = "PASS" if (ok_mode and ok_leak and ok_time and ok_path) else "FAIL"
+label = ("nostty-" if nostty else "") + kind
+print(f"[{status}] kind={label:19s} mode={mode!r} (expect {expect_mode!r}) "
+      f"leftover={leftover!r} elapsed={elapsed!r} ok_time={ok_time} stty={saw_stty!r}")
 sys.exit(0 if status == "PASS" else 1)

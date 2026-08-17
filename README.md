@@ -408,6 +408,12 @@ Notes:
   at startup — so the reply is never echoed to the screen; keystrokes typed
   before the first prompt are carefully separated from the reply and
   **replayed**, not eaten. The per-prompt render path stays subprocess-free.
+- No `stty` at all (busybox builds without the applet — e.g. **OpenWrt**
+  routers — or minimal containers)? Detection still works: the query then runs
+  synchronously at the first prompt with nothing but the `read` builtin, which
+  switches the tty by itself. Same result; the first prompt just pays one
+  terminal round-trip (still capped by the budget) instead of overlapping it
+  with `~/.zshrc`.
 - Because it asks the **terminal emulator** (not the OS), it works the same when
   running over **SSH** or **inside a Docker container** — the query reaches the
   real terminal at the far end of the pty.
