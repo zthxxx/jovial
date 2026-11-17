@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /bin/su -l zthxxx

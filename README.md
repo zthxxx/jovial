@@ -20,6 +20,8 @@
   <img src="./docs/jovial.png" alt="jovial" width="720">
 </p>
 
+**[Try Jovial in your browser →](https://jovial.zthxxx.me)** — a real Zsh terminal with Jovial, Git, Node.js and Python already installed.
+
 Jovial is designed for users who want a straightforward ZSH experience without unnecessary complexity. Whether you're new to ZSH or an experienced user, Jovial offers an intuitive interface with helpful features that enhance your command-line workflow.
 
 <br />

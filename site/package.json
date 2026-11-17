@@ -1,0 +1,26 @@
+{
+  "name": "@jovial/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build:image": "bun scripts/build-image.ts",
+    "verify:image": "bun scripts/verify-image.ts",
+    "build": "pnpm check && pnpm build:image && vite build",
+    "build:web": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "catalog:",
+    "@xterm/addon-fit": "catalog:",
+    "@xterm/xterm": "catalog:",
+    "unkernel": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

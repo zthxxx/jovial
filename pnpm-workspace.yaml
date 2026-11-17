@@ -1,0 +1,12 @@
+packages:
+  - site
+
+catalog:
+  '@fontsource-variable/jetbrains-mono': 5.3.0
+  '@types/bun': 1.4.4
+  '@xterm/addon-fit': 0.11.0
+  '@xterm/xterm': 6.0.0
+  '@zthxxx/tsconfig': 1.1.0
+  typescript: 7.0.2
+  unkernel: 0.1.0-261117-0e4b2ec
+  vite: 8.3.8

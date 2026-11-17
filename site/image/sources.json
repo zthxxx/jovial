@@ -1,0 +1,33 @@
+{
+  "unkernel": {
+    "version": "0.1.0-261117-0e4b2ec",
+    "wasmSha256": "d93cb001bafa8e96c0d87ee947ea81bb3cec27c3498c244a51cec1ded2f25a16"
+  },
+  "sources": [
+    {
+      "repository": "zdharma-continuum/zinit",
+      "revision": "d7b10fcab51ea034aa7df5d241604b3e6bf46449",
+      "sha256": "0edad49405977437aa6533b7738317dfa7e7b2b25e8d40b106ba409301e35b76"
+    },
+    {
+      "repository": "ohmyzsh/ohmyzsh",
+      "revision": "c0140703a53eb0d22be44f7bac318d0baacc927c",
+      "sha256": "9b0661db3e7466dd396de2a1591ff9b5981572417649254c9d656ac086b09251"
+    },
+    {
+      "repository": "zdharma-continuum/fast-syntax-highlighting",
+      "revision": "4672ad5dd9ad68a7effc1476d65afb7c584ce2b3",
+      "sha256": "b3cc42c674cb7fc84c225b8a36eb9c45a9f965348e235e7b3bc97c74e58c5299"
+    },
+    {
+      "repository": "zsh-users/zsh-completions",
+      "revision": "989b23277ab33e8d5e82df6aed936e846db9d8b8",
+      "sha256": "5930d81617f5cca0937383dd354c7c78efda44375c9a8808a238c8671be11c77"
+    },
+    {
+      "repository": "zsh-users/zsh-autosuggestions",
+      "revision": "85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5",
+      "sha256": "20665e469e720e674964a66854d5534b9af78cdfd438512746ecd1ade8e819ce"
+    }
+  ]
+}

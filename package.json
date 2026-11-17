@@ -1,0 +1,28 @@
+{
+  "name": "@zthxxx/jovial",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Jovial Zsh theme and browser playground",
+  "repository": "zthxxx/jovial",
+  "author": "zthxxx",
+  "license": "MIT",
+  "homepage": "https://jovial.zthxxx.me",
+  "type": "module",
+  "packageManager": "pnpm@9.6.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "bun": ">=1.4.2"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @jovial/site dev",
+    "build": "pnpm --filter @jovial/site build",
+    "check": "pnpm --filter @jovial/site check",
+    "build:image": "pnpm --filter @jovial/site build:image",
+    "verify:image": "pnpm --filter @jovial/site verify:image"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@zthxxx/tsconfig": "catalog:",
+    "typescript": "catalog:"
+  }
+}

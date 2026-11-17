@@ -1,0 +1,6 @@
+cd ~/Project/node-demo
+node index.js
+git status --short
+cd ~/Project/python-demo
+source venv/bin/activate
+python hello.py

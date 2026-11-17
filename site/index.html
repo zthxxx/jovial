@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Try Jovial in a real Zsh terminal, right in your browser. Explore Git prompts, Node.js and Python with everything already installed." />
+    <title>Jovial — live Zsh playground</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="header">
+        <a class="brand" href="https://github.com/zthxxx/jovial" aria-label="Jovial on GitHub"><svg class="brand-mark" aria-hidden="true" viewBox="0 0 16 24"><path d="m4 3 8 9-8 9" /></svg> jovial<span class="brand-context"> / playground</span></a>
+        <nav aria-label="Project"><a href="https://github.com/zthxxx/jovial#install">Install Jovial <span aria-hidden="true">↗</span></a><a href="https://github.com/zthxxx/jovial">GitHub <span aria-hidden="true">↗</span></a></nav>
+      </header>
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <h1 id="page-title">Make yourself at home.</h1>
+          <p>A real Zsh shell, with Jovial already set up. Go ahead and try it.</p>
+        </section>
+        <section class="workspace" aria-label="Live terminal">
+          <div class="terminal-bar">
+            <span class="terminal-title">zthxxx<span class="muted">@</span>unkernel <span class="terminal-path">~/Project</span></span>
+            <div class="terminal-actions"><button id="reset" type="button" title="Restart with a fresh environment">Restart</button><button id="fullscreen" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5" /></svg></button></div>
+          </div>
+          <div class="terminal-body">
+            <div id="terminal" aria-label="Interactive Zsh terminal"></div>
+            <div id="boot" class="boot" role="status" aria-live="polite">
+              <div class="boot-content"><svg class="boot-mark" aria-hidden="true" viewBox="0 0 24 32"><path d="m7 4 10 12L7 28" /></svg><h2 id="boot-title">Getting your shell ready</h2><p id="boot-detail">Checking browser support…</p><progress id="boot-progress" aria-label="Environment download"></progress><button id="retry" type="button" hidden>Try again</button></div>
+            </div>
+          </div>
+          <div class="terminal-status"><span id="status" role="status">Starting Linux</span><span id="dimensions"></span></div>
+          <div class="mobile-keys" aria-label="Terminal keys"><button type="button" data-key="escape">Esc</button><button type="button" data-key="tab">Tab</button><button type="button" data-key="interrupt">Ctrl C</button><button type="button" data-key="up" aria-label="Previous command">↑</button><button type="button" data-key="down" aria-label="Next command">↓</button></div>
+        </section>
+        <section class="explore" aria-label="Try a prompt">
+          <div class="explore-heading"><h2>See the prompt change.</h2><p>Pick a project, or type your own commands.</p></div>
+          <div class="demos" id="demos"></div>
+        </section>
+      </main>
+      <footer><p>Linux runs in this tab. Restart for a fresh environment.</p><p>Powered by <a href="https://github.com/pithings/unkernel">unkernel</a> · <a href="/runtime/NOTICE.txt">Open source</a></p></footer>
+    </div>
+    <noscript><p class="noscript">Enable JavaScript to start the terminal. You can also <a href="https://github.com/zthxxx/jovial#features--preview">view Jovial screenshots</a>.</p></noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

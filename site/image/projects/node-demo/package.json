@@ -1,0 +1,7 @@
+{
+  "name": "jovial-node-demo",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": { "start": "node index.js" }
+}

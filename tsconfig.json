@@ -1,0 +1,9 @@
+{
+  "extends": "@zthxxx/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "allowImportingTsExtensions": true
+  },
+  "include": ["site"],
+  "exclude": ["**/node_modules", "**/dist", "site/.cache", "site/public/runtime"]
+}

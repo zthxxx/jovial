@@ -12,3 +12,17 @@
 
 venv/
 node_modules/
+
+# Browser playground build output and local verification artifacts
+dist/
+site/.cache/
+site/public/runtime/
+.playwright-cli/
+.taste-skill/
+.logs/
+
+# pnpm owns the workspace lockfile
+package-lock.json
+yarn.lock
+bun.lock
+bun.lockb

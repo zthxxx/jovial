@@ -1,0 +1,78 @@
+name: Build playground
+
+on:
+  push:
+    branches-ignore:
+      - gh-pages
+    tags-ignore:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: playground-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    permissions:
+      contents: write
+      pages: write
+    env:
+      FORCE_COLOR: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build image and playground
+        run: pnpm build
+
+      - name: Verify guest environment
+        run: pnpm verify:image
+
+      - name: Publish gh-pages
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site/dist
+          cname: jovial.zthxxx.me
+          force_orphan: true
+
+      # GITHUB_TOKEN pushes do not start branch-based Pages builds:
+      # https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+      - name: Deploy published branch
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
