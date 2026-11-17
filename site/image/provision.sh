@@ -15,12 +15,23 @@ for plugin in ohmyzsh---ohmyzsh zdharma-continuum---fast-syntax-highlighting zsh
 done
 cp -R /mnt/input/theme /home/zthxxx/.local/share/zinit/plugins/zthxxx---jovial
 cp /mnt/input/zshrc /home/zthxxx/.zshrc
+install -d -m 755 /home/zthxxx/.config
+cp /mnt/image/terminal-ready.zsh /home/zthxxx/.config/jovial-preview.zsh
+printf '\nsource "$HOME/.config/jovial-preview.zsh"\n' >> /home/zthxxx/.zshrc
 cp /mnt/image/zprofile /home/zthxxx/.zprofile
 cp /mnt/image/zshenv /home/zthxxx/.zshenv
 cp /mnt/image/gitconfig /home/zthxxx/.gitconfig
 cp /mnt/image/history /home/zthxxx/.zsh_history
 cp -R /mnt/image/projects/. /home/zthxxx/Project/
 install -m 755 /mnt/image/jovial-shell /usr/local/bin/jovial-shell
+install -m 755 /mnt/image/profile-shell /usr/local/bin/jovial-profile-shell
+install -d -m 755 /home/zthxxx/.config/jovial-profile
+cp /mnt/image/profile.zsh /home/zthxxx/.config/jovial-profile/profile.zsh
+cp /mnt/image/profile.zshenv /home/zthxxx/.config/jovial-profile/.zshenv
+cp /mnt/image/profile.zshrc /home/zthxxx/.config/jovial-profile/.zshrc
+for mode in full lean minimal; do
+  cp "/mnt/input/zshrc-$mode" "/home/zthxxx/.config/jovial-profile/$mode.zsh"
+done
 printf '%s\n' /bin/zsh >> /etc/shells
 
 for project in node-demo python-demo; do
@@ -39,9 +50,11 @@ chown -R zthxxx:zthxxx /home/zthxxx
 # zinit@d7b10fc: https://github.com/zdharma-continuum/zinit/blob/d7b10fcab51ea034aa7df5d241604b3e6bf46449/zinit.zsh#L3147
 su -l zthxxx -c 'zsh -ic "zinit creinstall -q zsh-users/zsh-completions && zinit creinstall -q zdharma-continuum/fast-syntax-highlighting && rm -f ~/.zcompdump* && autoload -Uz compinit && compinit"'
 
-# PID 1 keeps a user shell on the console; the browser opens the same user through kwtty.
-sed 's@hvc0::respawn:-/bin/sh@hvc0::respawn:/usr/local/bin/jovial-shell@' /etc/inittab > /tmp/inittab
-cp /tmp/inittab /etc/inittab
+for mode in full lean minimal; do
+  cp /home/zthxxx/.zcompdump "/home/zthxxx/.config/jovial-profile/$mode.zcompdump"
+done
+chown -R zthxxx:zthxxx /home/zthxxx/.config/jovial-profile
+
 apk info -v > /etc/jovial-packages.txt
 rm -rf /root/.cache /root/.ash_history /var/cache/apk/* /tmp/*
 printf '\nJOVIAL_IMAGE_PROVISIONED\n'

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Jovial — terminal performance</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="lab">
+      <header class="page-header">
+        <div><a class="back" href="/">← Jovial preview</a><h1>Terminal performance</h1><p>Local development page. Each run boots a fresh VM; browser HTTP caches can remain warm.</p></div>
+        <a class="source" href="https://github.com/zthxxx/jovial">Source ↗</a>
+      </header>
+      <section class="controls" aria-label="Run settings">
+        <label>Plugin set <select id="variant"><option value="full">Full example</option><option value="lean" selected>Lean · no highlighting or suggestions</option><option value="minimal">Minimal · Zinit and Jovial</option></select></label>
+        <button id="run" type="button" class="primary">Start run</button>
+        <button id="compare" type="button">Compare all three</button>
+        <button id="stop" type="button" disabled>Stop</button>
+        <span id="state" role="status">Ready to measure</span>
+      </section>
+      <section class="summary" aria-label="Current run measurements">
+        <div><span class="metric-label">First prompt on screen</span><strong id="screen-time">—</strong><span class="metric-note">Host clock · includes fonts, loading and boot</span></div>
+        <div><span class="metric-label">Zsh to first prompt</span><strong id="guest-time">—</strong><span class="metric-note">Guest clock · shell startup only</span></div>
+        <div><span class="metric-label">After PTY connection</span><strong id="shell-time">—</strong><span class="metric-note">Host clock · until prompt marker is parsed</span></div>
+      </section>
+      <section class="terminal-panel" aria-label="Debug terminal">
+        <div class="terminal-toolbar"><span id="terminal-label">zthxxx@unkernel · ~/Project</span><span id="terminal-size"></span></div>
+        <div class="terminal-stage"><div id="terminal" aria-label="Interactive profiling terminal"></div><div id="terminal-cover"><div><h2 id="cover-title">Start a measurement</h2><p id="cover-detail">Choose a plugin set and start a run.</p><progress id="loading-progress" aria-label="Environment download" hidden></progress></div></div></div>
+      </section>
+      <div class="timings">
+        <section class="panel" aria-labelledby="host-title"><div class="panel-heading"><h2 id="host-title">Browser milestones</h2><span>performance.now()</span></div><p class="panel-note">Elapsed from the start of this run. Downloads and compilation may overlap.</p><table><thead><tr><th>Milestone</th><th class="number">Elapsed</th></tr></thead><tbody id="host-events"><tr><td colspan="2" class="empty">Start a run to collect browser timings.</td></tr></tbody></table></section>
+        <section class="panel" aria-labelledby="guest-title"><div class="panel-heading"><h2 id="guest-title">Guest startup stages</h2><span>EPOCHREALTIME</span></div><p class="panel-note">Measured inside Zsh. Host and guest clocks are displayed separately.</p><table><thead><tr><th>Stage</th><th class="number">Duration</th><th class="number">Elapsed</th></tr></thead><tbody id="guest-events"><tr><td colspan="3" class="empty">Guest profiling is collected after its first prompt.</td></tr></tbody></table></section>
+      </div>
+      <section class="panel" aria-labelledby="history-title"><div class="panel-heading"><h2 id="history-title">Run comparison</h2><div class="panel-actions"><button id="export" type="button" disabled>Export JSON</button><button id="clear" type="button" disabled>Clear history</button></div></div><p class="panel-note">Select a completed run to inspect its stages and function profile. The last 20 runs are saved in this browser.</p><div class="table-scroll"><table class="history-table"><thead><tr><th>Run</th><th>Plugin set</th><th>Status</th><th class="number">On screen</th><th class="number">Guest Zsh</th><th class="number">PTY → prompt</th></tr></thead><tbody id="history"><tr><td colspan="6" class="empty">No completed runs.</td></tr></tbody></table></div></section>
+      <details class="panel profile-details" id="profile-details"><summary>Guest function profile <span id="profile-label">zprof</span></summary><p class="panel-note">Raw Zsh function timings. Nested inclusive times overlap; use self time to identify work owned by a function.</p><p id="profile-cost" class="panel-note"></p><pre id="zprof">No function profile collected.</pre></details>
+      <p id="error" class="error" role="alert" hidden></p>
+    </main>
+    <script type="module" src="/src/playground.ts"></script>
+  </body>
+</html>

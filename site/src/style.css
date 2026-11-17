@@ -46,7 +46,7 @@ h1 { margin: 0; font-size: clamp(21px, 2.3vw, 30px); font-weight: 550; letter-sp
 .terminal-body { height: clamp(330px, 48vh, 540px); position: relative; }
 #terminal { position: absolute; inset: 18px 14px 8px 20px; }
 .xterm { height: 100%; }
-.xterm-viewport { background-color: var(--surface); scrollbar-color: #444 #111; scrollbar-width: thin; }
+.xterm .xterm-viewport { background-color: var(--surface); scrollbar-color: #444 #111; scrollbar-width: thin; }
 .terminal-status { height: 30px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--faint); font-size: 11px; }
 .boot { position: absolute; inset: 0; background: var(--surface); display: grid; place-items: center; padding: 32px; }
 .boot-content { max-width: 490px; width: 100%; text-align: center; }

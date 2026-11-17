@@ -17,6 +17,7 @@ node_modules/
 dist/
 site/.cache/
 site/public/runtime/
+site/public/fonts/
 .playwright-cli/
 .taste-skill/
 .logs/

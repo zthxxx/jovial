@@ -65,12 +65,13 @@ try {
       tools,
       plugins: [...lock.sources, { repository: 'zthxxx/jovial', revision: (await readFile(join(site, '.cache/input/revision'), 'utf8')).trim() }],
       defaults: { hostname: 'unkernel', user: 'zthxxx', cwd: '/home/zthxxx/Project', shell: '/usr/local/bin/jovial-shell' },
+      shell: { mode: 'lean', highlighting: false, suggestions: false, completionCache: 'prebuilt' },
       projects: [{ name: 'node-demo', branch: 'feat/greeting' }, { name: 'python-demo', branch: 'main', venv: 'venv' }],
     }, null, 2) + '\n');
   } else {
     await command(vm, 'test "$(hostname)" = unkernel; test "$(uname -m)" = riscv64; test ! -e /sys/class/net/eth0; node --version | grep "^v24\\."; python3 --version | grep "^Python 3\\.14\\."; for tool in curl zsh git tmux zoxide; do command -v "$tool"; done');
     await command(vm, "su -l zthxxx -c 'set -e; test \"$(id -un)\" = zthxxx; test \"$PWD\" = /home/zthxxx/Project; test -f node-demo/package.json; test -x python-demo/venv/bin/python; node node-demo/index.js; python-demo/venv/bin/python python-demo/hello.py'");
-    const pluginCheck = 'set -e; test -n "$JOVIAL_VERSION"; (( ${+functions[zinit]} )); (( ${+functions[_zsh_autosuggest_start]} )); (( ${+functions[_zsh_highlight]} )); (( ${+functions[gfco]} )); (( ${+aliases[g]} )); [[ ${_comps[ab]} = _ab ]]; print -r -- JOVIAL_OFFLINE_READY';
+    const pluginCheck = 'set -e; test -n "$JOVIAL_VERSION"; (( ${+functions[zinit]} )); (( ! ${+functions[_zsh_autosuggest_start]} )); (( ! ${+functions[_zsh_highlight]} )); (( ${+functions[gfco]} )); (( ${+aliases[g]} )); [[ ${_comps[ab]} = _ab ]]; print -r -- JOVIAL_OFFLINE_READY';
     const shellQuote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
     const checked = await vm.exec('/bin/su', ['-l', 'zthxxx', '-c', `zsh -ic ${shellQuote(pluginCheck)}`], { signal: AbortSignal.timeout(120_000) });
     process.stdout.write(checked.stdout);
@@ -78,6 +79,24 @@ try {
     if (checked.exitCode !== 0 || !checked.stdout.includes('JOVIAL_OFFLINE_READY')) throw new Error('Cached plugins failed to load offline');
     const theme = await command(vm, 'cat /home/zthxxx/.zshrc');
     if (theme.includes('zthxxx/zsh-history-enquirer')) throw new Error('history-enquirer is present');
+    const shell = await vm.spawn('/usr/local/bin/jovial-shell', [], { cols: 100, rows: 24 });
+    const reader = shell.output.getReader();
+    const deadline = setTimeout(() => { void shell.close(); }, 30_000);
+    try {
+      const decoder = new TextDecoder();
+      let startup = '';
+      while (!startup.includes('\x1b]777;jovial-ready\x07')) {
+        const chunk = await reader.read();
+        if (chunk.done) throw new Error('The shell exited before announcing its first prompt');
+        startup += decoder.decode(chunk.value, { stream: true });
+      }
+      if (!startup.includes('~/Project')) throw new Error('Shell readiness arrived before the expected prompt');
+      console.log('JOVIAL_FIRST_PROMPT_READY');
+    } finally {
+      clearTimeout(deadline);
+      reader.releaseLock();
+      await shell.close();
+    }
     console.log('JOVIAL_IMAGE_VERIFIED_OFFLINE');
   }
 } finally {

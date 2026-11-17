@@ -18,7 +18,8 @@
     "build": "pnpm --filter @jovial/site build",
     "check": "pnpm --filter @jovial/site check",
     "build:image": "pnpm --filter @jovial/site build:image",
-    "verify:image": "pnpm --filter @jovial/site verify:image"
+    "verify:image": "pnpm --filter @jovial/site verify:image",
+    "profile:shell": "pnpm --filter @jovial/site profile:shell"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

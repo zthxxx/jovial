@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "pnpm prepare:fonts && vite --host 127.0.0.1",
     "build:image": "bun scripts/build-image.ts",
     "verify:image": "bun scripts/verify-image.ts",
-    "build": "pnpm check && pnpm build:image && vite build",
-    "build:web": "vite build",
+    "build": "pnpm check && pnpm prepare:fonts && pnpm build:image && vite build",
+    "build:web": "pnpm prepare:fonts && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "prepare:fonts": "bun scripts/prepare-fonts.ts",
+    "profile:shell": "bun scripts/profile-guest.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "catalog:",

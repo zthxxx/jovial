@@ -1,0 +1,4 @@
+#!/bin/sh
+mode="${1:-lean}"
+case "$mode" in full|lean|minimal) ;; *) exit 64 ;; esac
+exec /bin/su -l zthxxx -c "export JOVIAL_PROFILE_MODE=$mode; export ZDOTDIR=\"\$HOME/.config/jovial-profile\"; exec /bin/zsh -i"

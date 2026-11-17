@@ -1,0 +1,30 @@
+/* Hack Nerd Font Mono 3.5.1: ../fonts/sources.json pins the upstream archive;
+   its license is served at /fonts/LICENSE.md. */
+@font-face {
+  font-family: 'Hack Nerd Font Mono';
+  src: url('/fonts/HackNerdFontMono-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Hack Nerd Font Mono';
+  src: url('/fonts/HackNerdFontMono-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Hack Nerd Font Mono';
+  src: url('/fonts/HackNerdFontMono-Italic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Hack Nerd Font Mono';
+  src: url('/fonts/HackNerdFontMono-BoldItalic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 700;
+  font-display: block;
+}

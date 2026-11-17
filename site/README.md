@@ -30,23 +30,29 @@ The browser must support WebAssembly JSPI. The page checks support before downlo
 | --- | --- |
 | `src/main.ts` | Terminal display, page state and controls |
 | `src/runtime.ts` | Kernel lifecycle and the guest PTY boundary |
+| `src/shell-ready.ts` | First-prompt handshake with the guest shell |
+| `src/terminal.ts` | Terminal font loading and character metrics |
 | `src/demos.ts` | Commands offered by the project shortcuts |
 | `image/` | Guest configuration and sample projects |
 | `image/sources.json` | Pinned kernel and plugin sources with SHA-256 checksums |
+| `fonts/sources.json` | Pinned Hack Nerd Font Mono release and checksum |
+| `scripts/prepare-fonts.ts` | Preparation of self-hosted font files in `public/fonts/` |
 | `scripts/build-image.ts` | Source downloads and build orchestration in Bun |
 | `scripts/image-worker.ts` | Provisioning, image export and verification through Node's JSPI runtime |
 | `scripts/verify-image.ts` | Offline guest verification entry point |
 | `public/runtime/` | Generated kernel, compressed root filesystem, manifest and notices |
 | `.cache/` | Local source cache and complete build logs |
 
-`public/runtime/`, `.cache/` and `dist/` are ignored by Git. CI prepares a new image for each source build.
+`public/runtime/`, `public/fonts/`, `.cache/` and `dist/` are ignored by Git. CI prepares a new image for each source build.
+
+The loading screen stays visible until Zsh has drawn its first prompt and xterm has processed the shell's readiness signal. Hack Nerd Font Mono is loaded before measuring the terminal, with a line height of 1 to keep the prompt's box-drawing lines connected. Font preparation runs automatically for development and website builds.
 
 ## Guest environment
 
 The hostname is `unkernel`. The terminal starts as `zthxxx` in `/home/zthxxx/Project`, with the following environment:
 
 - Zsh and Jovial, initialized through the repository's `examples/zinit.zshrc`
-- Zinit, Oh My Zsh libraries and plugins, fast-syntax-highlighting, zsh-completions and zsh-autosuggestions
+- Zinit, Oh My Zsh libraries and plugins, and zsh-completions
 - curl, Git, Node.js 24, Python 3.14, tmux and zoxide
 - `node-demo`, a Git repository with a modified file on `feat/greeting`
 - `python-demo`, a Git repository with an untracked file and a ready-to-use Python virtual environment
@@ -54,6 +60,12 @@ The hostname is `unkernel`. The terminal starts as `zthxxx` in `/home/zthxxx/Pro
 The image excludes zsh-history-enquirer. Bun 1.4 has no Linux riscv64 release binary, so Bun is used on the build host and is unavailable inside the guest. Exact installed versions and source revisions are recorded in `runtime/manifest.json`.
 
 The build copies Jovial from the current checkout and prepares the plugin cache ahead of time. Updating the theme or example configuration therefore updates the next deployed image. Plugin revisions and checksums are maintained in `image/sources.json`; after changing them, rebuild and run `pnpm verify:image`.
+
+## Local terminal profiling
+
+Run `pnpm dev` and open <http://127.0.0.1:5173/playground/terminal/> to compare full, lean and minimal shell configurations. The page shows browser and guest startup timings, raw Zsh function profiles, run history and JSON export. It is excluded from the production build.
+
+The default preview uses the lean configuration with prebuilt completion caches. The full configuration, including syntax highlighting and history suggestions, remains available in the local profiler. See [Terminal startup performance](./PERFORMANCE.md) for measurements and command-line reproduction.
 
 ## Deployment
 

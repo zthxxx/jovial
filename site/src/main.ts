@@ -4,6 +4,8 @@ import './style.css'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { demos } from './demos.ts'
+import { loadTerminalFonts, terminalOptions } from './terminal.ts'
+import { waitForShellPrompt, waitForTerminalPaint } from './shell-ready.ts'
 import { startSession, type Session } from './runtime.ts'
 import type { BootProgress } from 'unkernel/web'
 
@@ -18,9 +20,7 @@ const status = element('status')
 const retry = element<HTMLButtonElement>('retry')
 const demoContainer = element('demos')
 const term = new Terminal({
-  fontFamily: '"JetBrains Mono Variable", monospace',
-  fontSize: 14,
-  lineHeight: 1.3,
+  ...terminalOptions,
   cursorBlink: true,
   cursorStyle: 'bar',
   scrollback: 3000,
@@ -37,25 +37,31 @@ const term = new Terminal({
 })
 const fit = new FitAddon()
 term.loadAddon(fit)
-term.open(terminalElement)
 let session: Session | undefined
 let controller = new AbortController()
 let generation = 0
 let ready = false
 
 function resize() {
+  if (!term.element) return
   fit.fit()
   element('dimensions').textContent = `${term.cols} × ${term.rows}`
   session?.resize(term.cols, term.rows)
 }
 new ResizeObserver(resize).observe(terminalElement)
 void document.fonts.ready.then(resize)
-term.onData(send)
+// xterm@6.0.0 emits terminal query replies through onData too, including during boot.
+// https://github.com/xtermjs/xterm.js/blob/6.0.0/src/common/services/CoreService.ts#L61
+term.onData(writeToSession)
 
-function send(data: string) {
-  if (!ready || !session) return
+function writeToSession(data: string) {
+  if (!session) return
   const current = generation
   void session.write(data).catch((error) => { if (generation === current) showError(error) })
+}
+
+function send(data: string) {
+  if (ready) writeToSession(data)
 }
 
 function setReady(value: boolean) {
@@ -87,7 +93,8 @@ function showProgress(event: BootProgress) {
     detail.textContent = 'Starting Linux and your preinstalled tools…'
     progress.removeAttribute('value')
   } else if (event.stage === 'start') {
-    detail.textContent = 'Opening Zsh with Jovial…'
+    detail.textContent = 'Loading Zsh and preparing the first prompt…'
+    progress.removeAttribute('value')
     status.textContent = 'Opening Zsh'
   }
 }
@@ -99,6 +106,7 @@ async function start() {
   controller = new AbortController()
   const signal = controller.signal
   await session?.close()
+  await new Promise<void>((resolve) => term.write('', resolve))
   if (generation !== current) return
   session = undefined
   term.reset()
@@ -117,28 +125,58 @@ async function start() {
     showError(new Error('Starting the environment took too long. Try again to restart the download.'))
   }, 120_000)
   try {
-    const created = await startSession({
+    detail.textContent = 'Loading terminal fonts…'
+    await loadTerminalFonts()
+    if (signal.aborted || generation !== current) return
+    if (!term.element) term.open(terminalElement)
+    resize()
+    const promptReady = waitForShellPrompt(term, signal)
+    await Promise.all([promptReady, startSession({
       cols: term.cols, rows: term.rows, signal,
       onProgress: (event) => { if (generation === current) showProgress(event) },
-      onOutput: (bytes) => { if (generation === current) term.write(bytes) },
-      onExit: () => {
-        if (generation !== current) return
-        setReady(false)
-        status.textContent = 'Shell exited · Restart to open a new shell'
-      },
-    })
-    if (signal.aborted || generation !== current) { await created.close(); return }
-    session = created
+    }).then(async (created) => {
+      if (signal.aborted || generation !== current) { await created.close(); return }
+      session = created
+      resize()
+      connectOutput(created, signal, current)
+    })])
+    if (signal.aborted || generation !== current) return
+    clearTimeout(timeout)
+    await new Promise<void>((resolve) => term.write('', resolve))
+    await waitForTerminalPaint(term, signal)
+    if (signal.aborted || generation !== current) return
     boot.hidden = true
     status.textContent = 'Zsh · Alpine Linux · Runs locally'
     resize()
     setReady(true)
     term.focus()
   } catch (error) {
-    if (generation === current && !signal.aborted) showError(error)
+    if (generation === current && !signal.aborted) {
+      showError(error)
+      controller.abort(error)
+    }
   } finally {
     clearTimeout(timeout)
   }
+}
+
+function connectOutput(active: Session, signal: AbortSignal, current: number) {
+  const output = new WritableStream<Uint8Array>({
+    write(bytes) {
+      if (generation !== current || signal.aborted) return
+      return new Promise<void>((resolve) => term.write(bytes, resolve))
+    },
+  })
+  void active.output.pipeTo(output, { signal }).then(() => active.exited).then(() => {
+    if (generation !== current || signal.aborted) return
+    if (!ready) throw new Error('Zsh exited before its first prompt was ready.')
+    setReady(false)
+    status.textContent = 'Shell exited · Restart to open a new shell'
+  }).catch((error) => {
+    if (generation !== current || signal.aborted) return
+    showError(error)
+    controller.abort(error)
+  })
 }
 
 for (const demo of demos) {
