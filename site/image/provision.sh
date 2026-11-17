@@ -34,13 +34,15 @@ for mode in full lean minimal; do
 done
 printf '%s\n' /bin/zsh >> /etc/shells
 
-for project in node-demo python-demo; do
+for project in node-demo python-demo git-demo; do
   dir="/home/zthxxx/Project/$project"
   git -C "$dir" -c init.defaultBranch=main init -q
   git -C "$dir" -c user.name=zthxxx -c user.email=demo@jovial.local add .
   git -C "$dir" -c user.name=zthxxx -c user.email=demo@jovial.local commit -qm 'feat: add greeting demo'
 done
 git -C /home/zthxxx/Project/node-demo checkout -qb feat/greeting
+git -C /home/zthxxx/Project/git-demo checkout -qb feat/preview
+printf 'Preview the Git prompt.\n' >> /home/zthxxx/Project/git-demo/greeting.txt
 printf '\nTry editing the greeting and watching the Git prompt.\n' >> /home/zthxxx/Project/node-demo/README.md
 printf 'Ideas for the next greeting.\n' > /home/zthxxx/Project/python-demo/notes.txt
 python3 -m venv --without-pip /home/zthxxx/Project/python-demo/venv

@@ -28,11 +28,13 @@ The browser must support WebAssembly JSPI. The page checks support before downlo
 
 | Path | Responsibility |
 | --- | --- |
-| `src/main.ts` | Terminal display, page state and controls |
-| `src/runtime.ts` | Kernel lifecycle and the guest PTY boundary |
+| `src/main.ts` | Terminal tabs, active commands and environment lifecycle |
+| `src/terminal-tab.ts` | Per-tab Zsh, output, first-prompt readiness and disposal |
+| `src/resize.ts` | Pointer, touch and keyboard terminal resizing |
+| `src/runtime.ts` | Shared kernel lifecycle and independent guest PTYs |
 | `src/shell-ready.ts` | First-prompt handshake with the guest shell |
 | `src/terminal.ts` | Terminal font loading and character metrics |
-| `src/demos.ts` | Commands offered by the project shortcuts |
+| `src/demos.ts` | Initial directories and each tab's preset commands |
 | `image/` | Guest configuration and sample projects |
 | `image/sources.json` | Pinned kernel and plugin sources with SHA-256 checksums |
 | `fonts/sources.json` | Pinned Hack Nerd Font Mono release and checksum |
@@ -49,13 +51,20 @@ The loading screen stays visible until Zsh has drawn its first prompt and xterm 
 
 ## Guest environment
 
-The hostname is `unkernel`. The terminal starts as `zthxxx` in `/home/zthxxx/Project`, with the following environment:
+The hostname is `unkernel` and every terminal runs as `zthxxx`. Each page load restores four tabs: `~/Project`, `~/Project/python-demo`, `~/Project/node-demo` and `~/Project/git-demo`. New tabs start in `~/Project`; tab labels show their sequence number and initial directory. Tab selection, extra tabs and window dimensions remain local to the current page.
+
+The tabs share one Linux filesystem and have independent Zsh sessions, working directories, environment variables and output. The selected tab is displayed alone. Its preset buttons send commands to that session. Closing a tab closes its PTY; Restart all creates a fresh environment.
+
+The terminal can be resized from its edges or corner, with a minimum of ten rows and approximately one third of the initial desktop width. The resize corner also supports arrow keys and Home to restore its initial size.
+
+The environment includes:
 
 - Zsh and Jovial, initialized through the repository's `examples/zinit.zshrc`
 - Zinit, Oh My Zsh libraries and plugins, and zsh-completions
 - curl, Git, Node.js 24, Python 3.14, tmux and zoxide
 - `node-demo`, a Git repository with a modified file on `feat/greeting`
 - `python-demo`, a Git repository with an untracked file and a ready-to-use Python virtual environment
+- `git-demo`, a Git repository on `feat/preview` with a modified greeting file
 
 The image excludes zsh-history-enquirer. Bun 1.4 has no Linux riscv64 release binary, so Bun is used on the build host and is unavailable inside the guest. Exact installed versions and source revisions are recorded in `runtime/manifest.json`.
 

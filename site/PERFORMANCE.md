@@ -44,7 +44,7 @@ The full configuration initializes completion before Zinit extends `fpath`, then
 
 In the lean configuration, median guest stages included approximately 80 ms for loading the completion dump, 196 ms for Zinit, 99 ms for the theme, 245 ms for Oh My Zsh libraries and plugins, and 99 ms for the first `precmd`. `zprof` report generation is measured after the first prompt and reported separately as `zprofMs`.
 
-The background console uses Alpine's original shell. The visible PTY is the sole automatic Jovial shell started by the preview.
+The background console uses Alpine's original shell. The preview boots one VM shared by all terminal tabs. The initial Project tab starts immediately; the other default tabs create their independent PTYs when first selected, preserving the initial startup cost of one Jovial shell.
 
 ## Rendering
 

@@ -22,11 +22,11 @@
         </section>
         <section class="workspace" aria-label="Live terminal">
           <div class="terminal-bar">
-            <span class="terminal-title">zthxxx<span class="muted">@</span>unkernel <span class="terminal-path">~/Project</span></span>
-            <div class="terminal-actions"><button id="reset" type="button" title="Restart with a fresh environment">Restart</button><button id="fullscreen" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5" /></svg></button></div>
+            <div class="terminal-navigation"><div id="terminal-tabs" class="terminal-tabs" role="tablist" aria-label="Terminal tabs"></div><button id="new-terminal" type="button" aria-label="New terminal" title="Open a new terminal in ~/Project">+</button></div>
+            <div class="terminal-actions"><button id="reset" type="button" title="Restart all terminals with a fresh environment">Restart all</button><button id="fullscreen" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5" /></svg></button></div>
           </div>
           <div class="terminal-body">
-            <div id="terminal" aria-label="Interactive Zsh terminal"></div>
+            <div id="terminal-panels" class="terminal-panels"></div>
             <div id="boot" class="boot" role="status" aria-live="polite">
               <div class="boot-content"><svg class="boot-mark" aria-hidden="true" viewBox="0 0 24 32"><path d="m7 4 10 12L7 28" /></svg><h2 id="boot-title">Getting your shell ready</h2><p id="boot-detail">Checking browser support…</p><progress id="boot-progress" aria-label="Environment download"></progress><button id="retry" type="button" hidden>Try again</button></div>
             </div>
@@ -35,11 +35,11 @@
           <div class="mobile-keys" aria-label="Terminal keys"><button type="button" data-key="escape">Esc</button><button type="button" data-key="tab">Tab</button><button type="button" data-key="interrupt">Ctrl C</button><button type="button" data-key="up" aria-label="Previous command">↑</button><button type="button" data-key="down" aria-label="Next command">↓</button></div>
         </section>
         <section class="explore" aria-label="Try a prompt">
-          <div class="explore-heading"><h2>See the prompt change.</h2><p>Pick a project, or type your own commands.</p></div>
+          <div class="explore-heading"><h2 id="command-title">Project commands</h2><p id="command-detail">Run a preset in the selected terminal.</p></div>
           <div class="demos" id="demos"></div>
         </section>
       </main>
-      <footer><p>Linux runs in this tab. Restart for a fresh environment.</p><p>Powered by <a href="https://github.com/pithings/unkernel">unkernel</a> · <a href="/runtime/NOTICE.txt">Open source</a></p></footer>
+      <footer><p>Linux runs in your browser. Restart for a fresh workspace.</p><p>Powered by <a href="https://github.com/pithings/unkernel">unkernel</a> · <a href="/runtime/NOTICE.txt">Open source</a></p></footer>
     </div>
     <noscript><p class="noscript">Enable JavaScript to start the terminal. You can also <a href="https://github.com/zthxxx/jovial#features--preview">view Jovial screenshots</a>.</p></noscript>
     <script type="module" src="/src/main.ts"></script>
