@@ -1,0 +1,52 @@
+:root, :root[data-theme='dark'] {
+  --page-bg: #000000;
+  --page-text: #ededed;
+  --page-muted: #a8a8a8;
+  --page-surface: #111111;
+  --page-hover: #222222;
+  --page-accent: #59d4e8;
+  --ground: var(--page-bg);
+  --surface: var(--page-surface);
+  --raised: var(--page-hover);
+  --text: var(--page-text);
+  --muted: var(--page-muted);
+  --faint: var(--page-muted);
+  --accent: var(--page-accent);
+}
+:root[data-theme='light'] {
+  --page-bg: #f0f2f4;
+  --page-text: #20272e;
+  --page-muted: #52606c;
+  --page-surface: #ffffff;
+  --page-hover: #e0e5e9;
+  --page-accent: #23687b;
+}
+:root { background: var(--page-bg); color: var(--page-text); }
+body { background: var(--page-bg); color: var(--page-text); }
+a:hover { color: var(--page-accent); }
+::selection { background: var(--page-accent); color: var(--page-bg); }
+.page-nav { align-items: center; gap: 20px; color: var(--page-text); }
+.page-nav span { margin: 0; color: inherit; }
+.github-link, .theme-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; border-radius: 4px; color: var(--page-text); font-size: 13px; }
+.github-link { padding: 0 10px; background: var(--page-surface); }
+.github-link:hover { background: var(--page-hover); color: var(--page-text); text-decoration: none; }
+.github-icon { width: 18px; height: 18px; }
+.github-star-badge { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+.github-star-badge svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+.theme-toggle { padding: 0 8px; }
+.theme-toggle:hover { color: var(--page-text); }
+.theme-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.theme-icon-dark { display: none; }
+:root[data-theme='light'] .theme-icon-light { display: none; }
+:root[data-theme='light'] .theme-icon-dark { display: block; }
+.page-footer { font-size: 12px; }
+.page-footer nav { align-items: center; gap: 16px; font-size: 12px; flex-wrap: wrap; }
+.page-footer a { color: var(--page-muted); }
+.page-footer a:hover { color: var(--page-text); }
+@media (max-width: 600px) {
+  .page-nav { gap: 12px; }
+  .page-nav .install-link { display: none; }
+  .github-link, .theme-toggle { min-height: 44px; }
+  .theme-toggle { width: 44px; padding: 0; }
+  #theme-toggle-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+}

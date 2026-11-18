@@ -1,30 +1,30 @@
 :root, :root[data-theme='dark'] {
   color-scheme: dark;
-  --terminal-bg: #080f0e;
-  --terminal-fg: #e2ece0;
-  --terminal-bar: #14211d;
-  --terminal-hover: #22372d;
-  --terminal-muted: #a6b9ac;
-  --terminal-faint: #94a99c;
-  --terminal-accent: #86d7cb;
-  --terminal-selection: #355448;
-  --terminal-grip: #718d7a;
-  --command-bg: #12251d;
-  --command-hover: #234032;
+  --terminal-bg: #111111;
+  --terminal-fg: #dedede;
+  --terminal-bar: #191919;
+  --terminal-hover: #222222;
+  --terminal-muted: #b4b4b4;
+  --terminal-faint: #949494;
+  --terminal-accent: #59d4e8;
+  --terminal-selection: #38464a;
+  --terminal-grip: #777777;
+  --command-bg: #111111;
+  --command-hover: #222222;
 }
 :root[data-theme='light'] {
   color-scheme: light;
-  --terminal-bg: #fffef7;
-  --terminal-fg: #23392c;
-  --terminal-bar: #e9eee4;
-  --terminal-hover: #d9e3d4;
-  --terminal-muted: #526b59;
-  --terminal-faint: #5a6f60;
-  --terminal-accent: #376947;
-  --terminal-selection: #d3e2cb;
-  --terminal-grip: #78917b;
-  --command-bg: #f7faf1;
-  --command-hover: #dce8d3;
+  --terminal-bg: #ffffff;
+  --terminal-fg: #20272e;
+  --terminal-bar: #e5e8eb;
+  --terminal-hover: #d6dce1;
+  --terminal-muted: #52606c;
+  --terminal-faint: #5a6570;
+  --terminal-accent: #23687b;
+  --terminal-selection: #d3e1e8;
+  --terminal-grip: #83919b;
+  --command-bg: #ffffff;
+  --command-hover: #e0e5e9;
 }
 .workspace {
   color: var(--terminal-fg);

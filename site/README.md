@@ -30,8 +30,7 @@ The browser must support WebAssembly JSPI. The page checks support before downlo
 | --- | --- |
 | `src/main.ts` | Terminal tabs, active commands, appearance switching and environment lifecycle |
 | `src/theme.ts` | Remembered appearance preference and the xterm palette |
-| `src/landing.css` | Landing page layout and light/dark page palettes |
-| `src/landing-assets.ts` | README screenshots and responsive demonstration video |
+| `src/page.css` | Compact homepage layout and neutral light/dark page palettes |
 | `src/github.ts` | Public GitHub Star count |
 | `src/terminal-tab.ts` | Per-tab Zsh, output, first-prompt readiness and disposal |
 | `src/resize.ts` | Pointer, touch and keyboard terminal resizing |

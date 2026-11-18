@@ -47,12 +47,12 @@ export function terminalTheme(): ITheme {
       black: '#263b30', red: '#b43c3c', green: '#376a35', yellow: '#8d621e',
       blue: '#2f6093', magenta: '#85558a', cyan: '#167474', white: '#d6dfd3',
       brightBlack: '#647568', brightRed: '#c24949', brightGreen: '#437d37', brightYellow: '#9b6c16',
-      brightBlue: '#386f9f', brightMagenta: '#96599b', brightCyan: '#127d7c', brightWhite: '#fffef7',
+      brightBlue: '#386f9f', brightMagenta: '#96599b', brightCyan: '#127d7c', brightWhite: '#ffffff',
     } : {
-      black: '#17231d', red: '#ef8580', green: '#a3ce76', yellow: '#e8c47a',
-      blue: '#8caeeb', magenta: '#cba7dc', cyan: '#75d8d2', white: '#e2ece0',
-      brightBlack: '#8caa96', brightRed: '#ff9696', brightGreen: '#b9e88c', brightYellow: '#ffdb91',
-      brightBlue: '#a6c9ff', brightMagenta: '#e6bcf7', brightCyan: '#96ebe4', brightWhite: '#ffffff',
+      black: '#202020', red: '#ef7676', green: '#a3ce76', yellow: '#e8c47a',
+      blue: '#83a9eb', magenta: '#c9a0dc', cyan: '#59d4e8', white: '#dedede',
+      brightBlack: '#8c8c8c', brightRed: '#ff9696', brightGreen: '#b9e88c', brightYellow: '#ffdb91',
+      brightBlue: '#a6c9ff', brightMagenta: '#e6bcf7', brightCyan: '#86e8f4', brightWhite: '#ffffff',
     }),
   }
 }
