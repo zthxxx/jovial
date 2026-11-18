@@ -5,8 +5,7 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { loadTerminalFonts, terminalOptions } from './terminal.ts'
 import { waitForShellPrompt, waitForTerminalPaint } from './shell-ready.ts'
-import { startSession, type Session } from './runtime.ts'
-import type { BootProgress } from 'unkernel/web'
+import { startSession, type Session, type EnvironmentProgress } from './runtime.ts'
 
 type Variant = 'full' | 'lean' | 'minimal'
 interface HostEvent { name: string; atMs: number }
@@ -221,7 +220,7 @@ async function startRun(mode: Variant, currentOperation: number): Promise<void> 
       signal,
       file: '/usr/local/bin/jovial-profile-shell',
       args: [mode],
-      onProgress: (event: BootProgress) => {
+      onProgress: (event: EnvironmentProgress) => {
         if (currentOperation !== operation) return
         if (event.stage === 'download') {
           const label = event.what === 'kernel' ? 'Kernel' : 'Image'

@@ -11,6 +11,10 @@ export const terminalOptions = {
   letterSpacing: 0,
   fontWeight: 'normal',
   fontWeightBold: 'bold',
+  // @xterm/xterm@6.0.0 Viewport.ts and @xterm/addon-fit@0.11.0 FitAddon.ts
+  // both use this width for the custom scrollbar and the space reserved for it.
+  // https://github.com/xtermjs/xterm.js/blob/6.0.0/src/browser/Viewport.ts#L138
+  overviewRuler: { width: 7, showTopBorder: false, showBottomBorder: false },
 } satisfies ITerminalOptions
 
 export async function loadTerminalFonts(): Promise<void> {

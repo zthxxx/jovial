@@ -22,6 +22,8 @@ If the default `node` executable is older than 24, set `JOVIAL_NODE` to a compat
 JOVIAL_NODE=/path/to/node pnpm build:image
 ```
 
+Image builds probe the Alpine riscv64 package index across mirrors, then fall back to the official CDN if installation fails. Set `ALPINE_MIRROR` to a mirror origin to skip the probe. Installer output streams to `.cache/logs/image-build.log`.
+
 The browser must support WebAssembly JSPI. The page checks support before downloading the environment and explains how to proceed when it is unavailable.
 
 ## Project structure
@@ -81,7 +83,7 @@ The build copies Jovial from the current checkout and prepares the plugin cache 
 
 Run `pnpm dev` and open <http://127.0.0.1:5173/playground/terminal/> to compare full, lean and minimal shell configurations. The page shows browser and guest startup timings, raw Zsh function profiles, run history and JSON export. It is excluded from the production build.
 
-The default preview uses the lean configuration with prebuilt completion caches. The full configuration, including syntax highlighting and history suggestions, remains available in the local profiler. See [Terminal startup performance](./PERFORMANCE.md) for measurements and command-line reproduction.
+The default preview uses the lean configuration with fast-syntax-highlighting and prebuilt completion caches. Automatic history suggestions are available in the full configuration in the local profiler. The image installs `~/.config/fsh/secondary_theme.zsh`, which loads the plugin's bundled `free` theme for nested commands and avoids a download during startup. The image build and offline verification check that the plugin uses that directory and that sourcing the file loads the `free` styles. See [Terminal startup performance](./PERFORMANCE.md) for measurements and command-line reproduction.
 
 ## Deployment
 

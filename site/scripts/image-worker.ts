@@ -39,7 +39,21 @@ const vm = await createKernel({
 });
 try {
   if (building) {
-    await command(vm, '/bin/sh /mnt/image/provision.sh');
+    console.log('Installing Alpine packages and preparing the shell');
+    const provision = await vm.spawn('/bin/sh', ['/mnt/image/provision.sh', process.argv[3] ?? ''], { pty: false });
+    const deadline = setTimeout(() => provision.kill('KILL'), 900_000);
+    try {
+      const [end] = await Promise.all([
+        provision.ended,
+        provision.stdout.pipeTo(new WritableStream<Uint8Array>({ write: bytes => { process.stdout.write(bytes); } })),
+        provision.stderr.pipeTo(new WritableStream<Uint8Array>({ write: bytes => { process.stderr.write(bytes); } })),
+        provision.stdin.close(),
+      ]);
+      if (end.type !== 'exit' || end.code !== 0) throw new Error(`Guest provisioning failed: ${JSON.stringify(end)}`);
+    } finally {
+      clearTimeout(deadline);
+      await provision.close();
+    }
     const tools: Record<string, unknown> = {};
     for (const [name, script] of Object.entries({
       node: 'node --version', python: 'python3 --version', zsh: 'zsh --version',
@@ -65,14 +79,15 @@ try {
       tools,
       plugins: [...lock.sources, { repository: 'zthxxx/jovial', revision: (await readFile(join(site, '.cache/input/revision'), 'utf8')).trim() }],
       defaults: { hostname: 'unkernel', user: 'zthxxx', cwd: '/home/zthxxx/Project', shell: '/usr/local/bin/jovial-shell' },
-      shell: { mode: 'lean', highlighting: false, suggestions: false, completionCache: 'prebuilt' },
+      shell: { mode: 'lean', highlighting: true, suggestions: false, completionCache: 'prebuilt' },
       projects: [{ name: 'node-demo', branch: 'feat/greeting' }, { name: 'python-demo', branch: 'main', venv: 'venv' }, { name: 'git-demo', branch: 'feat/preview' }],
     }, null, 2) + '\n');
   } else {
     await command(vm, 'test "$(hostname)" = unkernel; test "$(uname -m)" = riscv64; test ! -e /sys/class/net/eth0; node --version | grep "^v24\\."; python3 --version | grep "^Python 3\\.14\\."; for tool in curl zsh git tmux zoxide; do command -v "$tool"; done');
     await command(vm, "su -l zthxxx -c 'set -e; test \"$(id -un)\" = zthxxx; test \"$PWD\" = /home/zthxxx/Project; test -f node-demo/package.json; test -x python-demo/venv/bin/python; node node-demo/index.js; python-demo/venv/bin/python python-demo/hello.py'");
     await command(vm, "su -l zthxxx -c 'set -e; test -f git-demo/greeting.txt; test \"$(git -C git-demo branch --show-current)\" = feat/preview; git -C git-demo diff --name-only | grep -Fx greeting.txt'");
-    const pluginCheck = 'set -e; test -n "$JOVIAL_VERSION"; (( ${+functions[zinit]} )); (( ! ${+functions[_zsh_autosuggest_start]} )); (( ! ${+functions[_zsh_highlight]} )); (( ${+functions[gfco]} )); (( ${+aliases[g]} )); [[ ${_comps[ab]} = _ab ]]; print -r -- JOVIAL_OFFLINE_READY';
+    const fshCheck = await readFile(join(site, 'image/check-fsh.zsh'), 'utf8');
+    const pluginCheck = `${fshCheck}\nset -e; test -n "$JOVIAL_VERSION"; (( \${+functions[zinit]} )); (( ! \${+functions[_zsh_autosuggest_start]} )); (( \${+functions[gfco]} )); (( \${+aliases[g]} )); [[ \${_comps[ab]} = _ab ]]; print -r -- JOVIAL_OFFLINE_READY`;
     const shellQuote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
     const checked = await vm.exec('/bin/su', ['-l', 'zthxxx', '-c', `zsh -ic ${shellQuote(pluginCheck)}`], { signal: AbortSignal.timeout(120_000) });
     process.stdout.write(checked.stdout);

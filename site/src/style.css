@@ -51,23 +51,12 @@ h1 { margin: 0; font-size: clamp(21px, 2.3vw, 30px); font-weight: 550; letter-sp
 #fullscreen { display: inline-flex; align-items: center; line-height: 1; }
 #fullscreen svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.5; fill: none; }
 .terminal-body { height: var(--terminal-default-height); position: relative; }
-.terminal-panels { position: absolute; inset: 18px 14px 8px 20px; }
+.terminal-panels { position: absolute; inset: 9px 7px 4px 10px; }
 .xterm { height: 100%; }
 .xterm .xterm-viewport { background-color: var(--surface); scrollbar-color: #444 #111; scrollbar-width: thin; }
 .terminal-status { height: 24px; padding: 0 42px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--faint); font-size: 11px; }
 #status { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #dimensions { flex-shrink: 0; }
-.boot { position: absolute; inset: 0; background: var(--surface); display: grid; place-items: center; padding: 32px; }
-.boot-content { max-width: 490px; width: 100%; text-align: center; }
-.boot-mark { width: 24px; height: 32px; stroke: var(--accent); stroke-width: 4; fill: none; }
-.boot h2 { margin: 18px 0 12px; font-size: 16px; font-weight: 500; letter-spacing: -.4px; }
-.boot p { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 0; overflow-wrap: anywhere; }
-.boot progress { display: block; width: 180px; height: 3px; margin: 25px auto 0; accent-color: var(--accent); border: 0; background: #333; }
-.boot progress::-webkit-progress-bar { background: #333; }
-.boot progress::-webkit-progress-value { background: var(--accent); }
-.boot[data-error] .boot-mark { stroke: #ef7676; }
-#retry { display: block; margin: 22px auto 0; padding: 9px 18px; border-radius: 4px; background: var(--text); color: var(--ground); font-size: 12px; }
-#retry:hover { background: #fff; }
 .explore { padding: 52px 0 0; }
 .explore-heading { display: flex; gap: 20px; align-items: baseline; }
 .explore h2 { margin: 0; font-size: 14px; font-weight: 500; }
@@ -107,14 +96,11 @@ footer a { text-decoration: underline; text-underline-offset: 3px; }
   .terminal-actions { gap: 5px; }
   .terminal-actions button { min-height: 44px; }
   .workspace { --terminal-default-height: clamp(285px, 43svh, 440px); }
-  .terminal-panels { inset: 12px 6px 6px 10px; }
+  .terminal-panels { inset: 6px 3px 3px 5px; }
   .terminal-status { padding-left: 12px; font-size: 11px; }
   #dimensions { display: none; }
   .mobile-keys { display: flex; padding: 4px 8px; gap: 6px; background: #191919; }
   .mobile-keys button { flex: 1; min-height: 40px; font-size: 11px; color: var(--muted); }
-  .boot { padding: 24px; }
-  .boot h2 { font-size: 14px; }
-  .boot p { font-size: 11px; }
   .explore { padding-top: 36px; }
   .demos { gap: 8px; margin-top: 14px; }
   .demos button { padding: 13px 12px; min-height: 80px; }

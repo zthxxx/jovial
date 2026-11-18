@@ -15,6 +15,35 @@ const output = join(site, 'public/runtime');
 const lock = JSON.parse(await readFile(join(site, 'image/sources.json'), 'utf8'));
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
+// Probe the riscv64 package index as in slides terminal-glance/image/build.ts. APK still verifies package signatures.
+// https://github.com/zthxxx/slides/blob/14b7ddcccac33fccea2e6c1f74cb17853eb138e6/present/terminal-glance/image/build.ts#L122
+// https://mirrors.alpinelinux.org/
+const alpineMirrors = [
+  'https://dl-cdn.alpinelinux.org',
+  'https://mirror.sjtu.edu.cn',
+  'https://mirrors.tuna.tsinghua.edu.cn',
+  'https://mirrors.aliyun.com',
+  'https://mirrors.ustc.edu.cn',
+];
+
+async function selectAlpineMirror(): Promise<string> {
+  if (process.env.ALPINE_MIRROR) return process.env.ALPINE_MIRROR.replace(/\/+$/, '');
+  const stop = new AbortController();
+  const signal = AbortSignal.any([stop.signal, AbortSignal.timeout(10_000)]);
+  try {
+    return await Promise.any(alpineMirrors.map(async (mirror) => {
+      const index = await fetch(`${mirror}/alpine/v3.24/main/riscv64/APKINDEX.tar.gz`, { signal });
+      if (!index.ok) throw new Error(`${mirror}: HTTP ${index.status}`);
+      await index.arrayBuffer();
+      return mirror;
+    }));
+  } catch {
+    return alpineMirrors[0]!;
+  } finally {
+    stop.abort();
+  }
+}
+
 await mkdir(join(cache, 'sources'), { recursive: true });
 await mkdir(join(cache, 'logs'), { recursive: true });
 await mkdir(output, { recursive: true });
@@ -65,10 +94,11 @@ const node = process.env.JOVIAL_NODE ?? Bun.which('node');
 if (!node) throw new Error('Node.js >=24 is required for the image build');
 const supported = await $`${node} -e ${"process.exit(typeof WebAssembly.Suspending === 'function' ? 0 : 1)"}`.quiet().nothrow();
 if (supported.exitCode !== 0) throw new Error('Node.js >=24 with JSPI is required; set JOVIAL_NODE to its executable');
-console.log('Provisioning the Alpine guest; full output: site/.cache/logs/image-build.log');
+const mirror = await selectAlpineMirror();
+console.log(`Provisioning the Alpine guest from ${mirror}; full output: site/.cache/logs/image-build.log`);
 const log = Bun.file(join(cache, 'logs/image-build.log'));
 const fd = openSync(log.name!, 'w');
-const child = Bun.spawn([node, join(site, 'scripts/image-worker.ts'), 'build'], { cwd: site, stdout: fd, stderr: fd });
+const child = Bun.spawn([node, join(site, 'scripts/image-worker.ts'), 'build', mirror], { cwd: site, stdout: fd, stderr: fd });
 const exitCode = await child.exited;
 closeSync(fd);
 if (exitCode !== 0) throw new Error(`Image build failed (${exitCode}); see ${log.name}`);

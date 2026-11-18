@@ -8,7 +8,7 @@ import { loadTerminalFonts } from './terminal.ts'
 import { TerminalTab } from './terminal-tab.ts'
 import { bootEnvironment, type Environment } from './runtime.ts'
 import { attachTerminalResize } from './resize.ts'
-import type { BootProgress } from 'unkernel/web'
+import { BootScreen } from './boot-progress.ts'
 import { applyColorScheme, getColorScheme, restoreColorScheme } from './theme.ts'
 import { loadGitHubStars } from './github.ts'
 
@@ -21,9 +21,7 @@ const body = document.querySelector<HTMLElement>('.terminal-body')!
 const panels = element('terminal-panels')
 const tabList = element('terminal-tabs')
 const boot = element('boot')
-const title = element('boot-title')
-const detail = element('boot-detail')
-const progress = element<HTMLProgressElement>('boot-progress')
+const bootScreen = new BootScreen(boot)
 const retry = element<HTMLButtonElement>('retry')
 const status = element('status')
 const commands = element('demos')
@@ -58,11 +56,7 @@ function updateControls() {
   for (const button of commands.querySelectorAll<HTMLButtonElement>('button')) button.disabled = !ready
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-key]')) button.disabled = !ready
   if (!tab) {
-    boot.hidden = false
-    delete boot.dataset.error
-    title.textContent = 'Open a terminal'
-    detail.textContent = 'Create a new tab to return to ~/Project.'
-    progress.hidden = true
+    bootScreen.message('Open a terminal', 'Create a new tab to return to ~/Project.')
     retry.hidden = false
     retry.textContent = 'New terminal'
     status.textContent = 'No open terminals'
@@ -70,22 +64,14 @@ function updateControls() {
     return
   }
   const failed = environmentState === 'error' || tab.state === 'error'
-  boot.hidden = ready || tab.state === 'exited'
   retry.hidden = !failed
   retry.textContent = 'Try again'
-  progress.hidden = failed
   if (failed) {
-    boot.dataset.error = ''
-    title.textContent = 'Your shell could not start'
-    detail.textContent = environmentError || tab.error
+    bootScreen.message('Your shell could not start', environmentError || tab.error, true)
     status.textContent = 'Could not start'
   } else {
-    delete boot.dataset.error
-    title.textContent = 'Getting your shell ready'
-    if (environmentState === 'ready' && !ready) {
-      detail.textContent = `Opening Zsh in ${tab.preset.label}…`
-      progress.removeAttribute('value')
-    }
+    if (ready || tab.state === 'exited') boot.hidden = true
+    else bootScreen.show()
     status.textContent = ready ? ''
       : tab.state === 'exited' ? 'Shell exited · Open another terminal'
         : environmentState === 'loading' ? 'Starting Linux' : 'Opening Zsh'
@@ -204,18 +190,6 @@ const resize = attachTerminalResize({
 })
 new ResizeObserver(() => { active()?.resize(); updateControls() }).observe(body)
 
-function showProgress(event: BootProgress) {
-  if (!active()) return
-  if (event.stage === 'download') {
-    const name = event.what === 'kernel' ? 'Linux kernel' : 'Preinstalled environment'
-    detail.textContent = `${name} · ${(event.loaded / 1048576).toFixed(1)}${event.total ? ` / ${(event.total / 1048576).toFixed(1)}` : ''} MiB`
-    if (event.total) { progress.max = event.total; progress.value = event.loaded } else progress.removeAttribute('value')
-  } else if (event.stage === 'compiled' || event.stage === 'start') {
-    detail.textContent = 'Starting Linux and opening Zsh…'
-    progress.removeAttribute('value')
-  }
-}
-
 async function start(focusTerminal = true) {
   const current = ++generation
   add.disabled = true
@@ -228,12 +202,8 @@ async function start(focusTerminal = true) {
   const previous = [...tabs.values()]
   tabs.clear()
   activeId = undefined
-  boot.hidden = false
+  bootScreen.reset()
   retry.hidden = true
-  progress.hidden = false
-  progress.removeAttribute('value')
-  title.textContent = 'Getting your shell ready'
-  detail.textContent = 'Starting a fresh environment…'
   status.textContent = 'Starting Linux'
   for (const button of document.querySelectorAll<HTMLButtonElement>('#demos button, [data-key]')) button.disabled = true
   await Promise.all(previous.map((entry) => entry.tab.dispose()))
@@ -247,13 +217,12 @@ async function start(focusTerminal = true) {
   const signal = currentController.signal
   environmentState = 'loading'
   environmentError = ''
-  detail.textContent = 'Loading your environment and terminal fonts…'
-  progress.hidden = false
-  progress.removeAttribute('value')
   const timeout = setTimeout(() => currentController.abort(new Error('Starting Linux took too long. Try again.')), 120_000)
   environmentReady = Promise.all([
     loadTerminalFonts(),
-    bootEnvironment({ signal, onProgress: (event) => { if (generation === current && !signal.aborted) showProgress(event) } }),
+    bootEnvironment({ signal, onProgress: (event) => {
+      if (generation === current && !signal.aborted) bootScreen.update(event)
+    } }),
   ]).then(async ([, ready]) => {
     if (generation !== current || signal.aborted) {
       await ready.close()

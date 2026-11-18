@@ -1,0 +1,105 @@
+.boot {
+  --boot-done: #83d99c;
+  --boot-failed: #ff9a9a;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  align-items: safe center;
+  justify-items: center;
+  padding: 8px 12px;
+  overflow: auto;
+  container-type: inline-size;
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme='light'] .boot {
+  --boot-done: #247247;
+  --boot-failed: #b82836;
+}
+
+.boot-content { width: min(100%, 352px); }
+
+.boot h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6em;
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.boot-prompt { color: var(--boot-done); }
+.boot[data-error] .boot-prompt { color: var(--boot-failed); }
+.boot p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--terminal-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.boot-stages {
+  display: grid;
+  grid-template-columns: 1ch max-content minmax(0, 1fr);
+  gap: 5px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--terminal-muted);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.boot-stages li { display: contents; }
+.boot-stages [data-state='waiting'] { color: var(--terminal-faint); }
+.boot-stages [data-state='active'] { color: var(--terminal-fg); }
+.boot-stages [data-state='active'] .boot-mark {
+  color: var(--terminal-accent);
+  animation: boot-pulse 1.1s ease-in-out infinite;
+}
+.boot-stages [data-state='done'] .boot-mark { color: var(--boot-done); }
+.boot-detail { color: var(--terminal-faint); }
+
+.boot progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin: 14px auto 0;
+  appearance: none;
+  accent-color: var(--terminal-accent);
+  border: 0;
+  border-radius: 2px;
+  background: var(--terminal-divider);
+  overflow: hidden;
+}
+.boot progress::-webkit-progress-bar { background: var(--terminal-divider); }
+.boot progress::-webkit-progress-value { background: var(--terminal-accent); transition: width .2s linear; }
+.boot progress::-moz-progress-bar { background: var(--terminal-accent); }
+
+#retry {
+  display: block;
+  margin: 16px auto 0;
+  padding: 9px 18px;
+  border-radius: 4px;
+  background: var(--terminal-fg);
+  color: var(--terminal-bg);
+  font-size: 12px;
+}
+
+@keyframes boot-pulse { 50% { opacity: .42; } }
+
+@container (max-width: 380px) {
+  .boot h2 { font-size: 16px; }
+  .boot-stages { gap: 4px 6px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-stages [data-state='active'] .boot-mark { animation: none; }
+  .boot progress::-webkit-progress-value { transition: none; }
+}

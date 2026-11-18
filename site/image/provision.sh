@@ -2,10 +2,20 @@
 set -eu
 
 # Package installation runs only in the build VM; the published VM has no network device.
-printf '%s\n' \
-  'https://dl-cdn.alpinelinux.org/alpine/v3.24/main' \
-  'https://dl-cdn.alpinelinux.org/alpine/v3.24/community' > /etc/apk/repositories
-apk add --no-cache curl zsh git 'nodejs~24' 'python3~3.14' tmux zoxide
+official_mirror=https://dl-cdn.alpinelinux.org
+set_repositories() {
+  printf '%s\n' "$1/alpine/v3.24/main" "$1/alpine/v3.24/community" > /etc/apk/repositories
+}
+mirror="${1:-$official_mirror}"
+set_repositories "$mirror"
+set -- curl zsh git 'nodejs~24' 'python3~3.14' tmux zoxide
+if ! apk add --no-cache "$@"; then
+  [ "$mirror" != "$official_mirror" ] || exit 1
+  printf 'Retrying Alpine package installation from %s\n' "$official_mirror" >&2
+  set_repositories "$official_mirror"
+  apk add --no-cache "$@"
+fi
+set_repositories "$official_mirror"
 adduser -D -s /bin/zsh zthxxx
 passwd -d zthxxx
 install -d -m 755 /home/zthxxx/Project /home/zthxxx/.local/share/zinit/plugins
@@ -15,7 +25,8 @@ for plugin in ohmyzsh---ohmyzsh zdharma-continuum---fast-syntax-highlighting zsh
 done
 cp -R /mnt/input/theme /home/zthxxx/.local/share/zinit/plugins/zthxxx---jovial
 cp /mnt/input/zshrc /home/zthxxx/.zshrc
-install -d -m 755 /home/zthxxx/.config
+install -d -m 755 /home/zthxxx/.config/fsh
+cp /mnt/image/secondary_theme.zsh /home/zthxxx/.config/fsh/secondary_theme.zsh
 cp /mnt/image/terminal-ready.zsh /home/zthxxx/.config/jovial-preview.zsh
 printf '\nsource "$HOME/.config/jovial-preview.zsh"\n' >> /home/zthxxx/.zshrc
 cp /mnt/image/zprofile /home/zthxxx/.zprofile
@@ -50,13 +61,17 @@ python3 -m venv --without-pip /home/zthxxx/Project/python-demo/venv
 chown -R zthxxx:zthxxx /home/zthxxx
 # Preloaded sources bypass Zinit's clone hook, so register their completions explicitly.
 # zinit@d7b10fc: https://github.com/zdharma-continuum/zinit/blob/d7b10fcab51ea034aa7df5d241604b3e6bf46449/zinit.zsh#L3147
+printf 'Preparing the Zsh completion cache\n'
 su -l zthxxx -c 'zsh -ic "zinit creinstall -q zsh-users/zsh-completions && zinit creinstall -q zdharma-continuum/fast-syntax-highlighting && rm -f ~/.zcompdump* && autoload -Uz compinit && compinit"'
 
 for mode in full lean minimal; do
   cp /home/zthxxx/.zcompdump "/home/zthxxx/.config/jovial-profile/$mode.zcompdump"
 done
 chown -R zthxxx:zthxxx /home/zthxxx/.config/jovial-profile
+printf 'Checking the bundled FSH secondary theme\n'
+cp /mnt/image/check-fsh.zsh /tmp/jovial-check-fsh.zsh
+su -l zthxxx -c 'zsh -ic "source /tmp/jovial-check-fsh.zsh"'
 
-apk info -v > /etc/jovial-packages.txt
+apk --no-network info -v > /etc/jovial-packages.txt
 rm -rf /root/.cache /root/.ash_history /var/cache/apk/* /tmp/*
 printf '\nJOVIAL_IMAGE_PROVISIONED\n'

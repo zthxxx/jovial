@@ -55,8 +55,19 @@
           </div>
           <div class="terminal-body">
             <div id="terminal-panels" class="terminal-panels"></div>
-            <div id="boot" class="boot" role="status" aria-live="polite">
-              <div class="boot-content"><svg class="boot-mark" aria-hidden="true" viewBox="0 0 24 32"><path d="m7 4 10 12L7 28" /></svg><h2 id="boot-title">Getting your shell ready</h2><p id="boot-detail">Checking browser support…</p><progress id="boot-progress" aria-label="Environment download"></progress><button id="retry" type="button" hidden>Try again</button></div>
+            <div id="boot" class="boot">
+              <div class="boot-content">
+                <h2 id="boot-title" role="status"><span class="boot-prompt" aria-hidden="true">❯</span><span id="boot-label">Booting Linux…</span></h2>
+                <ol id="boot-stages" class="boot-stages">
+                  <li data-stage="kernel" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Download kernel</span><span class="boot-detail">WebAssembly</span></li>
+                  <li data-stage="disk" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Download disk</span><span class="boot-detail">Alpine Linux</span></li>
+                  <li data-stage="linux" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Boot Linux</span><span class="boot-detail">Kernel and init</span></li>
+                  <li data-stage="shell" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Start shell</span><span class="boot-detail">Zsh and Jovial</span></li>
+                </ol>
+                <progress id="boot-progress" max="1" value="0" aria-label="Kernel and disk download progress"></progress>
+                <p id="boot-detail" hidden></p>
+                <button id="retry" type="button" hidden>Try again</button>
+              </div>
             </div>
           </div>
           <div class="mobile-keys" aria-label="Terminal keys"><button type="button" data-key="escape">Esc</button><button type="button" data-key="tab">Tab</button><button type="button" data-key="interrupt">Ctrl C</button><button type="button" data-key="up" aria-label="Previous command">↑</button><button type="button" data-key="down" aria-label="Next command">↓</button></div>

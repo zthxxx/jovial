@@ -1,6 +1,8 @@
 # Terminal startup performance
 
-The default preview uses the lean shell: Jovial, Zinit, Oh My Zsh helpers, Git aliases and Zsh completions. Its completion dump is generated during the image build. Syntax highlighting and automatic history suggestions are disabled.
+The default preview uses the lean shell: Jovial, Zinit, Oh My Zsh helpers, Git aliases, Zsh completions and Fast Syntax Highlighting. Its completion dump is generated during the image build. Automatic history suggestions stay disabled.
+
+The image sets `FAST_WORK_DIR` to `~/.config/fsh` and ships a `secondary_theme.zsh` that sources FSH's bundled `free` theme. This removes the startup download and preserves highlighting inside `$(…)`. The image build and offline verification both check the work directory and load the secondary styles. FSH loads before the shell announces readiness.
 
 The browser keeps the loading screen visible until the shell's first prompt has been drawn, its readiness signal has been parsed, and xterm has rendered the viewport. Terminal fonts are loaded before measuring character cells.
 
@@ -15,6 +17,14 @@ Open <http://127.0.0.1:5173/playground/terminal/>. Each measurement starts a new
 
 The debug HTML is a separate Vite development entry. It is absent from `site/dist/`, and the production entry does not import its modules.
 
+## Browser loading
+
+The production build splits the page entry and terminal dependencies into separately cached modules, with one stylesheet. Vite preloads the terminal module. Supported browsers preload the initrd and kernel in parallel at low priority so page assets can take precedence. The runtime consumes those same responses and compiles the kernel while it streams. A terminal restart reuses the compiled module.
+
+The loading screen uses a system monospace font and reports kernel download, image download, Linux startup and shell startup separately. The full preinstalled initrd is loaded before the VM boots, so opening the Python or Node demos needs no guest network.
+
+In three headless Chromium reloads of the local production build with cached assets, the prompt appeared in 1.38–1.41 s with FSH enabled, against 1.13–1.18 s before restoring it. The first typed key appeared in xterm's rendered rows after 31–34 ms, against 33–34 ms before. These measurements include the browser and guest warmup and use the same terminal and host machine.
+
 For a repeatable offline guest comparison:
 
 ```sh
@@ -24,7 +34,7 @@ pnpm profile:shell 2 lean
 
 The first command runs four rounds of the five configurations below in alternating order. The second starts a new VM and measures the lean configuration twice. Complete results and output are saved under `site/.cache/logs/`.
 
-## Measurements
+## Baseline before restoring Fast Syntax Highlighting
 
 Measured on 2026-11-18 on an Apple M5 Pro, using Node.js 25.9.0 and unkernel `0.1.0-261117-0e4b2ec`. The offline Alpine riscv64 guest had 768 MiB of memory and one CPU.
 

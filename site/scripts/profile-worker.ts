@@ -98,7 +98,7 @@ try {
       }
     }
   }
-  const check = 'set -e; [[ ${_comps[ab]} = _ab ]]; (( ${+functions[gfco]} )); (( ! ${+functions[_zsh_autosuggest_start]} )); (( ! ${+functions[_zsh_highlight]} )); print -r -- LEAN_COMPLETIONS_AND_THEME_READY'
+  const check = 'set -e; [[ ${_comps[ab]} = _ab ]]; (( ${+functions[gfco]} )); (( ! ${+functions[_zsh_autosuggest_start]} )); (( ${+functions[_zsh_highlight]} )); [[ $FAST_WORK_DIR = "$XDG_CONFIG_HOME/fsh" && -s $FAST_WORK_DIR/secondary_theme.zsh ]]; print -r -- LEAN_COMPLETIONS_AND_THEME_READY'
   const quoted = "'" + check.replaceAll("'", "'\\''") + "'"
   const completion = await vm.exec('/bin/su', ['-l', 'zthxxx', '-c', `export JOVIAL_PROFILE_MODE=lean; export ZDOTDIR="$HOME/.config/jovial-plain"; /bin/zsh -ic ${quoted}`])
   if (completion.exitCode !== 0) throw new Error(`Lean completion check failed: ${completion.stderr}`)
