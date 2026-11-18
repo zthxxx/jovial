@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "bad7c6fb8e184d3c04c3ed6e8e929edcda843c92",
+  "builtAt": "2026-11-18T17:45:57.292Z",
+  "unkernel": {
+    "version": "0.1.0-261117-0e4b2ec",
+    "sha256": "d93cb001bafa8e96c0d87ee947ea81bb3cec27c3498c244a51cec1ded2f25a16"
+  },
+  "image": {
+    "file": "jovial.cpio.gz",
+    "sha256": "6c8600108a2271c7730aff51695a6e11f76d07f67462b89811a322bb849e2761",
+    "bytes": 56695323
+  },
+  "tools": {
+    "node": "v24.22.3",
+    "python": "Python 3.14.10",
+    "zsh": "zsh 5.9 (riscv64-alpine-linux-musl)",
+    "git": "git version 2.54.1",
+    "curl": "curl 8.23.0 (riscv64-alpine-linux-musl) libcurl/8.23.0 OpenSSL/3.5.9 zlib/1.3.2 brotli/1.2.1 zstd/1.5.7 c-ares/1.34.9 libidn2/2.3.8 libpsl/0.21.5 nghttp2/1.70.0",
+    "tmux": "tmux 3.7c",
+    "zoxide": "zoxide 0.9.9",
+    "bun": {
+      "available": false,
+      "reason": "Bun 1.4 does not publish a Linux riscv64 binary."
+    }
+  },
+  "plugins": [
+    {
+      "repository": "zdharma-continuum/zinit",
+      "revision": "d7b10fcab51ea034aa7df5d241604b3e6bf46449",
+      "sha256": "0edad49405977437aa6533b7738317dfa7e7b2b25e8d40b106ba409301e35b76"
+    },
+    {
+      "repository": "ohmyzsh/ohmyzsh",
+      "revision": "c0140703a53eb0d22be44f7bac318d0baacc927c",
+      "sha256": "9b0661db3e7466dd396de2a1591ff9b5981572417649254c9d656ac086b09251"
+    },
+    {
+      "repository": "zdharma-continuum/fast-syntax-highlighting",
+      "revision": "4672ad5dd9ad68a7effc1476d65afb7c584ce2b3",
+      "sha256": "b3cc42c674cb7fc84c225b8a36eb9c45a9f965348e235e7b3bc97c74e58c5299"
+    },
+    {
+      "repository": "zsh-users/zsh-completions",
+      "revision": "989b23277ab33e8d5e82df6aed936e846db9d8b8",
+      "sha256": "5930d81617f5cca0937383dd354c7c78efda44375c9a8808a238c8671be11c77"
+    },
+    {
+      "repository": "zsh-users/zsh-autosuggestions",
+      "revision": "85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5",
+      "sha256": "20665e469e720e674964a66854d5534b9af78cdfd438512746ecd1ade8e819ce"
+    },
+    {
+      "repository": "zthxxx/jovial",
+      "revision": "bad7c6fb8e184d3c04c3ed6e8e929edcda843c92"
+    }
+  ],
+  "defaults": {
+    "hostname": "unkernel",
+    "user": "zthxxx",
+    "cwd": "/home/zthxxx/Project",
+    "shell": "/usr/local/bin/jovial-shell"
+  },
+  "shell": {
+    "mode": "lean",
+    "highlighting": true,
+    "suggestions": false,
+    "completionCache": "prebuilt"
+  },
+  "projects": [
+    {
+      "name": "node-demo",
+      "branch": "feat/greeting"
+    },
+    {
+      "name": "python-demo",
+      "branch": "main",
+      "venv": "venv"
+    },
+    {
+      "name": "git-demo",
+      "branch": "feat/preview"
+    }
+  ]
+}

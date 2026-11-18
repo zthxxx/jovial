@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="A clean and fast Zsh theme with a responsive prompt. Try Jovial live, explore Git and development environments, and get a straightforward shell without unnecessary complexity." />
+    <script>
+      (() => {
+        let theme = 'dark'
+        try {
+          const saved = localStorage.getItem('jovial-color-scheme')
+          if (saved === 'dark' || saved === 'light') theme = saved
+        } catch {}
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
+    <title>Jovial — a clean, fast, responsive Zsh theme</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script type="module" crossorigin src="/assets/index-zparWRYN.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/terminal-CgvE2EuP.js">
+    <link rel="stylesheet" crossorigin href="/assets/style-Di8vAzrM.css">
+    <script>if (typeof WebAssembly === 'object' && typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function') {
+  for (const href of ["/runtime/unkernel.wasm?v=d93cb001bafa8e96c0d87ee947ea81bb3cec27c3498c244a51cec1ded2f25a16","/runtime/jovial.cpio.gz?v=6c8600108a2271c7730aff51695a6e11f76d07f67462b89811a322bb849e2761"]) {
+    const preload = document.createElement('link')
+    preload.rel = 'preload'
+    preload.as = 'fetch'
+    preload.crossOrigin = 'anonymous'
+    preload.fetchPriority = 'low'
+    preload.href = href
+    document.head.append(preload)
+  }
+}</script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="header">
+        <a class="brand" href="https://github.com/zthxxx/jovial" target="_blank" rel="noopener noreferrer" aria-label="Jovial on GitHub"><svg class="brand-mark" aria-hidden="true" viewBox="0 0 16 24"><path d="m4 3 8 9-8 9" /></svg> jovial<span class="brand-context"> / playground</span></a>
+        <nav class="page-nav" aria-label="Project">
+          <a class="install-link" href="https://github.com/zthxxx/jovial#install" target="_blank" rel="noopener noreferrer">Install Jovial</a>
+          <a id="github-link" class="github-link" href="https://github.com/zthxxx/jovial" target="_blank" rel="noopener noreferrer" aria-label="Jovial on GitHub">
+            <!-- GitHub mark: primer/octicons@68ec2de8, icons/mark-github-24.svg (MIT). -->
+            <svg class="github-icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943" /></svg>
+            <span class="github-star-badge"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m10 2 2.45 4.96 5.47.8-3.96 3.86.94 5.46L10 14.5l-4.9 2.58.94-5.46L2.08 7.76l5.47-.8Z" /></svg><span id="github-star-count">Star</span></span>
+          </a>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to light theme" title="Switch to light theme">
+            <svg class="theme-icon theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+            <svg class="theme-icon theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.6 13.2A8.8 8.8 0 0 1 10.8 3.4 8.8 8.8 0 1 0 20.6 13.2Z"/></svg>
+            <span id="theme-toggle-label">Light theme</span>
+          </button>
+        </nav>
+      </header>
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <h1 id="page-title">A clean and fast Zsh theme.</h1>
+          <p>A straightforward shell with a responsive prompt. Git status and language versions, without unnecessary complexity.</p>
+          <div class="feature-guides" role="group" aria-label="Explore Jovial features">
+            <button id="guide-setup" class="feature-guide" type="button" title="Open the preconfigured workspace">No setup</button>
+            <button id="guide-git" class="feature-guide" type="button" title="Open the Git demo and inspect its working tree">Fast Git status</button>
+            <button id="guide-responsive" class="feature-guide" type="button" aria-pressed="false" title="Toggle a narrower terminal to see the prompt adapt">Responsive prompt</button>
+            <button id="guide-colors" class="feature-guide" type="button" title="Switch appearance and restart the demo">Adaptive colors</button>
+          </div>
+        </section>
+        <section class="workspace" id="live-preview" aria-label="Live terminal" data-ui>
+          <div class="terminal-bar">
+            <div class="terminal-navigation"><div id="terminal-tabs" class="terminal-tabs" role="tablist" aria-label="Terminal tabs"></div><button id="new-terminal" type="button" aria-label="New terminal" title="Open a new terminal in ~/Project">+</button></div>
+            <div class="terminal-actions"><button id="reset" type="button" title="Restart all terminals with a fresh environment">Restart all</button><button id="fullscreen" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5" /></svg></button></div>
+          </div>
+          <div class="terminal-body">
+            <div id="terminal-panels" class="terminal-panels"></div>
+            <div id="boot" class="boot">
+              <div class="boot-content">
+                <h2 id="boot-title" role="status"><span class="boot-prompt" aria-hidden="true">❯</span><span id="boot-label">Booting Linux…</span></h2>
+                <ol id="boot-stages" class="boot-stages">
+                  <li data-stage="kernel" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Download kernel</span><span class="boot-detail">WebAssembly</span></li>
+                  <li data-stage="disk" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Download disk</span><span class="boot-detail">Alpine Linux</span></li>
+                  <li data-stage="linux" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Boot Linux</span><span class="boot-detail">Kernel and init</span></li>
+                  <li data-stage="shell" data-state="waiting"><span class="boot-mark" aria-hidden="true">○</span><span>Start shell</span><span class="boot-detail">Zsh and Jovial</span></li>
+                </ol>
+                <progress id="boot-progress" max="1" value="0" aria-label="Kernel and disk download progress"></progress>
+                <p id="boot-detail" hidden></p>
+                <button id="retry" type="button" hidden>Try again</button>
+              </div>
+            </div>
+          </div>
+          <div class="mobile-keys" aria-label="Terminal keys"><button type="button" data-key="escape">Esc</button><button type="button" data-key="tab">Tab</button><button type="button" data-key="interrupt">Ctrl C</button><button type="button" data-key="up" aria-label="Previous command">↑</button><button type="button" data-key="down" aria-label="Next command">↓</button></div>
+          <div class="terminal-status"><span id="status" role="status">Starting Linux</span><span id="dimensions"></span></div>
+        </section>
+        <section class="explore" aria-label="Try a prompt" data-ui>
+          <div class="explore-heading"><h2>Preset commands</h2><p id="command-detail">Run a preset in the selected terminal.</p></div>
+          <div class="demos" id="demos"></div>
+        </section>
+      </main>
+      <footer class="page-footer">
+        <p>Jovial is open source and built for a straightforward Zsh experience.</p>
+        <nav aria-label="Jovial resources"><a href="https://github.com/zthxxx/jovial#features--preview" target="_blank" rel="noopener noreferrer">Documentation</a><a href="https://github.com/zthxxx/jovial#install" target="_blank" rel="noopener noreferrer">Install</a><a href="https://github.com/zthxxx/jovial/blob/master/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></nav>
+      </footer>
+    </div>
+    <noscript><p class="noscript">Enable JavaScript to start the terminal. You can also <a href="https://github.com/zthxxx/jovial#features--preview">view Jovial screenshots</a>.</p></noscript>
+  </body>
+</html>

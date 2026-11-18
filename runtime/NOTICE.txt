@@ -1,0 +1,19 @@
+Jovial browser preview
+
+Linux kernel and SDK: unkernel 0.1.0-261117-0e4b2ec
+Source and build scripts: https://github.com/pithings/unkernel/tree/v0.1.0-261117-0e4b2ec
+Kernel license: ./unkernel-LICENSE (GPL-2.0)
+SDK license: ./unkernel-LICENSE-MIT (MIT)
+
+Guest packages: Alpine Linux v3.24 riscv64, https://alpinelinux.org
+Installed package versions: /etc/jovial-packages.txt inside the guest.
+Package metadata and licenses: /lib/apk/db/installed inside the guest.
+Package sources: https://gitlab.alpinelinux.org/alpine/aports/-/tree/3.24-stable
+
+Zinit and plugin source revisions: ./manifest.json
+Plugin licenses are retained in /home/zthxxx/.local/share/zinit inside the guest.
+Jovial source: https://github.com/zthxxx/jovial
+
+JetBrains Mono variable font (Fontsource package): ./font-LICENSE
+Font source: https://github.com/JetBrains/JetBrainsMono
+Hack Nerd Font Mono source and license: ../fonts/NOTICE.txt

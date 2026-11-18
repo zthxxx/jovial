@@ -1,0 +1,4 @@
+Hack Nerd Font Mono 3.5.1
+Source: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/Hack.tar.xz
+Archive SHA-256: cdd389472e10e2261520140ff1b382b4f8a226af5fd0b2735b975d31151d9c3c
+License: ./LICENSE.md
