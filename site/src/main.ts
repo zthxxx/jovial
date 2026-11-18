@@ -86,7 +86,7 @@ function updateControls() {
       detail.textContent = `Opening Zsh in ${tab.preset.label}…`
       progress.removeAttribute('value')
     }
-    status.textContent = ready ? 'Zsh · Alpine Linux · Runs locally'
+    status.textContent = ready ? ''
       : tab.state === 'exited' ? 'Shell exited · Open another terminal'
         : environmentState === 'loading' ? 'Starting Linux' : 'Opening Zsh'
   }
@@ -96,7 +96,6 @@ function updateControls() {
 function showCommands() {
   commands.replaceChildren()
   const tab = active()
-  element('command-title').textContent = tab ? `${tab.preset.name} commands` : 'Terminal commands'
   element('command-detail').textContent = tab ? `Run a preset in terminal ${tab.id}, or type your own commands.` : 'Open a terminal to try a command.'
   for (const preset of tab?.preset.commands ?? []) {
     const button = document.createElement('button')

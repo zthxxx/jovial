@@ -36,18 +36,12 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
   const listeners = new AbortController()
   let drag: Drag | undefined
 
-  const bar = document.createElement('div')
-  bar.className = 'terminal-resize-bar'
-  const hint = document.createElement('span')
-  hint.className = 'terminal-resize-hint'
-  hint.textContent = 'Drag edges or corner to resize'
   const corner = document.createElement('button')
   corner.type = 'button'
   corner.className = 'terminal-resize-corner'
   corner.setAttribute('aria-label', 'Resize terminal')
   corner.title = 'Drag to resize. Arrow keys resize; Home resets.'
   corner.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 19 12-12M13 19l6-6M19 19h.01" /></svg>'
-  bar.append(hint, corner)
   const right = document.createElement('div')
   right.className = 'terminal-resize-edge terminal-resize-right'
   right.setAttribute('aria-hidden', 'true')
@@ -58,7 +52,7 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
   const reference = document.createElement('div')
   reference.className = 'terminal-resize-height-reference'
   reference.setAttribute('aria-hidden', 'true')
-  element.append(bar, right, bottom, reference)
+  element.append(corner, right, bottom, reference)
 
   let size: Size = { widthRatio: 1, heightRatio: 1 }
   element.dataset.resizable = ''
@@ -157,7 +151,7 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
       finish()
       listeners.abort()
       observer.disconnect()
-      bar.remove()
+      corner.remove()
       right.remove()
       bottom.remove()
       reference.remove()

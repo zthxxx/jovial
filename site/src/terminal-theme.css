@@ -47,8 +47,7 @@
   --faint: var(--page-muted);
 }
 .workspace .terminal-bar,
-.workspace .mobile-keys,
-.workspace .terminal-resize-bar { background: var(--terminal-bar); }
+.workspace .mobile-keys { background: var(--terminal-bar); }
 .workspace .terminal-resize-corner:hover { background: var(--terminal-hover); }
 .workspace .terminal-resize-edge::after { background: var(--terminal-grip); }
 .workspace .terminal-resize-edge:hover::after,
