@@ -6,10 +6,12 @@
   --page-hover: #252e38;
   --page-accent: #79d4e0;
   --page-control-ring: #79d4e0;
-  --page-light: rgb(91 115 145 / 29%);
-  --page-wash: rgb(74 110 120 / 18%);
-  --page-sheen: rgb(92 110 134 / 16%);
-  --page-dot: rgb(133 169 194 / 22%);
+  --page-light: rgb(99 133 190 / 30%);
+  --page-wash: rgb(50 141 145 / 17%);
+  --page-sheen: rgb(139 159 176 / 8%);
+  --page-grid: rgb(136 170 199 / 15%);
+  --page-grid-major: rgb(155 187 213 / 13%);
+  --page-dot: rgb(109 166 175 / 27%);
   --ground: var(--page-bg);
   --surface: var(--page-surface);
   --raised: var(--page-hover);
@@ -26,10 +28,12 @@
   --page-hover: #d6e0e8;
   --page-accent: #216579;
   --page-control-ring: #216579;
-  --page-light: rgb(171 191 213 / 48%);
-  --page-wash: rgb(255 255 255 / 66%);
-  --page-sheen: rgb(174 194 212 / 26%);
-  --page-dot: rgb(65 105 132 / 22%);
+  --page-light: rgb(133 171 211 / 44%);
+  --page-wash: rgb(154 207 202 / 27%);
+  --page-sheen: rgb(255 255 255 / 72%);
+  --page-grid: rgb(70 107 141 / 14%);
+  --page-grid-major: rgb(70 107 141 / 11%);
+  --page-dot: rgb(52 114 124 / 23%);
 }
 :root { background: var(--page-bg); color: var(--page-text); }
 body {
@@ -37,9 +41,9 @@ body {
   color: var(--page-text);
   background-color: var(--page-bg);
   background-image:
-    radial-gradient(ellipse 900px 480px at 100% 4%, var(--page-light), transparent 80%),
-    radial-gradient(ellipse 800px 360px at 0 0, var(--page-wash), transparent 80%),
-    radial-gradient(ellipse 1000px 420px at 35% 100%, var(--page-sheen), transparent 80%);
+    radial-gradient(ellipse 760px 420px at calc(50% + 430px) -50px, var(--page-light), transparent 78%),
+    radial-gradient(ellipse 640px 480px at calc(50% - 650px) 400px, var(--page-wash), transparent 78%),
+    radial-gradient(ellipse 900px 480px at 65% 100%, var(--page-sheen), transparent 80%);
   background-repeat: no-repeat;
 }
 a:hover { color: var(--page-accent); }
@@ -88,16 +92,43 @@ a:hover { color: var(--page-accent); }
   .feature-guide { min-height: 44px; padding: 8px; font-size: 12px; }
 }
 
-body::before {
+body::before, body::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+}
+body::before {
+  background-image:
+    linear-gradient(var(--page-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-grid-major) 1px, transparent 1px),
+    linear-gradient(var(--page-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-grid) 1px, transparent 1px);
+  background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 700px 420px at calc(50% + 450px) 10px, #000 8%, transparent 83%);
+}
+body::after {
   background-image: radial-gradient(circle, var(--page-dot) 1px, transparent 1.35px);
-  background-size: 24px 24px;
-  background-position: 12px 12px;
+  background-size: 18px 18px;
+  background-position: 9px 9px;
+  mask-image:
+    radial-gradient(ellipse 240px 420px at calc(50% - 650px) 540px, #000 8%, transparent 82%),
+    radial-gradient(ellipse 250px 220px at calc(50% + 690px) 880px, #000 8%, transparent 82%);
 }
 @media (max-width: 600px) {
-  body::before { background-size: 20px 20px; background-position: 10px 10px; }
+  body {
+    background-image:
+      radial-gradient(ellipse 430px 390px at 100% 0, var(--page-light), transparent 85%),
+      radial-gradient(ellipse 300px 470px at -80px 580px, var(--page-wash), transparent 80%),
+      radial-gradient(ellipse 400px 380px at 100% 100%, var(--page-sheen), transparent 85%);
+  }
+  body::before {
+    background-size: 128px 128px, 128px 128px, 32px 32px, 32px 32px;
+    mask-image: radial-gradient(ellipse 300px 320px at 100% 20px, #000 8%, transparent 85%);
+  }
+  body::after {
+    mask-image: radial-gradient(ellipse 110px 280px at 0 620px, #000 8%, transparent 85%);
+  }
 }
