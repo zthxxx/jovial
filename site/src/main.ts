@@ -217,11 +217,16 @@ async function start(focusTerminal = true) {
   const signal = currentController.signal
   environmentState = 'loading'
   environmentError = ''
-  const timeout = setTimeout(() => currentController.abort(new Error('Starting Linux took too long. Try again.')), 120_000)
+  // A slow connection can take minutes to transfer the full initrd even while it is progressing.
+  const stall = () => setTimeout(() => currentController.abort(new Error('Linux startup stopped making progress. Try again.')), 60_000)
+  let timeout = stall()
   environmentReady = Promise.all([
     loadTerminalFonts(),
     bootEnvironment({ signal, onProgress: (event) => {
-      if (generation === current && !signal.aborted) bootScreen.update(event)
+      if (generation !== current || signal.aborted) return
+      clearTimeout(timeout)
+      timeout = stall()
+      bootScreen.update(event)
     } }),
   ]).then(async ([, ready]) => {
     if (generation !== current || signal.aborted) {
