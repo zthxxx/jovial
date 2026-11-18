@@ -9,8 +9,7 @@
   --page-light: rgb(99 133 190 / 30%);
   --page-wash: rgb(50 141 145 / 17%);
   --page-sheen: rgb(139 159 176 / 8%);
-  --page-grid: rgb(136 170 199 / 15%);
-  --page-grid-major: rgb(155 187 213 / 13%);
+  --page-dot-top: rgb(155 187 213 / 30%);
   --page-dot: rgb(109 166 175 / 27%);
   --ground: var(--page-bg);
   --surface: var(--page-surface);
@@ -31,8 +30,7 @@
   --page-light: rgb(133 171 211 / 44%);
   --page-wash: rgb(154 207 202 / 27%);
   --page-sheen: rgb(255 255 255 / 72%);
-  --page-grid: rgb(70 107 141 / 14%);
-  --page-grid-major: rgb(70 107 141 / 11%);
+  --page-dot-top: rgb(70 107 141 / 24%);
   --page-dot: rgb(52 114 124 / 23%);
 }
 :root { background: var(--page-bg); color: var(--page-text); }
@@ -100,13 +98,9 @@ body::before, body::after {
   pointer-events: none;
 }
 body::before {
-  background-image:
-    linear-gradient(var(--page-grid-major) 1px, transparent 1px),
-    linear-gradient(90deg, var(--page-grid-major) 1px, transparent 1px),
-    linear-gradient(var(--page-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--page-grid) 1px, transparent 1px);
-  background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px;
-  background-position: center top;
+  background-image: radial-gradient(circle, var(--page-dot-top) 1px, transparent 1.5px);
+  background-size: 24px 24px;
+  background-position: 12px 12px;
   mask-image: radial-gradient(ellipse 700px 420px at calc(50% + 450px) 10px, #000 8%, transparent 83%);
 }
 body::after {
@@ -125,7 +119,8 @@ body::after {
       radial-gradient(ellipse 400px 380px at 100% 100%, var(--page-sheen), transparent 85%);
   }
   body::before {
-    background-size: 128px 128px, 128px 128px, 32px 32px, 32px 32px;
+    background-size: 22px 22px;
+    background-position: 11px 11px;
     mask-image: radial-gradient(ellipse 300px 320px at 100% 20px, #000 8%, transparent 85%);
   }
   body::after {
