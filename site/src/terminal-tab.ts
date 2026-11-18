@@ -4,6 +4,7 @@ import { terminalOptions } from './terminal.ts'
 import { waitForShellPrompt, waitForTerminalPaint } from './shell-ready.ts'
 import type { Environment, Session } from './runtime.ts'
 import type { TerminalPreset } from './demos.ts'
+import { terminalTheme } from './theme.ts'
 
 type State = 'idle' | 'opening' | 'ready' | 'exited' | 'error' | 'closed'
 
@@ -12,13 +13,7 @@ export class TerminalTab {
   readonly term = new Terminal({
     ...terminalOptions,
     cursorBlink: true, cursorStyle: 'bar', scrollback: 3000, screenReaderMode: true,
-    theme: {
-      background: '#111111', foreground: '#dedede', cursor: '#dedede', selectionBackground: '#38464a',
-      black: '#202020', red: '#ef7676', green: '#a3ce76', yellow: '#e8c47a',
-      blue: '#83a9eb', magenta: '#c9a0dc', cyan: '#59d4e8', white: '#dedede',
-      brightBlack: '#8c8c8c', brightRed: '#ff9696', brightGreen: '#b9e88c', brightYellow: '#ffdb91',
-      brightBlue: '#a6c9ff', brightMagenta: '#e6bcf7', brightCyan: '#86e8f4', brightWhite: '#ffffff',
-    },
+    theme: terminalTheme(),
   })
   state: State = 'idle'
   error = ''

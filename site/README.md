@@ -1,4 +1,4 @@
-# Jovial playground
+# Jovial website and playground
 
 [Open the playground](https://jovial.zthxxx.me) to use Jovial in a real Zsh shell. The static site runs an Alpine Linux riscv64 guest through [unkernel](https://github.com/pithings/unkernel), entirely in the visitor's browser.
 
@@ -28,7 +28,11 @@ The browser must support WebAssembly JSPI. The page checks support before downlo
 
 | Path | Responsibility |
 | --- | --- |
-| `src/main.ts` | Terminal tabs, active commands and environment lifecycle |
+| `src/main.ts` | Terminal tabs, active commands, appearance switching and environment lifecycle |
+| `src/theme.ts` | Remembered appearance preference and the xterm palette |
+| `src/landing.css` | Landing page layout and light/dark page palettes |
+| `src/landing-assets.ts` | README screenshots and responsive demonstration video |
+| `src/github.ts` | Public GitHub Star count |
 | `src/terminal-tab.ts` | Per-tab Zsh, output, first-prompt readiness and disposal |
 | `src/resize.ts` | Pointer, touch and keyboard terminal resizing |
 | `src/runtime.ts` | Shared kernel lifecycle and independent guest PTYs |
@@ -52,6 +56,8 @@ The loading screen stays visible until Zsh has drawn its first prompt and xterm 
 ## Guest environment
 
 The hostname is `unkernel` and every terminal runs as `zthxxx`. Each page load restores four tabs: `~/Project`, `~/Project/python-demo`, `~/Project/node-demo` and `~/Project/git-demo`. New tabs start in `~/Project`; tab labels show their sequence number and initial directory. Tab selection, extra tabs and window dimensions remain local to the current page.
+
+The appearance button switches the page and terminal together, then restarts the entire demo with four fresh tabs. Jovial reads the terminal background through OSC 11 and selects its own light or dark prompt palette. The selected appearance is remembered in the browser.
 
 The tabs share one Linux filesystem and have independent Zsh sessions, working directories, environment variables and output. The selected tab is displayed alone. Its preset buttons send commands to that session. Closing a tab closes its PTY; Restart all creates a fresh environment.
 

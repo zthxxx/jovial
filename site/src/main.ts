@@ -1,12 +1,20 @@
 import '@fontsource-variable/jetbrains-mono'
 import '@xterm/xterm/css/xterm.css'
 import './style.css'
+import './landing.css'
+import './landing-assets.ts'
+import './terminal-theme.css'
 import { defaultPresets, presets, type TerminalPreset } from './demos.ts'
 import { loadTerminalFonts } from './terminal.ts'
 import { TerminalTab } from './terminal-tab.ts'
 import { bootEnvironment, type Environment } from './runtime.ts'
 import { attachTerminalResize } from './resize.ts'
 import type { BootProgress } from 'unkernel/web'
+import { applyColorScheme, getColorScheme, restoreColorScheme } from './theme.ts'
+import { loadGitHubStars } from './github.ts'
+
+restoreColorScheme()
+void loadGitHubStars()
 
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
 const workspace = document.querySelector<HTMLElement>('.workspace')!
@@ -211,19 +219,28 @@ function showProgress(event: BootProgress) {
   }
 }
 
-async function start() {
+async function start(focusTerminal = true) {
   const current = ++generation
   add.disabled = true
   reset.disabled = true
   retry.disabled = true
   controller.abort()
+  const previousEnvironment = environment
+  environment = undefined
   const previous = [...tabs.values()]
   tabs.clear()
   activeId = undefined
+  boot.hidden = false
+  retry.hidden = true
+  progress.hidden = false
+  progress.removeAttribute('value')
+  title.textContent = 'Getting your shell ready'
+  detail.textContent = 'Starting a fresh environment…'
+  status.textContent = 'Starting Linux'
+  for (const button of document.querySelectorAll<HTMLButtonElement>('#demos button, [data-key]')) button.disabled = true
   await Promise.all(previous.map((entry) => entry.tab.dispose()))
-  await environment?.close()
+  await previousEnvironment?.close()
   if (generation !== current) return
-  environment = undefined
   tabList.replaceChildren()
   panels.replaceChildren()
   nextId = 1
@@ -261,7 +278,7 @@ async function start() {
   add.disabled = false
   reset.disabled = false
   retry.disabled = false
-  select(1)
+  select(1, focusTerminal)
 }
 
 add.addEventListener('click', () => select(create()))
@@ -284,6 +301,10 @@ document.addEventListener('fullscreenchange', () => {
   fullscreen.setAttribute('aria-label', document.fullscreenElement ? 'Exit fullscreen' : 'Enter fullscreen')
   active()?.resize()
   updateControls()
+})
+element<HTMLButtonElement>('theme-toggle')?.addEventListener('click', () => {
+  applyColorScheme(getColorScheme() === 'dark' ? 'light' : 'dark', true)
+  void start(false)
 })
 window.addEventListener('pagehide', () => { controller.abort() })
 window.addEventListener('pageshow', (event) => { if (event.persisted) void start() })
