@@ -1,28 +1,32 @@
+/* Background and foreground follow terminal-glance/runtime/appearance.ts:
+   https://github.com/zthxxx/slides/blob/4306a4552a174cd811f22a3421f41278214cef7f/present/terminal-glance/runtime/appearance.ts */
 :root, :root[data-theme='dark'] {
   color-scheme: dark;
-  --terminal-bg: #111111;
-  --terminal-fg: #dedede;
-  --terminal-bar: #191919;
-  --terminal-hover: #222222;
-  --terminal-muted: #b4b4b4;
-  --terminal-faint: #949494;
+  --terminal-bg: #272936;
+  --terminal-fg: #f8f8f2;
+  --terminal-bar: #1e1f29;
+  --terminal-hover: #363949;
+  --terminal-muted: #c3c7d4;
+  --terminal-faint: #a5abbd;
   --terminal-accent: #59d4e8;
-  --terminal-selection: #38464a;
-  --terminal-grip: #777777;
+  --terminal-selection: #44475a;
+  --terminal-grip: #858da6;
+  --terminal-divider: #4f5367;
   --command-bg: #111111;
   --command-hover: #222222;
 }
 :root[data-theme='light'] {
   color-scheme: light;
-  --terminal-bg: #ffffff;
-  --terminal-fg: #20272e;
-  --terminal-bar: #e5e8eb;
-  --terminal-hover: #d6dce1;
-  --terminal-muted: #52606c;
-  --terminal-faint: #5a6570;
-  --terminal-accent: #23687b;
-  --terminal-selection: #d3e1e8;
-  --terminal-grip: #83919b;
+  --terminal-bg: #f6f5f1;
+  --terminal-fg: #292d3e;
+  --terminal-bar: #e5e5e9;
+  --terminal-hover: #d9dce4;
+  --terminal-muted: #505971;
+  --terminal-faint: #596176;
+  --terminal-accent: #176e80;
+  --terminal-selection: #cbd5e7;
+  --terminal-grip: #858ca1;
+  --terminal-divider: #b8bdc8;
   --command-bg: #ffffff;
   --command-hover: #e0e5e9;
 }

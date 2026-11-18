@@ -27,6 +27,7 @@ export function applyColorScheme(scheme: ColorScheme, remember = false) {
   const button = document.getElementById('theme-toggle')
   button?.setAttribute('aria-label', `Switch to ${next} theme`)
   button?.setAttribute('title', `Switch to ${next} theme and restart all terminals`)
+  document.getElementById('guide-colors')?.setAttribute('title', `Switch to ${next} theme to see Jovial adapt; restarts all terminals`)
   const label = document.getElementById('theme-toggle-label')
   if (label) label.textContent = `${next === 'dark' ? 'Dark' : 'Light'} theme`
   const pageColor = getComputedStyle(root).getPropertyValue('--page-bg').trim()

@@ -50,6 +50,8 @@ export class TerminalTab {
     if (focus && this.state === 'ready') this.term.focus()
   }
 
+  whenReady(): Promise<void> { return this.starting ??= this.start() }
+
   hide() { this.focusRequested = false; this.panel.hidden = true }
 
   resize() {

@@ -27,7 +27,6 @@ const progress = element<HTMLProgressElement>('boot-progress')
 const retry = element<HTMLButtonElement>('retry')
 const status = element('status')
 const commands = element('demos')
-const explore = document.querySelector<HTMLElement>('.explore')!
 const add = element<HTMLButtonElement>('new-terminal')
 const reset = element<HTMLButtonElement>('reset')
 interface Entry { tab: TerminalTab; button: HTMLButtonElement; item: HTMLElement }
@@ -198,9 +197,9 @@ const resize = attachTerminalResize({
     const row = active()?.panel.querySelector('.xterm-rows > div')?.getBoundingClientRect().height || 16
     return workspace.getBoundingClientRect().height - panels.getBoundingClientRect().height + row * 10 + 1
   },
-  onResize() {
+  onResize({ widthRatio }) {
     active()?.resize()
-    explore.style.width = `${workspace.getBoundingClientRect().width}px`
+    element('guide-responsive')?.setAttribute('aria-pressed', String(widthRatio < 0.99))
     updateControls()
   },
 })
@@ -223,6 +222,7 @@ async function start(focusTerminal = true) {
   add.disabled = true
   reset.disabled = true
   retry.disabled = true
+  for (const button of document.querySelectorAll<HTMLButtonElement>('#guide-setup, #guide-git')) button.disabled = true
   controller.abort()
   const previousEnvironment = environment
   environment = undefined
@@ -277,6 +277,7 @@ async function start(focusTerminal = true) {
   add.disabled = false
   reset.disabled = false
   retry.disabled = false
+  for (const button of document.querySelectorAll<HTMLButtonElement>('#guide-setup, #guide-git')) button.disabled = false
   select(1, focusTerminal)
 }
 
@@ -301,9 +302,28 @@ document.addEventListener('fullscreenchange', () => {
   active()?.resize()
   updateControls()
 })
-element<HTMLButtonElement>('theme-toggle')?.addEventListener('click', () => {
+function switchAppearance() {
   applyColorScheme(getColorScheme() === 'dark' ? 'light' : 'dark', true)
   void start(false)
+}
+
+async function tryFeature(preset: TerminalPreset, command: string) {
+  if (reset.disabled) return
+  const current = generation
+  const existing = [...tabs.values()].find((entry) => entry.tab.preset.key === preset.key && entry.tab.state !== 'exited' && entry.tab.state !== 'error')
+  const id = existing?.tab.id ?? create(preset)
+  select(id)
+  const tab = tabs.get(id)!.tab
+  await tab.whenReady()
+  if (generation === current && activeId === id) tab.send(`\x15${command}\r`)
+}
+
+element<HTMLButtonElement>('theme-toggle').addEventListener('click', switchAppearance)
+element<HTMLButtonElement>('guide-colors').addEventListener('click', switchAppearance)
+element<HTMLButtonElement>('guide-setup').addEventListener('click', () => { void tryFeature(presets.project, 'cd ~/Project && ls') })
+element<HTMLButtonElement>('guide-git').addEventListener('click', () => { void tryFeature(presets.git, 'cd ~/Project/git-demo && git status --short') })
+element<HTMLButtonElement>('guide-responsive').addEventListener('click', () => {
+  resize.setWidthRatio(resize.getWidthRatio() < 0.9 ? 1 : 0.45)
 })
 window.addEventListener('pagehide', () => { controller.abort() })
 window.addEventListener('pageshow', (event) => { if (event.persisted) void start() })

@@ -34,14 +34,15 @@ nav span { margin-left: 4px; color: var(--faint); }
 .intro { padding: 27px 0 30px; }
 h1 { margin: 0; font-size: clamp(21px, 2.3vw, 30px); font-weight: 550; letter-spacing: -1.1px; line-height: 1.35; }
 .intro p { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
-.workspace { background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+.workspace { --terminal-default-height: clamp(330px, 48vh, 540px); background: var(--surface); border-radius: var(--radius); overflow: hidden; }
 .terminal-bar { height: 49px; padding: 0 10px 0 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #191919; }
 .terminal-navigation { display: flex; align-items: stretch; flex: 1; min-width: 0; height: 100%; }
 .terminal-tabs { display: flex; align-items: stretch; overflow-x: auto; min-width: 0; scrollbar-width: thin; scrollbar-color: #555 #191919; }
-.terminal-tab-item { max-width: 100%; display: flex; align-items: stretch; flex: 0 0 auto; color: var(--faint); }
+.terminal-tab-item { position: relative; max-width: 100%; display: flex; align-items: stretch; flex: 0 0 auto; color: var(--faint); }
 .terminal-tab-item[data-selected] { background: var(--surface); color: var(--text); }
 .terminal-tab { overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: 220px; padding: 0 8px 0 12px; font-size: 11px; color: inherit; white-space: nowrap; }
-.terminal-tab[aria-selected='true'] { box-shadow: inset 0 -2px var(--text); }
+.terminal-tab-item[data-selected]::before { content: ''; position: absolute; z-index: 1; pointer-events: none; inset: auto 0 0; height: 2px; background: var(--text); }
+.terminal-tab-item:not(:last-child)::after { content: ''; position: absolute; z-index: 1; pointer-events: none; right: 0; top: 25%; height: 50%; width: 1px; background: var(--terminal-divider); }
 .terminal-tab-close { width: 25px; flex: 0 0 25px; padding: 0; font-size: 17px; color: inherit; }
 #new-terminal { flex: 0 0 34px; font-size: 22px; color: var(--muted); padding: 0; }
 .terminal-panel { position: absolute; inset: 0; }
@@ -49,7 +50,7 @@ h1 { margin: 0; font-size: clamp(21px, 2.3vw, 30px); font-weight: 550; letter-sp
 .terminal-actions button { border-radius: 4px; padding: 6px 8px; color: var(--muted); font-size: 11px; min-height: 32px; }
 #fullscreen { display: inline-flex; align-items: center; line-height: 1; }
 #fullscreen svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.5; fill: none; }
-.terminal-body { height: clamp(330px, 48vh, 540px); position: relative; }
+.terminal-body { height: var(--terminal-default-height); position: relative; }
 .terminal-panels { position: absolute; inset: 18px 14px 8px 20px; }
 .xterm { height: 100%; }
 .xterm .xterm-viewport { background-color: var(--surface); scrollbar-color: #444 #111; scrollbar-width: thin; }
@@ -103,7 +104,7 @@ footer a { text-decoration: underline; text-underline-offset: 3px; }
   .terminal-tab { max-width: 170px; padding-left: 10px; }
   .terminal-actions { gap: 5px; }
   .terminal-actions button { min-height: 44px; }
-  .terminal-body { height: clamp(285px, 43svh, 440px); }
+  .workspace { --terminal-default-height: clamp(285px, 43svh, 440px); }
   .terminal-panels { inset: 12px 6px 6px 10px; }
   .terminal-status { padding: 0 12px; font-size: 11px; }
   #dimensions { display: none; }

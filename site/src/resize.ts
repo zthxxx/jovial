@@ -4,24 +4,35 @@ export interface TerminalResizeOptions {
   element: HTMLElement
   container: HTMLElement
   getMinimumHeight(): number
-  onResize?(): void
+  /** The rendered proportion includes the current minimum-width constraint. */
+  onResize?(size: { widthRatio: number }): void
 }
 
 export interface TerminalResizeHandle {
   reset(): void
   refresh(): void
+  setWidthRatio(ratio: number): void
+  /** User intent survives temporary minimum-width constraints on narrow screens. */
+  getWidthRatio(): number
   destroy(): void
 }
 
 type Axis = 'both' | 'width' | 'height'
-interface Size { width: number; height: number }
-interface Drag extends Size { pointer: number; x: number; y: number; axis: Axis; target: HTMLElement }
+interface Size { widthRatio: number; heightRatio: number }
+interface Drag {
+  original: Size
+  width: number
+  height: number
+  pointer: number
+  x: number
+  y: number
+  target: HTMLElement
+}
 
 export function attachTerminalResize(options: TerminalResizeOptions): TerminalResizeHandle {
   const { element, container, getMinimumHeight, onResize } = options
-  const original = { width: element.style.width, height: element.style.height }
-  const initialRect = element.getBoundingClientRect()
-  const minimumWidth = Math.max(initialRect.width / 3, Math.min(360, initialRect.width))
+  const original = { width: element.style.width, minHeight: element.style.minHeight, heightRatio: element.style.getPropertyValue('--terminal-height-ratio') }
+  const body = element.querySelector<HTMLElement>('.terminal-body')!
   const listeners = new AbortController()
   let drag: Drag | undefined
 
@@ -43,12 +54,13 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
   const bottom = document.createElement('div')
   bottom.className = 'terminal-resize-edge terminal-resize-bottom'
   bottom.setAttribute('aria-hidden', 'true')
-  element.append(bar, right, bottom)
+  // Resolve the responsive CSS height without duplicating its breakpoints in JavaScript.
+  const reference = document.createElement('div')
+  reference.className = 'terminal-resize-height-reference'
+  reference.setAttribute('aria-hidden', 'true')
+  element.append(bar, right, bottom, reference)
 
-  const initial = { width: initialRect.width, height: initialRect.height + bar.getBoundingClientRect().height }
-  let size = { ...initial }
-  element.style.width = `${initial.width}px`
-  element.style.height = `${initial.height}px`
+  let size: Size = { widthRatio: 1, heightRatio: 1 }
   element.dataset.resizable = ''
 
   function availableWidth() {
@@ -59,21 +71,22 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
     if (document.fullscreenElement === element) return
     const maximumWidth = availableWidth()
     if (maximumWidth <= 0) return
-    size = {
-      width: Math.max(Math.min(minimumWidth, maximumWidth), Math.min(maximumWidth, next.width)),
-      height: Math.max(getMinimumHeight(), next.height),
-    }
-    element.style.width = `${size.width}px`
-    element.style.height = `${size.height}px`
-    corner.setAttribute('aria-label', `Resize terminal, ${Math.round(size.width)} by ${Math.round(size.height)} pixels`)
-    onResize?.()
+    size = { widthRatio: Math.max(1 / 3, Math.min(1, next.widthRatio)), heightRatio: Math.max(0, next.heightRatio) }
+    // A narrow viewport may clamp the rendered width without changing the user's proportion.
+    const widthRatio = Math.max(size.widthRatio, Math.min(288, maximumWidth) / maximumWidth)
+    element.style.width = `${widthRatio * 100}%`
+    element.style.setProperty('--terminal-height-ratio', String(size.heightRatio))
+    element.style.minHeight = `${getMinimumHeight()}px`
+    const rect = element.getBoundingClientRect()
+    corner.setAttribute('aria-label', `Resize terminal, ${Math.round(rect.width)} by ${Math.round(rect.height)} pixels`)
+    onResize?.({ widthRatio })
   }
   function finish(cancel = false) {
     const ended = drag
     if (!ended) return
     drag = undefined
     delete element.dataset.resizing
-    if (cancel) apply(ended)
+    if (cancel) apply(ended.original)
     if (ended.target.hasPointerCapture(ended.pointer)) ended.target.releasePointerCapture(ended.pointer)
   }
   function bind(target: HTMLElement, axis: Axis) {
@@ -82,7 +95,7 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
       event.preventDefault()
       finish()
       const rect = element.getBoundingClientRect()
-      drag = { width: rect.width, height: rect.height, x: event.clientX, y: event.clientY, pointer: event.pointerId, axis, target }
+      drag = { original: { ...size }, width: rect.width, height: body.getBoundingClientRect().height, x: event.clientX, y: event.clientY, pointer: event.pointerId, target }
       element.dataset.resizing = axis
       target.setPointerCapture(event.pointerId)
       corner.focus({ preventScroll: true })
@@ -90,9 +103,11 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
     target.addEventListener('pointermove', (event) => {
       if (!drag || drag.pointer !== event.pointerId || drag.target !== target) return
       event.preventDefault()
+      const dx = event.clientX - drag.x
+      const dy = event.clientY - drag.y
       apply({
-        width: drag.width + (axis === 'height' ? 0 : event.clientX - drag.x),
-        height: drag.height + (axis === 'width' ? 0 : event.clientY - drag.y),
+        widthRatio: axis === 'height' || dx === 0 ? drag.original.widthRatio : (drag.width + dx) / availableWidth(),
+        heightRatio: axis === 'width' || dy === 0 ? drag.original.heightRatio : (drag.height + dy) / reference.getBoundingClientRect().height,
       })
     }, { signal: listeners.signal })
     for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
@@ -105,14 +120,18 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
   corner.addEventListener('keydown', (event) => {
     if (document.fullscreenElement === element) return
     const step = event.shiftKey ? 64 : 16
-    const direction: Record<string, Size> = {
+    const direction: Record<string, { width: number; height: number }> = {
       ArrowLeft: { width: -step, height: 0 }, ArrowRight: { width: step, height: 0 },
       ArrowUp: { width: 0, height: -step }, ArrowDown: { width: 0, height: step },
     }
-    if (event.key === 'Home') { event.preventDefault(); apply(initial) }
+    if (event.key === 'Home') { event.preventDefault(); apply({ widthRatio: 1, heightRatio: 1 }) }
     else if (direction[event.key]) {
       event.preventDefault()
-      apply({ width: size.width + direction[event.key]!.width, height: size.height + direction[event.key]!.height })
+      const delta = direction[event.key]!
+      apply({
+        widthRatio: delta.width ? (element.getBoundingClientRect().width + delta.width) / availableWidth() : size.widthRatio,
+        heightRatio: delta.height ? (body.getBoundingClientRect().height + delta.height) / reference.getBoundingClientRect().height : size.heightRatio,
+      })
     }
   }, { signal: listeners.signal })
   document.addEventListener('keydown', (event) => {
@@ -127,11 +146,13 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
     if (width !== previousWidth) { previousWidth = width; apply(size) }
   })
   observer.observe(container)
-  apply(initial)
+  apply(size)
 
   return {
-    reset() { finish(); apply(initial) },
+    reset() { finish(); apply({ widthRatio: 1, heightRatio: 1 }) },
     refresh() { apply(size) },
+    setWidthRatio(widthRatio) { finish(); apply({ ...size, widthRatio }) },
+    getWidthRatio() { return size.widthRatio },
     destroy() {
       finish()
       listeners.abort()
@@ -139,9 +160,12 @@ export function attachTerminalResize(options: TerminalResizeOptions): TerminalRe
       bar.remove()
       right.remove()
       bottom.remove()
+      reference.remove()
       delete element.dataset.resizable
       element.style.width = original.width
-      element.style.height = original.height
+      element.style.minHeight = original.minHeight
+      if (original.heightRatio) element.style.setProperty('--terminal-height-ratio', original.heightRatio)
+      else element.style.removeProperty('--terminal-height-ratio')
     },
   }
 }

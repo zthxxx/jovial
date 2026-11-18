@@ -7,7 +7,21 @@
 .workspace[data-resizable] .terminal-bar,
 .workspace[data-resizable] .terminal-status,
 .workspace[data-resizable] .mobile-keys { flex-shrink: 0; }
-.workspace[data-resizable] .terminal-body { flex: 1 1 0; min-height: 0; height: auto; }
+.workspace[data-resizable] .terminal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(var(--terminal-default-height) * var(--terminal-height-ratio, 1));
+}
+.terminal-resize-height-reference {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: var(--terminal-default-height);
+  visibility: hidden;
+  pointer-events: none;
+  contain: strict;
+}
 .terminal-resize-bar {
   position: relative;
   display: flex;
@@ -71,6 +85,7 @@
 .workspace[data-resizing='height'] { cursor: ns-resize; }
 .workspace[data-resizable]:fullscreen .terminal-resize-bar,
 .workspace[data-resizable]:fullscreen .terminal-resize-edge { display: none; }
+.workspace[data-resizable]:fullscreen .terminal-body { flex: 1; height: auto; }
 @media (max-width: 600px) {
   .terminal-resize-bar { padding-left: 12px; }
 }

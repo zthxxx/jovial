@@ -30,7 +30,7 @@ The browser must support WebAssembly JSPI. The page checks support before downlo
 | --- | --- |
 | `src/main.ts` | Terminal tabs, active commands, appearance switching and environment lifecycle |
 | `src/theme.ts` | Remembered appearance preference and the xterm palette |
-| `src/page.css` | Compact homepage layout and neutral light/dark page palettes |
+| `src/page.css` | Homepage layout, light/dark page palettes and background decoration |
 | `src/github.ts` | Public GitHub Star count |
 | `src/terminal-tab.ts` | Per-tab Zsh, output, first-prompt readiness and disposal |
 | `src/resize.ts` | Pointer, touch and keyboard terminal resizing |
@@ -60,7 +60,9 @@ The appearance button switches the page and terminal together, then restarts the
 
 The tabs share one Linux filesystem and have independent Zsh sessions, working directories, environment variables and output. The selected tab is displayed alone. Its preset buttons send commands to that session. Closing a tab closes its PTY; Restart all creates a fresh environment.
 
-The terminal can be resized from its edges or corner, with a minimum of ten rows and approximately one third of the initial desktop width. The resize corner also supports arrow keys and Home to restore its initial size.
+The terminal can be resized from its edges or corner, with a minimum of ten rows and approximately one third of the available width. Its width and height are kept as proportions, so browser resizing preserves the chosen size and restores it after a narrow viewport. Preset commands keep the full content width independently of the terminal. The resize corner also supports arrow keys and Home to restore the current responsive default size.
+
+The feature guides open the preconfigured workspace, inspect the Git demo, change the terminal width, or switch appearance and restart the environment.
 
 The environment includes:
 
